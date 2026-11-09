@@ -1,124 +1,6 @@
-<!DOCTYPE html>
-<html>
+﻿<!DOCTYPE html>
+<html lang="ja">
 <head>
-                <style></style>
-            </head>
-            <body>
-                <script>(function installLiveweaveConsoleBridge() {
-        if (window.__liveweaveConsoleBridge) return;
-        window.__liveweaveConsoleBridge = true;
-
-        function format(value) {
-            if (typeof value === 'string') return value;
-            if (typeof value === 'undefined') return 'undefined';
-            if (typeof value === 'function') return value.toString();
-            if (value instanceof Error) return value.name + ': ' + value.message;
-            if (value instanceof Element) return value.outerHTML;
-            try {
-                var seen = [];
-                return JSON.stringify(value, function(key, item) {
-                    if (typeof item === 'object' && item !== null) {
-                        if (seen.indexOf(item) !== -1) return '[Circular]';
-                        seen.push(item);
-                    }
-                    return item;
-                }, 2);
-            } catch (err) {
-                return String(value);
-            }
-        }
-
-        function send(type, values, id) {
-            parent.postMessage({
-                source: 'liveweave-preview-console',
-                type: type,
-                id: id || '',
-                values: (values || []).map(format)
-            }, '*');
-        }
-
-        ['log', 'info', 'warn', 'error', 'debug'].forEach(function(level) {
-            var original = console[level];
-            console[level] = function() {
-                var args = Array.prototype.slice.call(arguments);
-                send(level === 'log' || level === 'debug' ? 'log' : level, args);
-                if (original) original.apply(console, args);
-            };
-        });
-
-        window.addEventListener('error', function(event) {
-            send('error', [event.message + (event.lineno ? ' (line ' + event.lineno + ')' : '')]);
-        });
-        window.addEventListener('unhandledrejection', function(event) {
-            send('error', ['Unhandled promise rejection:', event.reason]);
-        });
-        window.addEventListener('message', function(event) {
-            var message = event.data || {};
-            if (event.source !== parent || message.source !== 'liveweave-parent-console' || message.type !== 'evaluate') return;
-            try {
-                var result = (0, eval)(message.code);
-                Promise.resolve(result).then(function(value) {
-                    send('result', [value], message.id);
-                }, function(error) {
-                    send('error', [error], message.id);
-                });
-            } catch (error) {
-                send('error', [error], message.id);
-            }
-        });
-        send('ready', []);
-    })();</script>
-                <script>(function installPreviewLinkGuard() {
-        var noticeTimer;
-
-        function showNotice(message) {
-            var notice = document.getElementById('lw-preview-link-notice');
-            if (!notice) {
-                notice = document.createElement('div');
-                notice.id = 'lw-preview-link-notice';
-                notice.setAttribute('role', 'status');
-                notice.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:2147483647;max-width:calc(100% - 24px);padding:10px 14px;border-radius:9px;background:#17212d;color:#fff;font:13px/1.4 system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:none;';
-                document.body.appendChild(notice);
-            }
-            notice.textContent = message;
-            notice.hidden = false;
-            clearTimeout(noticeTimer);
-            noticeTimer = setTimeout(function() { notice.hidden = true; }, 3500);
-        }
-
-        document.addEventListener('click', function(event) {
-            var link = event.target.closest && event.target.closest('a[href]');
-            if (!link || event.defaultPrevented) return;
-
-            var href = (link.getAttribute('href') || '').trim();
-            if (href.charAt(0) === '#') {
-                event.preventDefault();
-                var fragment = href.slice(1);
-                if (!fragment) {
-                    window.scrollTo(0, 0);
-                    return;
-                }
-                try { fragment = decodeURIComponent(fragment); } catch (error) {}
-                var target = document.getElementById(fragment) || document.getElementsByName(fragment)[0];
-                if (target) target.scrollIntoView();
-                return;
-            }
-
-            if (/^(https?:)?\/\//i.test(href)) {
-                event.preventDefault();
-                window.open(href, '_blank', 'noopener,noreferrer');
-                return;
-            }
-
-            if (/^(mailto:|tel:)/i.test(href)) return;
-
-            event.preventDefault();
-            showNotice('This page cannot be opened in the preview.');
-        }, true);
-    })();</script>
-                ﻿
-
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>大乱闘スマッシュ将棋 SPECIAL STOCKS - LV9 CPU EDITION</title>
@@ -478,9 +360,18 @@
         .btn-toggle { background: #34495e; color: #fff; border: 1px solid #7f8c8d; padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         .btn-toggle.active { background: #2ecc71; border-color: #fff; box-shadow: 0 0 8px #2ecc71; }
     </style>
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- ◯ 外部のRenderサーバーから通信ライブラリを直接100%確実に読み込みます -->
+<script src="https://smash-shogi-server2.onrender.com"></script>
+<script>
+    // 💡【バグ1完全修復】：クラッシュの原因になっていたグローバル変数をここで確実に宣言！
+    let myRole = null; 
+    let roomId = null; 
+    let isMatched = false;
+</script>
 
 
+</head>
+<body>
 <div id="notice-screen" style="display: flex;">
    <div class="notice-container">
        <div class="notice-title">大乱闘スマッシュ将棋 SPECIAL STOCKS</div>
@@ -498,7 +389,7 @@
 
 
 <!-- ✨ こう書き換えてください -->
-<div id="orientation-warning" style="z-index: 9999999; display: flex;"><div class="phone-icon"></div><div>画面を横向きにしてください</div></div>
+<div id="orientation-warning" style="z-index: 9999999;"><div class="phone-icon"></div><div>画面を横向きにしてください</div></div>
 
 
 
@@ -512,7 +403,7 @@
 
 
 <div id="screen-shaker">
-    <div id="game-scale-wrapper" style="transform: scale(0.48); transform-origin: center center;">
+    <div id="game-scale-wrapper">
         <div id="game-container">
            <!-- ✨ こう書き換えてください -->
             <div id="title-screen" class="screen" style="display: flex;" onclick="goToSelectScreen()">
@@ -532,10 +423,10 @@
 
 
             <div id="select-screen" class="screen" style="display: none;">
-                <div class="select-title">ファイター &amp; ステージ選択 <span style="color:#ff3f3f; font-size:11px;">[LV.9 CPU]</span></div>
+                <div class="select-title">ファイター & ステージ選択 <span style="color:#ff3f3f; font-size:11px;">[LV.9 CPU]</span></div>
                 <div class="section-label">あなたの駒を選択してください：</div>
-                <div class="char-grid" id="char-grid-container"><button type="button" class="char-btn selected">歩</button><button type="button" class="char-btn">香</button><button type="button" class="char-btn">桂</button><button type="button" class="char-btn">銀</button><button type="button" class="char-btn">金</button><button type="button" class="char-btn">角</button><button type="button" class="char-btn">飛</button><button type="button" class="char-btn">弓</button></div>
-                <div id="char-desc">【大器晩成型】空中ジャンプ1回。5回殴ると『と金』に進化。進化した時1回のみ【X】で金の大爆撃！</div>
+                <div class="char-grid" id="char-grid-container"></div>
+                <div id="char-desc">駒の説明がここに表示されます。</div>
                 <div class="section-label">ステージを選択してください：</div>
                 <div class="stage-select">
                     <button type="button" class="stage-btn selected" onclick="selectStage(1, this)">終点風平原</button>
@@ -555,7 +446,7 @@
                         <button type="button" class="btn-toggle" id="mode-online" onclick="toggleGameMode('online')">オンライン対戦</button>
                     </div>
                 </div>
-                <div id="custom-room-section" style="background: rgba(0, 0, 0, 0.5); padding: 10px; border-radius: 8px; border: 1px solid rgb(75, 101, 132); margin: 10px 0px; text-align: center; font-size: 12px;"><div class="section-label" style="color:#ffd32a; font-weight:bold; margin-bottom:6px;">🏆 フレンド対戦ルーム &amp; レートシステム</div><div style="margin-bottom:8px; color:#2ecc71;">現在のあなたのレート: <span id="ui-current-rating" style="font-weight:bold; font-size:14px;">1500</span></div><div style="display:flex; justify-content:center; gap:8px; margin-bottom:8px;"><button type="button" class="stage-btn" id="btn-create-room" style="background:#20bf6b;">部屋を作る</button><input type="text" id="input-room-id" placeholder="部屋番号を入力" style="width:100px; padding:4px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold;"><button type="button" class="stage-btn" id="btn-join-room" style="background:#3867d6;">部屋に入る</button></div><div class="section-label" style="margin:4px 0;">対戦人数（複数人ルール）：</div><div style="display:flex; justify-content:center; gap:5px; margin-bottom:5px;"><button type="button" class="stage-btn selected" id="btn-p2">2人対戦</button><button type="button" class="stage-btn" id="btn-p3">3人対戦</button><button type="button" class="stage-btn" id="btn-p4">4人対戦</button></div><div id="room-status-text" style="color:#d2dae2; font-size:11px; margin-top:4px;">※部屋番号を友達に教えれば、学校のPC同士で直接対戦できます！</div></div><button id="start-game-btn" onclick="pressStartButton()">乱闘開始！！</button>
+                <button id="start-game-btn" onclick="pressStartButton()">乱闘開始！！</button>
             </div>
 
 
@@ -2033,95 +1924,7 @@ function finalizeMatchRating(playerWon, enemyRating) {
 }
 
 
-// 💡【フレンドルーム通信のイベント受信一覧】
-if (socket) {
-    socket.on('friend_room_created', (data) => {
-        currentRoomId = data.roomId;
-        const txt = document.getElementById('room-status-text');
-        if (txt) {
-            txt.innerHTML = '部屋を建てました！ 部屋番号: <span style="font-size:16px; color:#ffd32a; font-weight:bold;">' + data.roomId + '</span><br>友達に番号を伝えて、満員まで待ってください。';
-        }
-        const input = document.getElementById('input-room-id');
-        if (input) input.value = data.roomId;
-    });
 
-
-  // ✨ ここからコピペして、画像に写っている socket.on ２つの塊を丸ごと上書きしてください（コピペOK）
-socket.on('friend_room_joined', (data) => {
-    currentRoomId = data.roomId;
-    const txt = document.getElementById('room-status-text');
-    if (txt) {
-        // 💡 友達が合流した時は、画面テキストを更新して「選択画面のまま待機」させます
-        txt.textContent = '部屋 [' + data.roomId + '] に合流！ 現在の人数: ' + data.currentPlayers + ' / ' + data.maxPlayers + ' 人';
-    }
-    
-    // オンラインモードであることをプログラムに確定させます
-    gameMode = 'online';
-});
-
-
-socket.on('friend_match_start', (data) => {
-    // 💡【フライングバグ完全修正】：
-    // 部屋が完全に満員（4/4人など）になり、サーバーから「戦闘開始（match_start）」の電波が届いたこの瞬間だけ、
-    // 初めてゲーム画面への切り替えと、3人目・4人目のカラー駒の自動生成を実行します！
-    myRole = data.role; 
-    roomId = data.roomId; 
-    currentRoomId = data.roomId;
-    isMatched = true; 
-    gameMode = 'online'; 
-    selectedStage = data.stage;
-    
-    // サーバーから集まった全員のファイターデータを画面に発生させて同期します
-    if (typeof syncMultiplayerFighters === 'function') {
-        syncMultiplayerFighters(data.players);
-    }
-    
-    // 満員になったので、ここで初めてバトルを起動！
-    executeGameStart();
-    
-    if (typeof triggerCutIn === 'function') {
-        triggerCutIn('ルーム対戦 開始！！');
-    }
-});
-
-
-    socket.on('multi_enemy_update', (data) => {
-        Object.keys(data.players).forEach(slotStr => {
-            const slot = parseInt(slotStr, 10);
-            let fId = 'enemy-fighter-slot-' + slot; 
-            let enemyEl = document.getElementById(fId);
-            let uiDmg = document.getElementById('ui-e-dmg-slot-' + slot); 
-            
-            // 💡【バグ6修正】：通信イベントでのフリーズを防ぐため、uiStocksを確実に定義！
-            let uiStocks = document.getElementById('ui-e-stocks-slot-' + slot);
-            
-            if (enemyEl && data.players[slot].id !== socket.id) {
-                const ep = data.players[slot];
-                enemyEl.style.left = ep.x + 'px'; enemyEl.style.top = ep.y + 'px';
-                enemyEl.style.opacity = (ep.invulnTimer % 6 > 3) ? '0.4' : '1';
-                if (uiDmg) uiDmg.textContent = ep.dmg + '%';
-                if (uiStocks) { let st = ''; for(let i=0; i<ep.stocks; i++) st += '●'; uiStocks.textContent = st; }
-            }
-        });
-    });
-
-
-    socket.on('friend_match_over', (data) => {
-        const playerWon = (data.winnerId === socket.id);
-        finalizeMatchRating(playerWon, data.averageEnemyRating);
-        clearInterval(gameTimer); resetAllKeyStates();
-        for(let i=1; i<=4; i++) {
-            let eEl = document.getElementById('enemy-fighter-slot-' + i); if (eEl) eEl.remove();
-            let uBox = document.getElementById('ui-box-slot-' + i); if (uBox) uBox.remove();
-        }
-        goToSelectScreen();
-    });
-
-
-    socket.on('friend_room_error', (data) => {
-        alert('ルームエラー：' + data.message);
-    });
-}
 
 
 // 💡【ランキング表示バグ修正】：安全なインデックス指定へ書き換え
@@ -2151,44 +1954,6 @@ function displayRanking(currentRanking, highlightTimeMs) {
 // ==============================================================================
 // 🚀 システム同期・最強の初期化メインループ（完全安全版）
 // ==============================================================================
-
-// 🏆 フレンド対戦ルーム & レートシステム UI自動生成システム本体を外に出して安全化
-function injectOnlineRoomUI() {
-    const selectScreen = document.getElementById('select-screen');
-    if (!selectScreen) return;
-    if (document.getElementById('custom-room-section')) return;
-
-    const roomSection = document.createElement('div');
-    roomSection.id = 'custom-room-section';
-    roomSection.style.cssText = 'background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid #4b6584; margin:10px 0; text-align:center; font-size:12px;';
-
-    roomSection.innerHTML = 
-        '<div class="section-label" style="color:#ffd32a; font-weight:bold; margin-bottom:6px;">🏆 フレンド対戦ルーム & レートシステム</div>' +
-        '<div style="margin-bottom:8px; color:#2ecc71;">現在のあなたのレート: <span id="ui-current-rating" style="font-weight:bold; font-size:14px;">' + playerRating + '</span></div>' +
-        '<div style="display:flex; justify-content:center; gap:8px; margin-bottom:8px;">' +
-            '<button type="button" class="stage-btn" id="btn-create-room" style="background:#20bf6b;">部屋を作る</button>' +
-            '<input type="text" id="input-room-id" placeholder="部屋番号を入力" style="width:100px; padding:4px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold;">' +
-            '<button type="button" class="stage-btn" id="btn-join-room" style="background:#3867d6;">部屋に入る</button>' +
-        '</div>' +
-        '<div class="section-label" style="margin:4px 0;">対戦人数（複数人ルール）：</div>' +
-        '<div style="display:flex; justify-content:center; gap:5px; margin-bottom:5px;">' +
-            '<button type="button" class="stage-btn selected" id="btn-p2">2人対戦</button>' +
-            '<button type="button" class="stage-btn" id="btn-p3">3人対戦</button>' +
-            '<button type="button" class="stage-btn" id="btn-p4">4人対戦</button>' +
-        '</div>' +
-        '<div id="room-status-text" style="color:#d2dae2; font-size:11px; margin-top:4px;">※部屋番号を友達に教えれば、学校のPC同士で直接対戦できます！</div>';
-
-    const startBtn = document.getElementById('start-game-btn');
-    if (startBtn) selectScreen.insertBefore(roomSection, startBtn);
-
-    document.getElementById('btn-create-room').addEventListener('click', requestCreateRoom);
-    document.getElementById('btn-join-room').addEventListener('click', requestJoinRoom);
-    document.getElementById('btn-p2').addEventListener('click', function() { setMatchPlayers(2, this); });
-    document.getElementById('btn-p3').addEventListener('click', function() { setMatchPlayers(3, this); });
-    document.getElementById('btn-p4').addEventListener('click', function() { setMatchPlayers(4, this); });
-}
-
-// 画面が完全に準備できてからボタンをガチッと合体させます
 setTimeout(() => { 
     window.scrTitle = document.getElementById('title-screen');
     window.scrSelect = document.getElementById('select-screen');
@@ -2214,6 +1979,7 @@ setTimeout(() => {
     registerTouchBtn('btn-left', 'arrowleft'); registerTouchBtn('btn-right', 'arrowright');
     registerTouchBtn('btn-down', 'shift'); registerTouchBtn('btn-atk', 'z'); registerTouchBtn('btn-sp', 'x');
 
+
     const activateClickEvent = (id, fn) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('click', fn);
@@ -2223,20 +1989,60 @@ setTimeout(() => {
     activateClickEvent('mode-offline', () => toggleGameMode('offline'));
     activateClickEvent('mode-online', () => toggleGameMode('online'));
     
+// 🏆 【大復活】：フレンド対戦ルーム & レートシステム UI自動生成システム本体
+function injectOnlineRoomUI() {
+    const selectScreen = document.getElementById('select-screen');
+    if (!selectScreen) return;
+    if (document.getElementById('custom-room-section')) return; // 多重生成防止
+
+
+    const roomSection = document.createElement('div');
+    roomSection.id = 'custom-room-section';
+    roomSection.style.cssText = 'background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid #4b6584; margin:10px 0; text-align:center; font-size:12px;';
+
+
+    // 💡 エスケープバグ（\）を100%回避する確実な文字列結合で、あなたのレートを数字で展開！
+    roomSection.innerHTML = 
+        '<div class="section-label" style="color:#ffd32a; font-weight:bold; margin-bottom:6px;">🏆 フレンド対戦ルーム & レートシステム</div>' +
+        '<div style="margin-bottom:8px; color:#2ecc71;">現在のあなたのレート: <span id="ui-current-rating" style="font-weight:bold; font-size:14px;">' + playerRating + '</span></div>' +
+        '<div style="display:flex; justify-content:center; gap:8px; margin-bottom:8px;">' +
+            '<button type="button" class="stage-btn" id="btn-create-room" style="background:#20bf6b;">部屋を作る</button>' +
+            '<input type="text" id="input-room-id" placeholder="部屋番号を入力" style="width:100px; padding:4px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold;">' +
+            '<button type="button" class="stage-btn" id="btn-join-room" style="background:#3867d6;">部屋に入る</button>' +
+        '</div>' +
+        '<div class="section-label" style="margin:4px 0;">対戦人数（複数人ルール）：</div>' +
+        '<div style="display:flex; justify-content:center; gap:5px; margin-bottom:5px;">' +
+            '<button type="button" class="stage-btn selected" id="btn-p2">2人対戦</button>' +
+            '<button type="button" class="stage-btn" id="btn-p3">3人対戦</button>' +
+            '<button type="button" class="stage-btn" id="btn-p4">4人対戦</button>' +
+        '</div>' +
+        '<div id="room-status-text" style="color:#d2dae2; font-size:11px; margin-top:4px;">※部屋番号を友達に教えれば、学校のPC同士で直接対戦できます！</div>';
+
+
+    const startBtn = document.getElementById('start-game-btn');
+    if (startBtn) selectScreen.insertBefore(roomSection, startBtn);
+
+
+    // 各仮想ボタンのタップ・クリックイベントを確実に連動
+    document.getElementById('btn-create-room').addEventListener('click', requestCreateRoom);
+    document.getElementById('btn-join-room').addEventListener('click', requestJoinRoom);
+    document.getElementById('btn-p2').addEventListener('click', function() { setMatchPlayers(2, this); });
+    document.getElementById('btn-p3').addEventListener('click', function() { setMatchPlayers(3, this); });
+    document.getElementById('btn-p4').addEventListener('click', function() { setMatchPlayers(4, this); });
+}
+
+
+
+
+    // ✨ ここにこの1行を付け足してください（コピペOK）
     if (typeof initSelectScreen === 'function') initSelectScreen();
-    if (typeof injectOnlineRoomUI === 'function') injectOnlineRoomUI(); 
+    if (typeof injectOnlineRoomUI === 'function') injectOnlineRoomUI(); // 💡【トリガー大復活】：これで部屋とレートが100%再出現します！
     
     if (typeof resizeGame === 'function') resizeGame(); 
     if (typeof checkOrientation === 'function') checkOrientation();
 }, 100);
 
 
-
 </script>
-
-
-
-                <script></script>
-            
-        
-    </body>
+</body>
+</html>
