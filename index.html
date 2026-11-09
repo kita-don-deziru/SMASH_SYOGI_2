@@ -2151,6 +2151,44 @@ function displayRanking(currentRanking, highlightTimeMs) {
 // ==============================================================================
 // 🚀 システム同期・最強の初期化メインループ（完全安全版）
 // ==============================================================================
+
+// 🏆 フレンド対戦ルーム & レートシステム UI自動生成システム本体を外に出して安全化
+function injectOnlineRoomUI() {
+    const selectScreen = document.getElementById('select-screen');
+    if (!selectScreen) return;
+    if (document.getElementById('custom-room-section')) return;
+
+    const roomSection = document.createElement('div');
+    roomSection.id = 'custom-room-section';
+    roomSection.style.cssText = 'background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid #4b6584; margin:10px 0; text-align:center; font-size:12px;';
+
+    roomSection.innerHTML = 
+        '<div class="section-label" style="color:#ffd32a; font-weight:bold; margin-bottom:6px;">🏆 フレンド対戦ルーム & レートシステム</div>' +
+        '<div style="margin-bottom:8px; color:#2ecc71;">現在のあなたのレート: <span id="ui-current-rating" style="font-weight:bold; font-size:14px;">' + playerRating + '</span></div>' +
+        '<div style="display:flex; justify-content:center; gap:8px; margin-bottom:8px;">' +
+            '<button type="button" class="stage-btn" id="btn-create-room" style="background:#20bf6b;">部屋を作る</button>' +
+            '<input type="text" id="input-room-id" placeholder="部屋番号を入力" style="width:100px; padding:4px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold;">' +
+            '<button type="button" class="stage-btn" id="btn-join-room" style="background:#3867d6;">部屋に入る</button>' +
+        '</div>' +
+        '<div class="section-label" style="margin:4px 0;">対戦人数（複数人ルール）：</div>' +
+        '<div style="display:flex; justify-content:center; gap:5px; margin-bottom:5px;">' +
+            '<button type="button" class="stage-btn selected" id="btn-p2">2人対戦</button>' +
+            '<button type="button" class="stage-btn" id="btn-p3">3人対戦</button>' +
+            '<button type="button" class="stage-btn" id="btn-p4">4人対戦</button>' +
+        '</div>' +
+        '<div id="room-status-text" style="color:#d2dae2; font-size:11px; margin-top:4px;">※部屋番号を友達に教えれば、学校のPC同士で直接対戦できます！</div>';
+
+    const startBtn = document.getElementById('start-game-btn');
+    if (startBtn) selectScreen.insertBefore(roomSection, startBtn);
+
+    document.getElementById('btn-create-room').addEventListener('click', requestCreateRoom);
+    document.getElementById('btn-join-room').addEventListener('click', requestJoinRoom);
+    document.getElementById('btn-p2').addEventListener('click', function() { setMatchPlayers(2, this); });
+    document.getElementById('btn-p3').addEventListener('click', function() { setMatchPlayers(3, this); });
+    document.getElementById('btn-p4').addEventListener('click', function() { setMatchPlayers(4, this); });
+}
+
+// 画面が完全に準備できてからボタンをガチッと合体させます
 setTimeout(() => { 
     window.scrTitle = document.getElementById('title-screen');
     window.scrSelect = document.getElementById('select-screen');
@@ -2176,7 +2214,6 @@ setTimeout(() => {
     registerTouchBtn('btn-left', 'arrowleft'); registerTouchBtn('btn-right', 'arrowright');
     registerTouchBtn('btn-down', 'shift'); registerTouchBtn('btn-atk', 'z'); registerTouchBtn('btn-sp', 'x');
 
-
     const activateClickEvent = (id, fn) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('click', fn);
@@ -2186,58 +2223,13 @@ setTimeout(() => {
     activateClickEvent('mode-offline', () => toggleGameMode('offline'));
     activateClickEvent('mode-online', () => toggleGameMode('online'));
     
-// 🏆 【大復活】：フレンド対戦ルーム & レートシステム UI自動生成システム本体
-function injectOnlineRoomUI() {
-    const selectScreen = document.getElementById('select-screen');
-    if (!selectScreen) return;
-    if (document.getElementById('custom-room-section')) return; // 多重生成防止
-
-
-    const roomSection = document.createElement('div');
-    roomSection.id = 'custom-room-section';
-    roomSection.style.cssText = 'background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid #4b6584; margin:10px 0; text-align:center; font-size:12px;';
-
-
-    // 💡 エスケープバグ（\）を100%回避する確実な文字列結合で、あなたのレートを数字で展開！
-    roomSection.innerHTML = 
-        '<div class="section-label" style="color:#ffd32a; font-weight:bold; margin-bottom:6px;">🏆 フレンド対戦ルーム & レートシステム</div>' +
-        '<div style="margin-bottom:8px; color:#2ecc71;">現在のあなたのレート: <span id="ui-current-rating" style="font-weight:bold; font-size:14px;">' + playerRating + '</span></div>' +
-        '<div style="display:flex; justify-content:center; gap:8px; margin-bottom:8px;">' +
-            '<button type="button" class="stage-btn" id="btn-create-room" style="background:#20bf6b;">部屋を作る</button>' +
-            '<input type="text" id="input-room-id" placeholder="部屋番号を入力" style="width:100px; padding:4px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold;">' +
-            '<button type="button" class="stage-btn" id="btn-join-room" style="background:#3867d6;">部屋に入る</button>' +
-        '</div>' +
-        '<div class="section-label" style="margin:4px 0;">対戦人数（複数人ルール）：</div>' +
-        '<div style="display:flex; justify-content:center; gap:5px; margin-bottom:5px;">' +
-            '<button type="button" class="stage-btn selected" id="btn-p2">2人対戦</button>' +
-            '<button type="button" class="stage-btn" id="btn-p3">3人対戦</button>' +
-            '<button type="button" class="stage-btn" id="btn-p4">4人対戦</button>' +
-        '</div>' +
-        '<div id="room-status-text" style="color:#d2dae2; font-size:11px; margin-top:4px;">※部屋番号を友達に教えれば、学校のPC同士で直接対戦できます！</div>';
-
-
-    const startBtn = document.getElementById('start-game-btn');
-    if (startBtn) selectScreen.insertBefore(roomSection, startBtn);
-
-
-    // 各仮想ボタンのタップ・クリックイベントを確実に連動
-    document.getElementById('btn-create-room').addEventListener('click', requestCreateRoom);
-    document.getElementById('btn-join-room').addEventListener('click', requestJoinRoom);
-    document.getElementById('btn-p2').addEventListener('click', function() { setMatchPlayers(2, this); });
-    document.getElementById('btn-p3').addEventListener('click', function() { setMatchPlayers(3, this); });
-    document.getElementById('btn-p4').addEventListener('click', function() { setMatchPlayers(4, this); });
-}
-
-
-
-
-    // ✨ ここにこの1行を付け足してください（コピペOK）
     if (typeof initSelectScreen === 'function') initSelectScreen();
-    if (typeof injectOnlineRoomUI === 'function') injectOnlineRoomUI(); // 💡【トリガー大復活】：これで部屋とレートが100%再出現します！
+    if (typeof injectOnlineRoomUI === 'function') injectOnlineRoomUI(); 
     
     if (typeof resizeGame === 'function') resizeGame(); 
     if (typeof checkOrientation === 'function') checkOrientation();
 }, 100);
+
 
 
 </script>
