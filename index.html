@@ -634,6 +634,16 @@ function calculateNewRating(myRate, enemyRate, isWin) {
     localStorage.setItem('smash_shogi_rating_value', newRate);
     return newRate;
 }
+function finalizeMatchRating(playerWon, averageEnemyRating) {
+    let enemyRate = averageEnemyRating || 1500;
+    let newRate = calculateNewRating(playerRating, enemyRate, playerWon);
+    playerRating = newRate;
+    const rateUi = document.getElementById('ui-current-rating');
+    if (rateUi) rateUi.textContent = playerRating;
+    alert(playerWon ? '勝利！レートがアップしました：' + newRate : '敗北…レートがダウンしました：' + newRate);
+}
+
+
 
 
 // 💡 消えていた 人数切り替え関数（setMatchPlayers）
@@ -666,6 +676,40 @@ function requestJoinRoom() {
     if (txt) txt.textContent = '部屋 [' + roomIdInput + '] に入室を試みています...';
     socket.emit('join_friend_room', { roomId: roomIdInput, char: selectedCharKey, rating: playerRating });
 }
+function syncMultiplayerFighters(players) {
+    activeFighters = players;
+    const stage = document.getElementById('battle-stage');
+    const uiBar = document.getElementById('ui-bar');
+    if (!stage || !uiBar) return;
+
+    Object.keys(players).forEach(slotStr => {
+        const slot = parseInt(slotStr, 10);
+        if (players[slot].id === socket.id) return; // 自分はスキップ
+
+        // 他のプレイヤーの駒を画面上に生成
+        let fId = 'enemy-fighter-slot-' + slot;
+        if (!document.getElementById(fId)) {
+            const enemyPiece = document.createElement('div');
+            enemyPiece.id = fId;
+            enemyPiece.className = 'piece';
+            enemyPiece.style.cssText = 'width:40px; height:46px; background:#ffd27f; color:#b32727; font-size:18px; z-index:20; clip-path:polygon(50% 0%, 100% 23%, 86% 100%, 14% 100%, 0% 23%);';
+            enemyPiece.innerHTML = '<span id="e-text-slot-' + slot + '">敵</span>';
+            stage.appendChild(enemyPiece);
+        }
+
+        // 他のプレイヤーの体力HUD（UIボックス）を画面下に生成
+        let uiId = 'ui-box-slot-' + slot;
+        if (!document.getElementById(uiId)) {
+            const uiBox = document.createElement('div');
+            uiBox.id = uiId;
+            uiBox.className = 'ui-box';
+            uiBox.innerHTML = '<span style="font-weight:bold; color:#ff4d4d;">P' + slot + '</span> <span id="ui-e-stocks-slot-' + slot + '" class="ui-stocks">●●●</span><span id="ui-e-dmg-slot-' + slot + '" class="ui-dmg">0%</span>';
+            uiBar.appendChild(uiBox);
+        }
+    });
+}
+
+
 
 
 // 💡【オンライン複数人同期・完全版】：
@@ -699,12 +743,6 @@ function broadcastMultiplayerData() {
 
 const uParts = [ 'ht', 'tps', '://', 'solid', '-space', '-dollop', '-w9gg5wqvw5j394rx', '-3000', '.app', '.github', '.dev' ];
 
-// 💡【大復活】：消え去っていたオンライン対戦用グローバル変数を100%完全宣言！
-let myRole = null; 
-let roomId = null; 
-let isMatched = false;
-let gameMode = 'offline';
-
 
 let socket = null;
 
@@ -712,7 +750,7 @@ let socket = null;
 try {
     if (typeof io !== 'undefined') {
         // 💡 画面に出現した、学校のネット制限を100%すり抜けるLocalTunnelのURLを直書きします！
-        socket = io('https://nice-views-wink.loca.lt', { 
+        socket = io('https://nice-views-wink.loca.lt/', { 
             transports: ['websocket', 'polling'],
             secure: true,
             rejectUnauthorized: false
@@ -725,22 +763,6 @@ try {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-let myRole = null; let roomId = null; let isMatched = false;
-let spaceReleased = true; let zReleased = true; let xReleased = true;
 let projectiles = []; let activeFireTimer = 0; let enemySleepTimer = 0; let enemyStunTimer = 0; let isHitStopping = false;
 
 
@@ -1625,7 +1647,6 @@ function saveRanking(newTimeMs, fighterName) {
     return ranking;
 }
 
-// 💡【完全修復】：parts[0] と parts[1] を厳密に指定し、生データの漏れと文字崩れを100%シャットアウト！
 function displayRanking(currentRanking, highlightTimeMs) {
     const container = document.getElementById('ranking-list-container'); 
     if(!container) return; 
@@ -1640,11 +1661,9 @@ function displayRanking(currentRanking, highlightTimeMs) {
                 row.style.borderRadius = '4px'; 
             }
             let rankEmoji = ['🥇', '🥈', '🥉', '4位', '5位'][index] || (index + 1) + '位'; 
-            
             let parts = item.fighter.split(":"); 
-            let fName = parts[0] || ""; 
-            let uName = parts[1] ? " [" + parts[1] + "]" : "";
-            
+            let fName = parts || ""; 
+            let uName = parts ? " [" + parts + "]" : "";
             row.innerHTML = "<span>" + rankEmoji + " " + fName + uName + "</span> <span>" + formatTime(item.time) + "</span>"; 
             container.appendChild(row);
         });
@@ -1657,15 +1676,8 @@ function displayRanking(currentRanking, highlightTimeMs) {
 }
 
 function endMatch(playerWon) {
-    clearInterval(gameTimer); 
-    window.removeEventListener('keydown', handleKeyDown); 
-    window.removeEventListener('keyup', handleKeyUp); 
-    resetAllKeyStates();
-    if (gameMode === 'online') { 
-        alert(playerWon ? '対戦相手に勝利しました！🏆' : '敗北しました...'); 
-        goToSelectScreen(); 
-        return; 
-    }
+    clearInterval(gameTimer); window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); resetAllKeyStates();
+    if (gameMode === 'online') { alert(playerWon ? '対戦相手に勝利しました！🏆' : '敗北しました...'); goToSelectScreen(); return; }
     if (playerWon) { 
         alert('王将のストックをすべて削り切った！LV9 CPUに完全勝利です！🏆\nクリア記録: ' + formatTime(matchElapsedTime)); 
         let confirmRegister = confirm("ランキングに登録しますか？"); 
@@ -1682,52 +1694,105 @@ function endMatch(playerWon) {
         } 
         goToSelectScreen(); 
     } else { 
-        let name = CHAR_DATA[selectedCharKey].name; 
-        if (selectedCharKey === 'pawn' && p.isPromoted) name = 'と金'; 
-        alert(name + 'の全ストックが消滅した…レベル9の圧倒的な力に敗北した。'); 
-        goToSelectScreen(); 
+        let name = CHAR_DATA[selectedCharKey].name; if (selectedCharKey === 'pawn' && p.isPromoted) name = 'と金'; 
+        alert(name + 'の全ストックが消滅した…レベル9の圧倒的な力に敗北した。'); goToSelectScreen(); 
     }
 }
 
 function backToSelect() { goToSelectScreen(); }
 function toggleControlMode(mode) { controlMode = mode; resetAllKeyStates(); resetAnalogKnobPosition(); }
 function resetAnalogKnobPosition() { const knob = document.getElementById('analog-knob'); if (knob) knob.style.transform = 'translate(0px, 0px)'; }
-
-if (!isTouchDevice) {
-    window.addEventListener('touchstart', function initTouch() { 
-        isTouchDevice = true; 
-        window.removeEventListener('touchstart', initTouch); 
-    });
-}
+if (!isTouchDevice) { window.addEventListener('touchstart', function initTouch() { isTouchDevice = true; window.removeEventListener('touchstart', initTouch); }); }
 
 function resizeGame() {
-    const wrapper = document.getElementById('game-scale-wrapper'); 
-    const container = document.getElementById('game-container'); 
-    if (!wrapper || !container) return;
-    const windowWidth = window.innerWidth; 
-    const windowHeight = window.innerHeight; 
-    const scaleX = windowWidth / 600; 
-    const scaleY = windowHeight / 450; 
-    let scale = Math.min(scaleX, scaleY); 
-    if (scale > 1) scale = 1; 
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) { scale = Math.min(scale, 0.85); }
-    wrapper.style.transform = 'scale(' + scale + ')'; 
-    wrapper.style.transformOrigin = 'center center';
+    const wrapper = document.getElementById('game-scale-wrapper'); const container = document.getElementById('game-container'); if (!wrapper || !container) return;
+    const windowWidth = window.innerWidth; const windowHeight = window.innerHeight; 
+    const scaleX = windowWidth / 600; const scaleY = windowHeight / 450; let scale = Math.min(scaleX, scaleY); if (scale > 1) scale = 1; if ('ontouchstart' in window || navigator.maxTouchPoints > 0) { scale = Math.min(scale, 0.85); }
+    wrapper.style.transform = 'scale(' + scale + ')'; wrapper.style.transformOrigin = 'center center';
 }
 
 function checkOrientation() {
-    const warning = document.getElementById('orientation-warning'); 
-    if (!warning) return;
-    if (window.innerHeight > window.innerWidth && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) { 
-        warning.style.display = 'flex'; 
-    } else { 
-        warning.style.display = 'none'; 
-    }
+    const warning = document.getElementById('orientation-warning'); if (!warning) return;
+    if (window.innerHeight > window.innerWidth && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) { warning.style.display = 'flex'; } else { warning.style.display = 'none'; }
 }
-
 window.addEventListener('resize', () => { resizeGame(); checkOrientation(); });
 window.addEventListener('orientationchange', () => { resizeGame(); checkOrientation(); });
-// 💡 サーバーからの電波を処理する通信イベントリスナー一式
+
+function finalizeMatchRating(playerWon, enemyRating) {
+    if (gameMode !== 'online') return;
+    const oldRating = playerRating;
+    const newRating = calculateNewRating(oldRating, enemyRating || 1500, playerWon);
+    playerRating = newRating;
+    const diff = newRating - oldRating;
+    const diffText = diff >= 0 ? '+' + diff : '' + diff;
+    alert('【レート精算】\n現在のレート: ' + oldRating + ' ➔ ' + newRating + ' (' + diffText + ')');
+    const ratingUi = document.getElementById('ui-current-rating');
+    if (ratingUi) ratingUi.textContent = newRating;
+}
+
+function syncMultiplayerFighters(serverPlayers) {
+    const stage = document.getElementById('battle-stage');
+    const uiBar = document.getElementById('ui-bar');
+    if (!stage || !uiBar) return;
+
+    activeFighters = serverPlayers;
+    let mySlot = 1;
+    Object.keys(serverPlayers).forEach(slot => {
+        if (serverPlayers[slot].id === socket.id) mySlot = parseInt(slot, 10);
+    });
+
+    Object.keys(serverPlayers).forEach(slotStr => {
+        const slot = parseInt(slotStr, 10);
+        if (slot === mySlot) return;
+
+        let fId = 'enemy-fighter-slot-' + slot;
+        let enemyEl = document.getElementById(fId);
+        if (!enemyEl) {
+            enemyEl = document.createElement('div');
+            enemyEl.id = fId;
+            enemyEl.className = 'piece';
+            enemyEl.style.cssText = 'width:38px; height:44px; z-index:20; position:absolute; font-size:16px; border-radius:6px;';
+            
+            const textSpan = document.createElement('span');
+            textSpan.id = 'e-text-slot-' + slot;
+            enemyEl.appendChild(textSpan);
+
+            const weaponEl = document.createElement('div');
+            weaponEl.id = 'enemy-weapon-slot-' + slot;
+            weaponEl.className = 'weapon';
+            weaponEl.style.cssText = 'background:#e74c3c; width:22px; height:4px; position:absolute; top:18px; transform-origin:right center; display:none;';
+            enemyEl.appendChild(weaponEl);
+
+            stage.appendChild(enemyEl);
+        }
+
+        let uiId = 'ui-box-slot-' + slot;
+        let uiBox = document.getElementById(uiId);
+        if (!uiBox) {
+            uiBox = document.createElement('div');
+            uiBox.id = uiId;
+            uiBox.className = 'ui-box';
+            uiBox.innerHTML = '<span id="ui-e-name-slot-' + slot + '" style="font-weight:bold;">P' + slot + '</span><span id="ui-e-stocks-slot-' + slot + '" class="ui-stocks">●●●</span><span id="ui-e-dmg-slot-' + slot + '" class="ui-dmg">0%</span>';
+            uiBar.appendChild(uiBox);
+        }
+
+        const cfg = FIGHTER_COLORS[slot] || { bg: '#ffd27f', text: '#b32727', name: 'P' + slot };
+        enemyEl.style.background = cfg.bg;
+        enemyEl.style.color = cfg.text;
+        enemyEl.style.boxShadow = 'inset 0 0 0 1px ' + cfg.text;
+        
+        const nameUi = document.getElementById('ui-e-name-slot-' + slot);
+        if (nameUi && serverPlayers[slot]) {
+            nameUi.textContent = cfg.name + ' (' + CHAR_DATA[serverPlayers[slot].char].name + ')';
+            nameUi.style.color = cfg.text;
+        }
+        const textUi = document.getElementById('e-text-slot-' + slot);
+        if (textUi && serverPlayers[slot]) {
+            textUi.textContent = CHAR_DATA[serverPlayers[slot].char].name;
+        }
+    });
+}
+
 if (socket) {
     socket.on('friend_room_created', (data) => {
         currentRoomId = data.roomId;
@@ -1792,7 +1857,9 @@ if (socket) {
 
     socket.on('friend_match_over', (data) => {
         const playerWon = (data.winnerId === socket.id);
-        finalizeMatchRating(playerWon, data.averageEnemyRating);
+        if (typeof finalizeMatchRating === 'function') {
+            finalizeMatchRating(playerWon, data.averageEnemyRating);
+        }
         clearInterval(gameTimer); resetAllKeyStates();
         for(let i=1; i<=4; i++) {
             let eEl = document.getElementById('enemy-fighter-slot-' + i); if (eEl) eEl.remove();
@@ -1806,7 +1873,6 @@ if (socket) {
     });
 }
 
-// 🏆 【空振り・2重定義完全ガード版】フレンド対戦ルーム UI自動生成システム
 function injectOnlineRoomUI() {
     const selectScreen = document.getElementById('select-screen');
     if (!selectScreen) return;
@@ -1844,7 +1910,6 @@ function injectOnlineRoomUI() {
     displayRanking(null, 0);
 }
 
-// 🚀 一本化された初期化メインループ
 setTimeout(() => { 
     window.scrTitle = document.getElementById('title-screen');
     window.scrSelect = document.getElementById('select-screen');
@@ -1889,10 +1954,6 @@ setTimeout(() => {
 </script>
 </body>
 </html>
-
-
-
-
 
 
 
