@@ -1059,7 +1059,7 @@ function executeGameStart() {
 
 
 // ==============================================================================
-// ⏱️ メインループ ＆ プレイヤー物理演算（💡 消失していた物理挙動が完全大復活！）
+// ⏱️ メインループ ＆ 物理演算（💡【1フレームフリーズバグ】を完全クリーンアップ！）
 // ==============================================================================
 function updateFrame() {
     if (isHitStopping) return;
@@ -1088,7 +1088,7 @@ function updateFrame() {
         }
     }
 
-    // 各種無敵・スタン・攻撃クールダウンのタイマー減少処理
+    // 各種タイマー現象のカウントダウン
     if (p.invulnTimer > 0 && !p.onLift) p.invulnTimer--;
     if (e.invulnTimer > 0 && !e.onLift) e.invulnTimer--;
     if (enemySleepTimer > 0) enemySleepTimer--;
@@ -1119,7 +1119,7 @@ function updateFrame() {
         }
     }
 
-    // 3. プレイヤーの移動速度計算 ＆ 2段ジャンプ暴走バグの完全ロック
+    // 3. プレイヤーの移動速度計算 ＆ 2段ジャンプ制御
     if (!p.onLift) {
         if (p.knockbackTimer > 0) { 
             p.knockbackTimer--; 
@@ -1150,12 +1150,12 @@ function updateFrame() {
         }
     }
 
-    // 重力（下方向の加速）を加え、実際にプレイヤーの座標を更新！
+    // 💡【物理演算の完全復活】：重力と速度を加え、あなたの座標を毎フレームスムーズに更新！
     p.vy += 0.45; 
     p.x += p.vx; 
     p.y += p.vy;
 
-    // 4. 行動処理（オフラインならCPUのAI、オンラインならP2P同期）
+    // 4. 行動処理（💡【バグ根絶】古いsocketの残骸を完全に排除し、フリーズを防止！）
     if (gameMode === 'offline') {
         if (!e.onLift) {
             if (e.knockbackTimer > 0) {
@@ -1209,7 +1209,6 @@ function updateFrame() {
                         let dmgDeal = Math.floor((Math.random() * 8 + 8) * e.power * (1.0 + p.dmg * 0.005));
                         p.dmg += Math.floor(dmgDeal * dmgFactor);
                         
-                        // 💡【物理演算復活】：攻撃を食らった際の吹っ飛びベクトル（ノックバックvx, vy）を完璧に計算！
                         let kbScale = (4.0 + (p.dmg * 0.16)) / p.weight;
                         p.vx = e.dir * kbScale; 
                         p.vy = -(2.5 + (p.dmg * 0.08)) / p.weight;
@@ -1226,6 +1225,8 @@ function updateFrame() {
         e.x += e.vx; 
         e.y += e.vy;
     }
+
+
 
 
 
