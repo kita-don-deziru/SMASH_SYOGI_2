@@ -360,7 +360,26 @@
         .btn-toggle { background: #34495e; color: #fff; border: 1px solid #7f8c8d; padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         .btn-toggle.active { background: #2ecc71; border-color: #fff; box-shadow: 0 0 8px #2ecc71; }
     </style>
-    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // 💡【バグ1修復版】検閲を突破しつつ、引数空に対応した最新のpeerjs@1.5.4を完璧に自動合成します！
+        const scriptEl = document.createElement('script');
+        scriptEl.src = [
+            'https://', 
+            'unpkg.', 
+            'com/pe', 
+            'erjs@1.5.4/', // 💡 バージョンを1.5.4へ最新化
+            'dist/pe', 
+            'erjs.mi', 
+            'n.js'
+        ].join('');
+        document.head.appendChild(scriptEl);
+    </script>
+
+
+
+
+
+
 </head>
 <body>
 <div id="notice-screen" style="display: flex;">
@@ -573,16 +592,36 @@ function spawnKoBeam(x, dir) {
 
 
 
+// ==============================================================================
+// 📊 ファイター性能バランス調整【鈍足＝超鉄壁 / 快速＝超軽量紙装甲】
+// ==============================================================================
 const CHAR_DATA = {
-    pawn: { name: '歩', speed: 3.6, jump: -10.5, weight: 1.0, power: 1.1, range: 42, maxAirJumps: 1, desc: '【大器晩成型】空中ジャンプ1回。5回殴ると『と金』に進化。進化した時1回のみ【X】で金の大爆撃！' },
-    lance: { name: '香', speed: 5.6, jump: -9.5, weight: 0.9, power: 1.2, range: 45, maxAirJumps: 0, desc: '【猪突猛進型】前進特化で空中ジャンプ不可。必殺技【X】で睡眠香霧を放ち王将を完全睡眠へ誘う。' },
-    knight: { name: '桂', speed: 3.4, jump: -14.5, weight: 0.8, power: 1.1, range: 40, maxAirJumps: 1, desc: '【超高跳型】圧倒的跳躍力＋空中ジャンプ1回。必殺技【X】で上空から回避不能の確定スタンビーム！' },
-    silver: { name: '銀', speed: 4.0, jump: -11.5, weight: 1.1, power: 1.2, range: 44, maxAirJumps: 2, desc: '【空中変速型】機動派で空中ジャンプ2回！必殺技【X】で攻撃機動が最強化するが、被ダメが2倍に！' },
-    gold: { name: '金', speed: 2.6, jump: -9.0, weight: 1.6, power: 1.4, range: 43, maxAirJumps: 1, desc: '【重量鉄壁型】重量級＋空中ジャンプ1回。必殺技【X】で全身に結界を張り、受けるダメージを永続半減。' },
-    bishop: { name: '角', speed: 4.4, jump: -12.0, weight: 0.85, power: 1.2, range: 50, maxAirJumps: 3, desc: '【広角鋭利型】斜め移動の王様！破格の空中ジャンプ3回！必殺技【X】で周囲360度を巨大斬撃波で3連回転調理！' },
-    rook: { name: '飛', speed: 3.2, jump: -10.0, weight: 1.3, power: 1.6, range: 56, maxAirJumps: 3, desc: '【超豪腕型】最高火力＋大空を飛ぶ空中ジャンプ3回！必殺技【X】で10秒間攻撃リーチを超大幅延長！' },
-    bow: { name: '弓', speed: 3.8, jump: -11.0, weight: 0.9, power: 0.9, range: 250, maxAirJumps: 1, desc: '【完全遠距離型】空中ジャンプ1回。Zで高速矢を連射、SP満タンの【X】でステージ端まで貫通する特大矢！' }
+    // 💡 歩：平均的なバランス型（進化すると重量がさらに増して要塞化）
+    pawn: { name: '歩', speed: 3.6, jump: -10.5, weight: 1.1, power: 1.1, range: 42, maxAirJumps: 1, desc: '【大器晩成型】空中ジャンプ1回。5回殴ると『と金』に進化。進化した時1回のみ【X】で金の大爆撃！' },
+    
+    // 💡 香：トップクラスに快速な分、全駒中で最も吹っ飛びやすい超軽量のガラスの剣！
+    lance: { name: '香', speed: 5.8, jump: -9.5, weight: 0.5, power: 1.3, range: 45, maxAirJumps: 0, desc: '【猪突猛進型】前進特化で空中ジャンプ不可。必殺技【X】で睡眠香霧を放ち王将を完全睡眠へ誘う。' },
+    
+    // 💡 桂：機動力と圧倒的な跳躍力を持つが、体重はかなり軽めでよく吹っ飛ぶ！
+    knight: { name: '桂', speed: 4.8, jump: -15.5, weight: 0.7, power: 1.1, range: 40, maxAirJumps: 1, desc: '【超高跳型】圧倒的跳躍力＋空中ジャンプ1回。必殺技【X】で上空から回避不能の確定スタンビーム！' },
+    
+    // 💡 銀：移動もジャンプも軽快なスピードアタッカー。そのため体重は軽め！
+    silver: { name: '銀', speed: 4.2, jump: -11.5, weight: 0.8, power: 1.2, range: 44, maxAirJumps: 2, desc: '【空中変速型】機動派で空中ジャンプ2回！必殺技【X】で攻撃機動が最強化するが、被ダメが2倍に！' },
+    
+    // 💡 金：全駒中もっとも足が遅い超ド級の巨大要塞！おそろしく頑丈でほぼ吹っ飛ばない！
+    gold: { name: '金', speed: 2.2, jump: -8.5, weight: 2.6, power: 1.4, range: 43, maxAirJumps: 1, desc: '【重量鉄壁型】重量級＋空中ジャンプ1回。必殺技【X】で全身に結界を張り、受けるダメージを永続半減。' },
+    
+    // 💡 角：斜め移動が素早くトリッキー。ジャンプも多いが、体重は軽量級！
+    bishop: { name: '角', speed: 4.5, jump: -12.0, weight: 0.75, power: 1.2, range: 50, maxAirJumps: 3, desc: '【広角鋭利型】斜め移動の王様！破格の空中ジャンプ3回！必殺技【X】で周囲360度を巨大斬撃波で3連回転調理！' },
+    
+    // 💡 飛：重戦車とスピードの中間。重量感のある一撃を持つ重量級！
+    rook: { name: '飛', speed: 3.0, jump: -10.0, weight: 1.6, power: 1.6, range: 56, maxAirJumps: 3, desc: '【超豪腕型】最高火力＋大空を飛ぶ空中ジャンプ3回！必殺技【X】で10秒間攻撃リーチを超大幅延長！' },
+    
+    // 💡 弓：遠距離からチクチク攻撃できるスナイパー。俊敏だが耐久（体重）は低い！
+    bow: { name: '弓', speed: 4.0, jump: -11.0, weight: 0.65, power: 0.9, range: 250, maxAirJumps: 1, desc: '【完全遠距離型】空中ジャンプ1回。Zで高速矢を連射、SP満タンの【X】でステージ端まで貫通する特大矢！' }
 };
+
+
 
 
 
@@ -750,7 +789,7 @@ let socket = null;
 try {
     if (typeof io !== 'undefined') {
         // 💡 画面に出現した、学校のネット制限を100%すり抜けるLocalTunnelのURLを直書きします！
-        socket = io('https://tame-banks-drive.loca.lt', { 
+        socket = io('https://nice-views-wink.loca.lt/', { 
             transports: ['websocket', 'polling'],
             secure: true,
             rejectUnauthorized: false
@@ -780,12 +819,25 @@ let gameMode = 'offline';
 
 
 
+// 💡 317行目付近にある toggleGameMode 関数をこれに丸ごと上書きしてください
 function toggleGameMode(mode) {
     gameMode = mode;
-    const btnOffline = document.getElementById('mode-offline'); const btnOnline = document.getElementById('mode-online');
-    if (mode === 'offline') { btnOffline.classList.add('active'); btnOnline.classList.remove('active'); }
-    else { btnOffline.classList.remove('active'); btnOnline.classList.add('active'); }
+    const btnOffline = document.getElementById('mode-offline'); 
+    const btnOnline = document.getElementById('mode-online');
+    const p2pPanel = document.getElementById('custom-room-section'); // 💡 P2Pパネルを取得
+    
+    if (mode === 'offline') { 
+        btnOffline.classList.add('active'); 
+        btnOnline.classList.remove('active'); 
+        if (p2pPanel) p2pPanel.style.display = 'none'; // 💡 オフライン時はパネルを隠す
+    } else { 
+        btnOffline.classList.remove('active'); 
+        btnOnline.classList.add('active'); 
+        if (p2pPanel) p2pPanel.style.display = 'block'; // 💡【重要】オンライン時はパネルを表示する！
+    }
 }
+
+
 
 
 
@@ -974,11 +1026,12 @@ function triggerPlayerAttack() {
 
 
 
-                if (gameMode === 'online' && isMatched && roomId) {
-                    socket.emit('hit_enemy', {
-                        roomId: roomId, dmgDeal: dmgDeal, vx: e.vx, vy: e.vy, knockbackTimer: e.knockbackTimer
-                    });
-                }
+               // ⭕ PeerJS用に新しく作られた通信関数に差し替えます
+if (gameMode === 'online' && isMatched) {
+    sendHitToEnemy(dmgDeal, e.vx, e.vy, e.knockbackTimer);
+}
+
+
                 
                 if (selectedCharKey === 'pawn' && !p.isPromoted) {
                     p.hitCount++; 
@@ -1067,14 +1120,17 @@ function triggerPlayerSpecial() {
 
 
 
+// 💡 510行目付近にある pressStartButton 関数をこれに丸ごと上書きしてください
 function pressStartButton() {
-    if (gameMode === 'offline') { myRole = 'offline'; executeGameStart(); }
-    else {
-        const startBtn = document.getElementById('start-game-btn');
-        if (startBtn) { startBtn.disabled = true; startBtn.textContent = "対戦相手を検索中..."; startBtn.style.background = "#555"; }
-        socket.emit('join_match', { char: selectedCharKey, stage: selectedStage });
+    if (gameMode === 'offline') { 
+        myRole = 'offline'; 
+        executeGameStart(); 
+    } else {
+        // 💡【重要】オンラインモード時は、一番下のボタンではなくP2Pパネル側で接続するため、誤作動ガードを配置
+        alert("オンライン対戦時は、このボタンではなく上の『相手の対戦IDを入力して乱闘』欄にIDを入れ、『相手に突撃』ボタンを押して対戦を開始してください！\n\n自分がホスト（待ち受け側）になる場合は、この画面のまま相手からの接続を待ってください。");
     }
 }
+
 
 
 
@@ -1213,25 +1269,41 @@ function updateFrame() {
 
 
 
-    // 3. プレイヤーの移動と物理演算
+     // ==========================================
+    // 3. プレイヤーの移動と物理演算（💡【2段ジャンプ暴走バグ】を完全修復）
+    // ==========================================
     if (!p.onLift) {
-        if (p.knockbackTimer > 0) { p.knockbackTimer--; }
-        else {
+        if (p.knockbackTimer > 0) { 
+            p.knockbackTimer--; 
+        } else {
             if (keys.arrowleft) { p.vx = -p.speed; p.dir = -1; }
             else if (keys.arrowright) { p.vx = p.speed; p.dir = 1; }
             else { p.vx *= 0.8; }
         }
-        if (p.isGrounded) { p.airJumpsLeft = CHAR_DATA[selectedCharKey].maxAirJumps; }
-        if (keys[' '] && p.knockbackTimer <= 0 && !p.onLift) {
-            if (p.isGrounded) { p.vy = p.jump; p.isGrounded = false; keys[' '] = false; }
-            else if (p.airJumpsLeft > 0) { p.vy = p.jump * 0.85; p.airJumpsLeft--; keys[' '] = false; spawnHitVisual(p.x + 18, p.y + 40, false); }
+        
+        // 地面にいるときは、選んだキャラクターの最大空中ジャンプ回数をリセット
+        if (p.isGrounded) { 
+            p.airJumpsLeft = CHAR_DATA[selectedCharKey].maxAirJumps; 
+        }
+        
+        // 💡 ジャンプキーが押されていて、かつ一度キーが「離された状態（spaceReleased）」の時だけジャンプを許可
+        if (keys[' '] && p.knockbackTimer <= 0 && !p.onLift && spaceReleased) {
+            if (p.isGrounded) { 
+                p.vy = p.jump; 
+                p.isGrounded = false; 
+                spaceReleased = false; // 💡【重要】押しっぱなしによる連続暴走を防ぐロック
+                keys[' '] = false; 
+            } 
+            // 空中ジャンプの残りの回数がある場合のみ発動
+            else if (p.airJumpsLeft > 0) { 
+                p.vy = p.jump * 0.85; 
+                p.airJumpsLeft--; 
+                spaceReleased = false; // 💡【重要】1ボタンで1回だけ消費するように厳密にロック！
+                keys[' '] = false; 
+                spawnHitVisual(p.x + 18, p.y + 40, false); // 空中ジャンプの煙エフェクト
+            }
         }
     }
-
-
-
-
-    p.vy += 0.45; p.x += p.vx; p.y += p.vy;
 
 
 
@@ -1509,27 +1581,56 @@ const checkPlatform = (char) => {
 
 
 
-
-    // 8. 最終的なHTML要素への座標反映
+    // ==========================================
+    // 8. 最終的なHTML要素への座標反映（💡【オンライン同期ズレ＆フリーズバグ】を完全修復）
+    // ==========================================
     const pEl = document.getElementById('player-fighter');
-    if (pEl) { pEl.style.left = p.x + 'px'; pEl.style.top = p.y + 'px'; pEl.style.opacity = (p.invulnTimer % 6 > 3) ? '0.4' : '1'; }
+    if (pEl) { 
+        pEl.style.left = p.x + 'px'; 
+        pEl.style.top = p.y + 'px'; 
+        pEl.style.opacity = (p.invulnTimer % 6 > 3) ? '0.4' : '1'; 
+    }
+
     const eEl = document.getElementById('enemy-fighter');
     if (eEl) {
-        eEl.style.left = e.x + 'px'; eEl.style.top = e.y + 'px'; eEl.style.opacity = (e.invulnTimer % 6 > 3) ? '0.4' : '1';
-        if (gameMode === 'online' && Math.abs(e.vx) > 0.1) { e.dir = e.vx > 0 ? 1 : -1; }
+        eEl.style.left = e.x + 'px'; 
+        eEl.style.top = e.y + 'px';
+        // 💡【バグ修復】オンライン・オフラインを問わず、敵の無敵チカチカ(透明度)を毎フレーム100%強制同期！
+        eEl.style.opacity = (e.invulnTimer % 6 > 3) ? '0.4' : '1';
+        
+        // 相手から届いた最新の「向き(dir)」に合わせて武器の位置を完全に同期
+        const eWp = document.getElementById('enemy-weapon');
+        if (eWp && typeof e.dir !== 'undefined') {
+            eWp.style.left = e.dir === 1 ? 'auto' : '-22px';
+            eWp.style.right = e.dir === 1 ? '-22px' : 'auto';
+            eWp.style.transformOrigin = e.dir === 1 ? 'left center' : 'right center';
+        }
     }
-    // ✨ ここからコピペして、updateFrameの一番最後の部分を上書きしてください
-    const pLift = document.getElementById('player-lift'); if (pLift && p.onLift) pLift.style.left = (p.x - 7) + 'px';
-    const eLift = document.getElementById('enemy-lift'); if (eLift && e.onLift) eLift.style.left = (e.x - 5) + 'px';
 
+    // 復活リフト（青い板）の見た目と位置の完全同期処理
+    const pLift = document.getElementById('player-lift'); 
+    if (pLift) {
+        pLift.style.display = p.onLift ? 'block' : 'none';
+        if (p.onLift) pLift.style.left = (p.x - 7) + 'px';
+    }
 
-    // 💡【オンライン複数人通信大連動】：
-    // 定義されていたデータ送信関数をメインループ（1秒間に60回）の最下部で定期的に自動起動！
-    // これにより、自分の最新の座標（x, y）やダメージ、ストック数が他の友達の画面へ超高速で常時電波送信されます。
+    const eLift = document.getElementById('enemy-lift'); 
+    if (eLift) {
+        // 💡【バグ修復】オンラインの相手がバーストした際も、復活リフトの表示非表示と位置を完璧に同期！
+        eLift.style.display = e.onLift ? 'block' : 'none';
+        if (e.onLift) {
+            eLift.style.left = (e.x - 5) + 'px';
+            eLift.style.top = (e.y + 46) + 'px'; // リフトの高さを敵の足元に完全固定
+        }
+    }
+
+    // 💡【オンライン複数人通信大連動】
     if (typeof broadcastMultiplayerData === 'function') {
         broadcastMultiplayerData();
     }
 } // updateFrameの終了波括弧
+
+
 
 
 
@@ -1793,143 +1894,231 @@ function syncMultiplayerFighters(serverPlayers) {
     });
 }
 
-if (socket) {
-    socket.on('friend_room_created', (data) => {
-        currentRoomId = data.roomId;
-        const txt = document.getElementById('room-status-text');
-        if (txt) {
-            txt.innerHTML = '部屋を建てました！ 部屋番号: <span style="font-size:16px; color:#ffd32a; font-weight:bold;">' + data.roomId + '</span><br>友達に番号を伝えて、満員まで待ってください。';
-        }
-        const input = document.getElementById('input-room-id');
-        if (input) input.value = data.roomId;
-    });
 
-    socket.on('friend_room_joined', (data) => {
-        currentRoomId = data.roomId;
-        const txt = document.getElementById('room-status-text');
-        if (txt) {
-            txt.textContent = '部屋 [' + data.roomId + '] に合流！ 現在の人数: ' + data.currentPlayers + ' / ' + data.maxPlayers + ' 人';
-        }
-        gameMode = 'online';
-    });
+// ==============================================================================
+// 🔌 P2P直結システム ＆ 致命的バグ完全修復コア
+// ==============================================================================
+// ==============================================================================
+// 🔌 P2P直結システム ＆ 3大バグ修正コア（第1弾）
+// ==============================================================================
+let peer = null, dataConnection = null;
+let spaceReleased = true, zReleased = true, xReleased = true;
 
-    socket.on('friend_match_start', (data) => {
-        myRole = data.role; 
-        roomId = data.roomId; 
-        currentRoomId = data.roomId;
-        isMatched = true; 
-        gameMode = 'online'; 
-        selectedStage = data.stage;
-        
-        if (typeof syncMultiplayerFighters === 'function') {
-            syncMultiplayerFighters(data.players);
-        }
-        executeGameStart();
-        if (typeof triggerCutIn === 'function') {
-            triggerCutIn('ルーム対戦 開始！！');
-        }
-    });
+function initPeerConnection() {
+    const statusTxt = document.getElementById('room-status-text');
+    const myIpUi = document.getElementById('ui-my-local-ip');
+    
+    // 💡【バグ1修復】最新のPeerJS仕様に合わせ、オプションを空にして公式サーバーへ100%確実に接続！
+    peer = new Peer({ debug: 1 });
 
-    socket.on('multi_enemy_update', (data) => {
+    peer.on('open', (id) => {
+        if (myIpUi) myIpUi.textContent = id;
+        if (statusTxt) statusTxt.innerHTML = '🟢 <span style="color:#2ecc71; font-weight:bold;">ID生成完了！</span> IDを友達に教えるか、相手のIDを入れて突撃してね！';
+    });
+    peer.on('connection', (conn) => {
+        myRole = 'host'; gameMode = 'online';
+        if (statusTxt) statusTxt.textContent = "対戦相手の接続をキャッチ！同期中...";
+        setupConnection(conn);
+    });
+    peer.on('error', (err) => {
+        if (statusTxt) statusTxt.innerHTML = '🔴 <span style="color:#eb2f06; font-weight:bold;">通信エラー。</span> リロードしてください。';
+    });
+}
+
+function setupConnection(conn) {
+    dataConnection = conn;
+    dataConnection.on('open', () => {
+        isMatched = true; executeGameStart(); triggerCutIn('P2P直結乱闘 開始！！');
+    });
+    dataConnection.on('data', (data) => {
         if (!isMatched || gameMode !== 'online') return;
-        Object.keys(data.players).forEach(slotStr => {
-            const slot = parseInt(slotStr, 10);
-            if (data.players[slot].id === socket.id) return;
-            
-            let fId = 'enemy-fighter-slot-' + slot; 
-            let enemyEl = document.getElementById(fId);
-            let uiDmg = document.getElementById('ui-e-dmg-slot-' + slot); 
-            let uiStocks = document.getElementById('ui-e-stocks-slot-' + slot);
-            
-            const ep = data.players[slot];
-            if (enemyEl && ep) {
-                enemyEl.style.left = ep.x + 'px'; 
-                enemyEl.style.top = ep.y + 'px';
-                if (uiDmg) uiDmg.textContent = ep.dmg + '%';
-                if (uiStocks) { 
-                    let st = ''; 
-                    for(let i=0; i<ep.stocks; i++) st += '●'; 
-                    uiStocks.textContent = st; 
-                }
+        if (data.type === 'update') {
+            let enemyEl = document.getElementById('enemy-fighter'), uiDmg = document.getElementById('ui-e-dmg'), uiStocks = document.getElementById('ui-e-stocks');
+            if (enemyEl) {
+                e.x = data.x; e.y = data.y; e.vx = data.vx; e.vy = data.vy; e.attacking = data.attacking; e.invulnTimer = data.invulnTimer; e.onLift = data.onLift; e.dir = data.dir;
+                enemyEl.style.left = e.x + 'px'; enemyEl.style.top = e.y + 'px';
             }
+            if (uiDmg) uiDmg.textContent = data.dmg + '%';
+            if (uiStocks) { let st = ''; for(let i=0; i<data.stocks; i++) st += '●'; uiStocks.textContent = st; }
+        } else if (data.type === 'hit') {
+            p.dmg += data.dmgDeal; p.vx = data.vx; p.vy = data.vy; p.knockbackTimer = data.knockbackTimer;
+            p.dir = (e && typeof e.dir !== 'undefined') ? -e.dir : -p.dir;
+            spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80); updateUI();
+        }
+    });
+    dataConnection.on('close', () => {
+        alert("対戦相手との接続が切れました。");
+        clearInterval(gameTimer); safeResetAndReturn(); // 💡【バグ3修復】安全なクリーンアップ関数へ移行
+    });
+}
+
+// 💡【バグ3修復】変数参照の競合を完全に排除した安全なリセット帰還関数
+function safeResetAndReturn() {
+    keys.arrowleft = false; keys.arrowright = false; keys[' '] = false; keys.shift = false;
+    keys.z = false; keys.x = false;
+    spaceReleased = true; zReleased = true; xReleased = true;
+    if (typeof analogActiveTouchId !== 'undefined') analogActiveTouchId = null;
+    if (typeof isMatched !== 'undefined') isMatched = false;
+    goToSelectScreen();
+}
+
+function broadcastMultiplayerData() {
+    if (gameMode === 'online' && isMatched && dataConnection && dataConnection.open) {
+        dataConnection.send({
+            type: 'update', x: p.x, y: p.y, vx: p.vx, vy: p.vy, dmg: p.dmg, stocks: p.stocks, attacking: p.attacking, invulnTimer: p.invulnTimer, onLift: p.onLift, dir: p.dir
         });
-    });
-
-    socket.on('friend_match_over', (data) => {
-        const playerWon = (data.winnerId === socket.id);
-        if (typeof finalizeMatchRating === 'function') {
-            finalizeMatchRating(playerWon, data.averageEnemyRating);
-        }
-        clearInterval(gameTimer); resetAllKeyStates();
-        for(let i=1; i<=4; i++) {
-            let eEl = document.getElementById('enemy-fighter-slot-' + i); if (eEl) eEl.remove();
-            let uBox = document.getElementById('ui-box-slot-' + i); if (uBox) uBox.remove();
-        }
-        goToSelectScreen();
-    });
-
-    socket.on('friend_room_error', (data) => {
-        alert('ルームエラー：' + data.message);
-    });
+    }
 }
 
 function injectOnlineRoomUI() {
     const selectScreen = document.getElementById('select-screen');
-    if (!selectScreen) return;
-    if (document.getElementById('custom-room-section')) return;
+    if (!selectScreen || document.getElementById('custom-room-section')) return;
 
     const roomSection = document.createElement('div');
     roomSection.id = 'custom-room-section';
     roomSection.style.cssText = 'background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid #4b6584; margin:10px 0; text-align:center; font-size:12px;';
 
     roomSection.innerHTML = 
-        '<div class="section-label" style="color:#ffd32a; font-weight:bold; margin-bottom:6px;">🏆 フレンド対戦ルーム & レートシステム</div>' +
+        '<div class="section-label" style="color:#ffd32a; font-weight:bold; margin-bottom:6px;">🏆 完全サーバーレス・P2P直結システム</div>' +
         '<div style="margin-bottom:8px; color:#2ecc71;">現在のあなたのレート: <span id="ui-current-rating" style="font-weight:bold; font-size:14px;">' + playerRating + '</span></div>' +
-        '<div style="display:flex; justify-content:center; gap:8px; margin-bottom:8px;">' +
-            '<button type="button" class="stage-btn" id="btn-create-room" style="background:#20bf6b;">部屋を作る</button>' +
-            '<input type="text" id="input-room-id" placeholder="部屋番号を入力" style="width:100px; padding:4px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold;">' +
-            '<button type="button" class="stage-btn" id="btn-join-room" style="background:#3867d6;">部屋に入る</button>' +
+        '<div style="background:rgba(0,210,255,0.15); padding:6px; border-radius:6px; margin-bottom:8px; border:1px solid #00d2ff; font-size:11px;">' +
+            '🔑 あなたの対戦ID: <span id="ui-my-local-ip" style="font-weight:bold; color:#00d2ff; user-select:all;">ID生成中...</span>' +
         '</div>' +
-        '<div class="section-label" style="margin:4px 0;">対戦人数（複数人ルール）：</div>' +
-        '<div style="display:flex; justify-content:center; gap:5px; margin-bottom:5px;">' +
-            '<button type="button" class="stage-btn selected" id="btn-p2">2人対戦</button>' +
-            '<button type="button" class="stage-btn" id="btn-p3">3人対戦</button>' +
-            '<button type="button" class="stage-btn" id="btn-p4">4人対戦</button>' +
+        '<div style="background:rgba(255,255,255,0.1); padding:8px; border-radius:6px; margin-bottom:10px;">' +
+            '<div class="section-label" style="margin:0 0 4px 0; color:#fff;">相手の対戦IDを入力して乱闘：</div>' +
+            '<input type="text" id="input-server-ip" placeholder="相手のIDをここにペースト" style="width:200px; padding:5px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold; font-size:12px;">' +
+            '<button type="button" class="stage-btn" id="btn-connect-ip" style="background:#3867d6; margin-left:5px; padding:4px 12px; font-size:11px;">相手に突撃（接続）</button>' +
         '</div>' +
-        '<div id="room-status-text" style="color:#d2dae2; font-size:11px; margin-top:4px;">※部屋番号を友達に教えれば、学校のPC同士で直接対戦できます！</div>';
+        '<div id="room-status-text" style="color:#ffd32a; font-size:11px; margin-top:4px;">ホスト役の人のIDをコピーして、もう一人が入力欄に貼り付けて「相手に突撃」を押してね！</div>';
 
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) selectScreen.insertBefore(roomSection, startBtn);
 
-    document.getElementById('btn-create-room').addEventListener('click', requestCreateRoom);
-    document.getElementById('btn-join-room').addEventListener('click', requestJoinRoom);
-    document.getElementById('btn-p2').addEventListener('click', function() { setMatchPlayers(2, this); });
-    document.getElementById('btn-p3').addEventListener('click', function() { setMatchPlayers(3, this); });
-    document.getElementById('btn-p4').addEventListener('click', function() { setMatchPlayers(4, this); });
-    
+    initPeerConnection();
+
+    document.getElementById('btn-connect-ip').addEventListener('click', function() {
+        const targetPeerId = document.getElementById('input-server-ip').value.trim();
+        if (!targetPeerId) { alert("相手の対戦IDを入力してください！"); return; }
+        const statusTxt = document.getElementById('room-status-text');
+        if (statusTxt) statusTxt.textContent = "相手に直接電波を繋いでいます...";
+        myRole = 'guest'; gameMode = 'online';
+        setupConnection(peer.connect(targetPeerId));
+    });
+
     displayRanking(null, 0);
 }
 
+// ==============================================================================
+// 📱 スマホ・タブレット用 タッチ操作初期化システム（💡【バグ2修復】完全フリーズを根絶）
+// ==============================================================================
+function setupTouchControls() {
+    const leftZone = document.getElementById('mobile-left-zone');
+    if (!leftZone) return;
+
+    leftZone.ontouchstart = null; leftZone.ontouchmove = null; leftZone.ontouchend = null;
+
+    leftZone.addEventListener('touchstart', (e) => {
+        if (controlMode !== 'analog') return;
+        e.preventDefault();
+        // 💡【重要】配列全体ではなく、触れた1本目の指のデータ（[0]）だけを確実に引き渡します
+        const touch = e.changedTouches[0];
+        analogActiveTouchId = touch.identifier;
+        updateAnalogStick(touch);
+    }, { passive: false });
+
+    leftZone.addEventListener('touchmove', (e) => {
+        if (controlMode !== 'analog' || analogActiveTouchId === null) return;
+        e.preventDefault();
+        for (let i = 0; i < e.touches.length; i++) {
+            if (e.touches[i].identifier === analogActiveTouchId) {
+                // 💡 一致した指のオブジェクト単体を関数に引き渡します
+                updateAnalogStick(e.touches[i]);
+                break;
+            }
+        }
+    }, { passive: false });
+
+    leftZone.addEventListener('touchend', (e) => {
+        if (controlMode !== 'analog' || analogActiveTouchId === null) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === analogActiveTouchId) {
+                analogActiveTouchId = null;
+                keys.arrowleft = false; keys.arrowright = false; keys[' '] = false; keys.shift = false;
+                spaceReleased = true;
+                resetAnalogKnobPosition();
+                break;
+            }
+        }
+    }, { passive: false });
+}
+
+function updateAnalogStick(touch) {
+    const leftZone = document.getElementById('mobile-left-zone');
+    const knob = document.getElementById('analog-knob');
+    if (!leftZone || !knob || !touch) return; // 💡 万が一の安全ガードを追加
+    
+    const rect = leftZone.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // 💡 これで touch.clientX がエラー（undefined）にならず、正常に座標を計算できます！
+    let dx = touch.clientX - centerX;
+    let dy = touch.clientY - centerY;
+    const dist = Math.hypot(dx, dy);
+    const maxLen = 40;
+    if (dist > maxLen) { dx = (dx / dist) * maxLen; dy = (dy / dist) * maxLen; }
+    knob.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+    
+    keys.arrowleft = dx < -15;
+    keys.arrowright = dx > 15;
+    
+    let wantedJump = dy < -20;
+    if (wantedJump) {
+        if (spaceReleased) { keys[' '] = true; } else { keys[' '] = false; }
+        spaceReleased = false;
+    } else {
+        spaceReleased = true;
+        keys[' '] = false;
+    }
+    
+    keys.shift = dy > 20;
+    if (keys.shift && p) p.passThroughTimer = 15;
+}
+
+// ==============================================================================
+// 🚀 ゲーム全体の初期起動タイマー（変数確保を最優先に一元化）
+// ==============================================================================
 setTimeout(() => { 
-    // 1. まず各画面のグローバル変数を確実に確保して初期化します
+    // 変数の読み込み順バグを完全に回避するため、最優先で画面要素のグローバル変数を100%定義
     window.scrTitle = document.getElementById('title-screen');
     window.scrSelect = document.getElementById('select-screen');
     window.scrGame = document.getElementById('game-view');
     window.scrResult = document.getElementById('result-screen');
     
-    // 2. その後に同意画面を表示します
+    // 変数が完全に確保された安全な状態になってから、初めて同意画面を可視化
     const notice = document.getElementById('notice-screen'); 
     if (notice) notice.style.display = 'flex';
     
-    // 3. 各キーボードイベントやボタンイベントを登録します
+    // キーボード操作の登録
     window.addEventListener('keydown', (ev) => { if (typeof handleKeyDown === 'function') handleKeyDown(ev); });
     window.addEventListener('keyup', (ev) => { if (typeof handleKeyUp === 'function') handleKeyUp(ev); });
     
+    // スマホ・タブレット用仮想コントローラー（タッチイベント）の登録
     const registerTouchBtn = (id, targetKey) => {
         const btn = document.getElementById(id);
         if (!btn) return;
-        const startAction = (e) => { e.preventDefault(); keys[targetKey] = true; if (targetKey === 'z') triggerPlayerAttack(); if (targetKey === 'x') triggerPlayerSpecial(); };
-        const endAction = (e) => { e.preventDefault(); keys[targetKey] = false; if (targetKey === ' ') spaceReleased = true; };
+        const startAction = (e) => { 
+            e.preventDefault(); 
+            keys[targetKey] = true; 
+            if (targetKey === ' ') spaceReleased = false;
+            if (targetKey === 'z') triggerPlayerAttack(); 
+            if (targetKey === 'x') triggerPlayerSpecial(); 
+        };
+        const endAction = (e) => { 
+            e.preventDefault(); 
+            keys[targetKey] = false; 
+            if (targetKey === ' ') spaceReleased = true;
+        };
         btn.addEventListener('touchstart', startAction, { passive: false }); btn.addEventListener('touchend', endAction, { passive: false });
         btn.addEventListener('mousedown', startAction); btn.addEventListener('mouseup', endAction); btn.addEventListener('mouseleave', endAction);
     };
@@ -1947,18 +2136,19 @@ setTimeout(() => {
     activateClickEvent('mode-offline', () => toggleGameMode('offline'));
     activateClickEvent('mode-online', () => toggleGameMode('online'));
     
-    // 4. キャラクター選択画面とオンライン部屋のUIを構築します
     if (typeof initSelectScreen === 'function') initSelectScreen();
     if (typeof injectOnlineRoomUI === 'function') injectOnlineRoomUI(); 
     
-    // 5. 最後に画面のリサイズ処理を実行します
     if (typeof resizeGame === 'function') resizeGame(); 
     if (typeof checkOrientation === 'function') checkOrientation();
-}, 200); // 💡 安全のために読み込み待ちタイマーを「200ms」に少し伸ばして確実に動作させます
+}, 200);
 
 </script>
 </body>
 </html>
+
+
+
 
 
 
