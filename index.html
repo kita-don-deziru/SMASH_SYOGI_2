@@ -1712,9 +1712,17 @@ function triggerPlayerSpecial() {
             setTimeout(() => {
                 w.style.left = (p.x + 18) + 'px'; w.style.top = (p.y + 21) + 'px'; w.style.display = 'block'; w.style.opacity = '1'; w.style.transform = 'translate(-50%, -50%) scale(2.2)'; w.style.transition = 'transform 0.25s, opacity 0.25s';
                 setTimeout(() => { w.style.opacity = '0'; w.style.transform = 'translate(-50%, -50%) scale(0)'; }, 250);
-                if(e.invulnTimer<=0 && !e.onLift && Math.hypot((p.x + 18) - (e.x + 20), (p.y + 21) - (e.y + 23)) < 110) {
-                    e.dmg += 20.5; document.getElementById('ui-e-dmg').textContent = e.dmg + '%'; e.vx = (e.x > p.x ? 1 : -1) * 6; e.vy = -4; spawnHitVisual(e.x + 20, e.y + 23, true);
-                }
+if(e.invulnTimer<=0 && !e.onLift && Math.hypot((p.x + 18) - (e.x + 20), (p.y + 21) - (e.y + 23)) < 110) {
+    let dmgDeal = 20.5;
+    e.dmg += dmgDeal; 
+    document.getElementById('ui-e-dmg').textContent = e.dmg + '%'; 
+    e.vx = (e.x > p.x ? 1 : -1) * 6; 
+    e.vy = -4; 
+    spawnHitVisual(e.x + 20, e.y + 23, true);
+    // ✅ これを追加して相手側にも吹っ飛びとダメージを伝える
+    if (typeof sendHitToEnemy === 'function') sendHitToEnemy(dmgDeal, e.vx, e.vy, 20);
+}
+
             }, idx * 180);
         });
     }
@@ -2028,7 +2036,7 @@ function updateFrame() {
                     e.vy = e.jump; e.isGrounded = false;
                 }
                 
-                if (gameMode === 'offline' && !e.isGrounded && e.vy > 0 && e.hasAirJumped === false && e.y < 208) { 
+                if (gameMode === 'offline' && !e.isGrounded && e.vy > 0 && e.hasAirJumped === false && e.y < 150) { 
                     e.vy = e.jump * 0.9; 
                     e.hasAirJumped = true; 
                 }
@@ -2919,8 +2927,7 @@ setTimeout(() => {
     if (typeof checkOrientation === 'function') checkOrientation();
 }, 200);
 // ==============================================================================
-// 🔊 Web Audio API 効果音（SE）システム（</script>直前貼り付け用）
-// ==============================================================================
+// 🔊 Web Audio API 効果音（SE）システム==============================================================================
 let audioCtx = null;
 
 function initAudio() {
