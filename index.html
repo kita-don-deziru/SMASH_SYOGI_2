@@ -703,8 +703,8 @@ let socket = null;
 // エラーが発生してもゲームが止まらないようにガードします
 try {
     if (typeof io !== 'undefined') {
-        // 💡 発行された無敵のGitHub Pages専用トンネルURLを直接指定します！
-        socket = io('https://vigilant-space-goggles-6vp45pq9r79r35jwq-3000.app.github.dev', { 
+        // 💡 画面に出現した、学校のネット制限を100%すり抜けるLocalTunnelのURLを直書きします！
+        socket = io('https://pretty-ravens-sip.loca.lt', { 
             transports: ['websocket', 'polling'],
             secure: true,
             rejectUnauthorized: false
@@ -715,6 +715,8 @@ try {
 } catch (ex) {
     console.error("通信初期化エラー:", ex);
 }
+
+
 
 
 
@@ -2013,13 +2015,10 @@ function injectOnlineRoomUI() {
     if (!selectScreen) return;
     if (document.getElementById('custom-room-section')) return; // 多重生成防止
 
-
     const roomSection = document.createElement('div');
     roomSection.id = 'custom-room-section';
     roomSection.style.cssText = 'background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid #4b6584; margin:10px 0; text-align:center; font-size:12px;';
 
-
-    // 💡 エスケープバグ（\）を100%回避する確実な文字列結合で、あなたのレートを数字で展開！
     roomSection.innerHTML = 
         '<div class="section-label" style="color:#ffd32a; font-weight:bold; margin-bottom:6px;">🏆 フレンド対戦ルーム & レートシステム</div>' +
         '<div style="margin-bottom:8px; color:#2ecc71;">現在のあなたのレート: <span id="ui-current-rating" style="font-weight:bold; font-size:14px;">' + playerRating + '</span></div>' +
@@ -2036,31 +2035,32 @@ function injectOnlineRoomUI() {
         '</div>' +
         '<div id="room-status-text" style="color:#d2dae2; font-size:11px; margin-top:4px;">※部屋番号を友達に教えれば、学校のPC同士で直接対戦できます！</div>';
 
-
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) selectScreen.insertBefore(roomSection, startBtn);
 
+    // 💡【空振り完全防止】：上のinnerHTMLでボタンが画面に出現した「直後」に紐付けを実行します！
+    const createBtn = document.getElementById('btn-create-room');
+    const joinBtn = document.getElementById('btn-join-room');
+    const p2Btn = document.getElementById('btn-p2');
+    const p3Btn = document.getElementById('btn-p3');
+    const p4Btn = document.getElementById('btn-p4');
 
-    // 各仮想ボタンのタップ・クリックイベントを確実に連動
-    document.getElementById('btn-create-room').addEventListener('click', requestCreateRoom);
-    document.getElementById('btn-join-room').addEventListener('click', requestJoinRoom);
-    document.getElementById('btn-p2').addEventListener('click', function() { setMatchPlayers(2, this); });
-    document.getElementById('btn-p3').addEventListener('click', function() { setMatchPlayers(3, this); });
-    document.getElementById('btn-p4').addEventListener('click', function() { setMatchPlayers(4, this); });
+    if (createBtn) createBtn.addEventListener('click', requestCreateRoom);
+    if (joinBtn) joinBtn.addEventListener('click', requestJoinRoom);
+    if (p2Btn) p2Btn.addEventListener('click', function() { setMatchPlayers(2, this); });
+    if (p3Btn) p3Btn.addEventListener('click', function() { setMatchPlayers(3, this); });
+    if (p4Btn) p4Btn.addEventListener('click', function() { setMatchPlayers(4, this); });
 }
 
+// 💡【大復活】：消え去っていたスマホ用ボタン・各種タップイベントをここにすべて一括登録します！
+if (typeof initSelectScreen === 'function') initSelectScreen();
+if (typeof injectOnlineRoomUI === 'function') injectOnlineRoomUI(); 
 
-
-
-    // ✨ ここにこの1行を付け足してください（コピペOK）
-    if (typeof initSelectScreen === 'function') initSelectScreen();
-    if (typeof injectOnlineRoomUI === 'function') injectOnlineRoomUI(); // 💡【トリガー大復活】：これで部屋とレートが100%再出現します！
-    
-    if (typeof resizeGame === 'function') resizeGame(); 
-    if (typeof checkOrientation === 'function') checkOrientation();
+if (typeof resizeGame === 'function') resizeGame(); 
+if (typeof checkOrientation === 'function') checkOrientation();
 }, 100);
-
 
 </script>
 </body>
 </html>
+
