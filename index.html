@@ -2293,12 +2293,9 @@ function updateFrame() {
         if (enemyWasAirAttacking) { enemyAirAttackFrameCount++; if (enemyAirAttackFrameCount > 15) enemyWasAirAttacking = false; }
 
         e.vy += 0.45; e.x += e.vx; e.y += e.vy;    
-    } else {
-        // P2P通信用の関数を呼び出すように変更
-        if (isMatched && typeof broadcastMultiplayerData === 'function') {
-            broadcastMultiplayerData();
-        }
-    }
+     }
+
+
 
     // 5. ステージの床判定
     const checkPlatform = (char) => {
@@ -2331,8 +2328,16 @@ function updateFrame() {
         }
     };
 
-    checkPlatform(p);
-    if (gameMode === 'offline') { checkPlatform(e); }
+      checkPlatform(p);
+    if (gameMode === 'offline') { 
+        checkPlatform(e); 
+    } else if (gameMode === 'online' && !e.onLift) {
+        // 通信の合間も相手の速度から位置を予測して滑らかに見せる
+        e.x += e.vx;
+        e.y += e.vy;
+    }
+
+
 
     // 6. 飛び道具の物理と当たり判定
     for (let i = projectiles.length - 1; i >= 0; i--) {
@@ -2828,15 +2833,20 @@ function setupConnection(conn) {
 
 
 
-// 💡 毎フレーム（1秒間に60回）、自分の最新の動きを相手に直接電波送信する関数
+let netSendCounter = 0; // 送信タイミングを数えるカウンター
+
 function broadcastMultiplayerData() {
+    netSendCounter++;
+    // 2回に1回（約30fps）だけ送信して通信の渋滞を防ぐ
+    if (netSendCounter % 2 !== 0) return;
+
     if (gameMode === 'online' && isMatched && dataConnection && dataConnection.open) {
         dataConnection.send({
             type: 'update',
-            x: p.x,
-            y: p.y,
-            vx: p.vx,
-            vy: p.vy,
+            x: Math.round(p.x),
+            y: Math.round(p.y),
+            vx: Math.round(p.vx * 10) / 10,
+            vy: Math.round(p.vy * 10) / 10,
             dmg: p.dmg,
             stocks: p.stocks,
             attacking: p.attacking,
@@ -2845,6 +2855,8 @@ function broadcastMultiplayerData() {
         });
     }
 }
+
+
 
 
 
