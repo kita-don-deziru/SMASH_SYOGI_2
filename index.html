@@ -941,8 +941,12 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                     <div id="enemy-fighter" class="piece">
                         <span id="e-text">王</span>
                         <div id="e-status-bubble" class="status-bubble">Zzz...</div>
+                        <div id="e-aura" class="silver-aura"></div>
+                        <div id="e-shield" class="gold-shield"></div>
                         <div id="enemy-weapon" class="weapon" style="left:-22px; transform-origin: right center;"></div>
                     </div>
+
+
                     <div id="player-lift" class="respawn-lift"></div>
                     <div id="enemy-lift" class="respawn-lift"></div>
                     <div id="keima-laser"></div>
@@ -1202,46 +1206,13 @@ const keys = { arrowleft: false, arrowright: false, ' ': false, z: false, x: fal
 
 
 // 💡 消えていたレートシステムの初期値と復元処理を完全配置
-let playerRating = 1500; 
+let playerRating = 1500;
+let enemyRatingValue = 1500; // 相手のレートを保存する変数を追加
 try {
     let savedRating = localStorage.getItem('smash_shogi_rating_value');
     if (savedRating) playerRating = parseInt(savedRating, 10);
-} catch(e) { playerRating = 1500; }
+} catch(err) { playerRating = 1500; }
 
-
-
-
-
-
-
-
-let currentRoomId = "";
-let maxPlayers = 2; // ルームの最大人数（2〜4人）
-let activeFighters = {}; // 部屋にいる全プレイヤーのデータを管理
-
-
-
-
-
-
-
-
-// 💡 消えていた複数人対戦時の色データを完全配置
-const FIGHTER_COLORS = {
-    1: { bg: '#ffebc2', text: '#000000', name: 'あなた' },
-    2: { bg: '#ffd27f', text: '#b32727', name: 'プレイヤー2' },
-    3: { bg: '#a3cbf1', text: '#0e4a86', name: 'プレイヤー3' },
-    4: { bg: '#c8f7c5', text: '#1e681a', name: 'プレイヤー4' }
-};
-
-
-
-
-
-
-
-
-// 💡 消えていた ELOレート計算関数（calculateNewRating）
 function calculateNewRating(myRate, enemyRate, isWin) {
     const K = 32;
     const expectedScore = 1 / (1 + Math.pow(10, (enemyRate - myRate) / 400));
@@ -1250,235 +1221,9 @@ function calculateNewRating(myRate, enemyRate, isWin) {
     localStorage.setItem('smash_shogi_rating_value', newRate);
     return newRate;
 }
-function finalizeMatchRating(playerWon, averageEnemyRating) {
-    let enemyRate = averageEnemyRating || 1500;
-    let newRate = calculateNewRating(playerRating, enemyRate, playerWon);
-    playerRating = newRate;
-    const rateUi = document.getElementById('ui-current-rating');
-    if (rateUi) rateUi.textContent = playerRating;
-    alert(playerWon ? '勝利！レートがアップしました：' + newRate : '敗北…レートがダウンしました：' + newRate);
-}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// 💡 消えていた 人数切り替え関数（setMatchPlayers）
-function setMatchPlayers(num, btn) {
-    maxPlayers = num;
-    document.querySelectorAll('#custom-room-section .stage-btn').forEach(b => {
-        if(b.id === 'btn-p2' || b.id === 'btn-p3' || b.id === 'btn-p4') b.classList.remove('selected');
-    });
-    btn.classList.add('selected');
-    document.getElementById('room-status-text').textContent = '対戦ルール：' + num + '人乱闘モードが選択されました。';
-}
-
-
-
-
-
-
-
-
-// 💡 消えていた 部屋作成関数（requestCreateRoom）
-function requestCreateRoom() {
-    if (!socket || !socket.connected) { alert("サーバーと通信できません。オフラインモードでプレイしてください。"); return; }
-    const txt = document.getElementById('room-status-text');
-    if (txt) txt.textContent = "部屋を作成中...";
-    socket.emit('create_friend_room', { char: selectedCharKey, stage: selectedStage, maxPlayers: maxPlayers, rating: playerRating });
-}
-
-
-
-
-
-
-
-
-// 💡 消えていた 部屋入室関数（requestJoinRoom）
-function requestJoinRoom() {
-    if (!socket || !socket.connected) { alert("サーバーと通信できません。"); return; }
-    const input = document.getElementById('input-room-id');
-    if (!input || !input.value.trim()) { alert("部屋番号を入力してください。"); return; }
-    const roomIdInput = input.value.trim();
-    const txt = document.getElementById('room-status-text');
-    if (txt) txt.textContent = '部屋 [' + roomIdInput + '] に入室を試みています...';
-    socket.emit('join_friend_room', { roomId: roomIdInput, char: selectedCharKey, rating: playerRating });
-}
-function syncMultiplayerFighters(players) {
-    activeFighters = players;
-    const stage = document.getElementById('battle-stage');
-    const uiBar = document.getElementById('ui-bar');
-    if (!stage || !uiBar) return;
-
-
-
-
-    Object.keys(players).forEach(slotStr => {
-        const slot = parseInt(slotStr, 10);
-        if (players[slot].id === socket.id) return; // 自分はスキップ
-
-
-
-
-        // 他のプレイヤーの駒を画面上に生成
-        let fId = 'enemy-fighter-slot-' + slot;
-        if (!document.getElementById(fId)) {
-            const enemyPiece = document.createElement('div');
-            enemyPiece.id = fId;
-            enemyPiece.className = 'piece';
-            enemyPiece.style.cssText = 'width:40px; height:46px; background:#ffd27f; color:#b32727; font-size:18px; z-index:20; clip-path:polygon(50% 0%, 100% 23%, 86% 100%, 14% 100%, 0% 23%);';
-            enemyPiece.innerHTML = '<span id="e-text-slot-' + slot + '">敵</span>';
-            stage.appendChild(enemyPiece);
-        }
-
-
-
-
-        // 他のプレイヤーの体力HUD（UIボックス）を画面下に生成
-        let uiId = 'ui-box-slot-' + slot;
-        if (!document.getElementById(uiId)) {
-            const uiBox = document.createElement('div');
-            uiBox.id = uiId;
-            uiBox.className = 'ui-box';
-            uiBox.innerHTML = '<span style="font-weight:bold; color:#ff4d4d;">P' + slot + '</span> <span id="ui-e-stocks-slot-' + slot + '" class="ui-stocks">●●●</span><span id="ui-e-dmg-slot-' + slot + '" class="ui-dmg">0%</span>';
-            uiBar.appendChild(uiBox);
-        }
-    });
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// 💡【オンライン複数人同期・完全版】：
-// この関数が毎フレーム自動で実行されることで、あなたの最新の座標（x, y）やダメージ、ストック数が
-// テンプレートリテラルのバグを一切出さずに、友達のパソコン画面へリアルタイム超高速常時送信されます！
-function broadcastMultiplayerData() {
-    if (gameMode === 'online' && isMatched && currentRoomId !== "") {
-        if (socket && socket.connected) {
-            socket.emit('multi_player_update', {
-                roomId: currentRoomId, 
-                x: p.x, 
-                y: p.y, 
-                vx: p.vx, 
-                vy: p.vy, 
-                dmg: p.dmg, 
-                stocks: p.stocks, 
-                attacking: p.attacking, 
-                invulnTimer: p.invulnTimer, 
-                onLift: p.onLift
-            });
-        }
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const uParts = [ 'ht', 'tps', '://', 'solid', '-space', '-dollop', '-w9gg5wqvw5j394rx', '-3000', '.app', '.github', '.dev' ];
-
-
-
-
-
-
-
-
-let socket = null;
-
-
-
-
-// エラーが発生してもゲームが止まらないようにガードします
-try {
-    if (typeof io !== 'undefined') {
-        // 💡 画面に出現した、学校のネット制限を100%すり抜けるLocalTunnelのURLを直書きします！
-        socket = io('https://nice-views-wink.loca.lt/', { 
-            transports: ['websocket', 'polling'],
-            secure: true,
-            rejectUnauthorized: false
-        });
-    } else {
-        console.warn("Socket.IOが読み込まれていないため、オフラインモードのみ動作します。");
-    }
-} catch (ex) {
-    console.error("通信初期化エラー:", ex);
-}
-
-
-
-
-
-
-
-
-let projectiles = []; let activeFireTimer = 0; let enemySleepTimer = 0; let enemyStunTimer = 0; let isHitStopping = false;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+let projectiles = []; let activeFireTimer = 0; let enemySleepTimer = 0; let enemyStunTimer = 0;
+let myStatusTimer = 0; let isHitStopping = false;
 
 let matchStartTime = 0; let matchElapsedTime = 0; let enemyWasAirAttacking = false; let enemyAirAttackFrameCount = 0;
 let flySpecialActive = false; let flySpecialTimer = 0;
@@ -1932,6 +1677,7 @@ function triggerPlayerSpecial() {
         if (e.invulnTimer <= 0 && !e.onLift && Math.abs((p.x+18) - (e.x+20)) < 160 && Math.abs(p.y - e.y) < 60) {
             enemySleepTimer = Math.floor(90 + Math.random() * 210); enemyStunTimer = 0; e.vx = 0; e.vy = 0;
             const bubble = document.getElementById('e-status-bubble'); bubble.textContent = 'Zzz...'; bubble.style.display = 'block';
+            if (typeof sendActionToEnemy === 'function') sendActionToEnemy('status', { statusType: 'sleep', duration: enemySleepTimer, dmg: 0 });
         }
     }
     else if (selectedCharKey === 'knight') {
@@ -1942,8 +1688,10 @@ function triggerPlayerSpecial() {
         if(e.invulnTimer <= 0 && !e.onLift){
             e.dmg += 18.5; document.getElementById('ui-e-dmg').textContent = e.dmg + '%'; enemyStunTimer = 180; enemySleepTimer = 0; e.vx = 0; e.vy = 0;
             const bubble = document.getElementById('e-status-bubble'); bubble.textContent = '⚡スタン⚡'; bubble.style.display = 'block'; spawnHitVisual(e.x + 20, e.y + 20, true);
+            if (typeof sendActionToEnemy === 'function') sendActionToEnemy('status', { statusType: 'stun', duration: 180, dmg: 18.5 });
         }
     }
+
     else if (selectedCharKey === 'silver') {
         p.spGauge = 0; updateSPBar(); p.silverMode = true; triggerCutIn('成銀：修羅修羅の境地！');
         if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '成銀：修羅修羅の境地！', effect: 'none' });
@@ -2215,11 +1963,19 @@ function updateFrame() {
             const pWp = document.getElementById('player-weapon'); if (pWp) { pWp.style.background = '#e0e0e0'; pWp.style.boxShadow = 'none'; pWp.style.width = '22px'; }
         }
     }
-
     // 3. プレイヤーの移動と物理演算
-    if (!p.onLift) {
+    if (myStatusTimer > 0) {
+        myStatusTimer--;
+        p.vx *= 0.8;
+        if (myStatusTimer === 0) {
+            const pBubble = document.getElementById('p-status-bubble');
+            if (pBubble) pBubble.style.display = 'none';
+        }
+    }
+    if (!p.onLift && myStatusTimer <= 0) {
         if (p.knockbackTimer > 0) { p.knockbackTimer--; }
         else {
+
             if (keys.arrowleft) { p.vx = -p.speed; p.dir = -1; }
             else if (keys.arrowright) { p.vx = p.speed; p.dir = 1; }
             else { p.vx *= 0.8; }
@@ -2360,6 +2116,13 @@ function updateFrame() {
                 e.dmg += Math.floor(dmg * p.power);
                 let kb = (proj.type === 'hyper-arrow') ? 8 : ((proj.type === 'coin-bomb') ? 5 : 2);
                 e.vx = proj.dir * (kb + e.dmg * 0.1) / e.weight; e.vy = -3 / e.weight; e.knockbackTimer = 20;
+                
+                // 通常矢やコイン爆弾のヒット時にSPゲージを少し溜める
+                if (proj.type !== 'hyper-arrow' && p.spGauge < 100) {
+                    p.spGauge = Math.min(100, p.spGauge + 10);
+                    updateSPBar();
+                }
+                
                 spawnHitVisual(proj.x, proj.y, proj.type !== 'arrow'); hit = true;
             }
         } else {
@@ -2562,9 +2325,10 @@ function displayRanking(currentRanking, highlightTimeMs) {
             }
             let rankEmoji = ['🥇', '🥈', '🥉', '4位', '5位'][index] || (index + 1) + '位'; 
             let parts = item.fighter.split(":"); 
-            let fName = parts || ""; 
-            let uName = parts ? " [" + parts + "]" : "";
+            let fName = parts[0] || ""; 
+            let uName = parts[1] ? " [" + parts[1] + "]" : "";
             row.innerHTML = "<span>" + rankEmoji + " " + fName + uName + "</span> <span>" + formatTime(item.time) + "</span>"; 
+
             container.appendChild(row);
         });
     } else {
@@ -2575,12 +2339,34 @@ function displayRanking(currentRanking, highlightTimeMs) {
     }
 }
 
-
-
-
 function endMatch(playerWon) {
-    clearInterval(gameTimer); window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); resetAllKeyStates();
-    if (gameMode === 'online') { alert(playerWon ? '対戦相手に勝利しました！🏆' : '敗北しました...'); goToSelectScreen(); return; }
+    clearInterval(gameTimer);
+    gameTimer = null;
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    resetAllKeyStates();
+
+    // スマホ操作パッドを隠してセレクト画面のタップを邪魔しないようにする
+    const overlay = document.getElementById('touch-pad-overlay');
+    if (overlay) overlay.style.display = 'none';
+
+    if (gameMode === 'online') {
+        isMatched = false;
+        // 通信を安全に切断（相手側の close イベントによる二重アラートを防ぐため少し遅らせる）
+        if (dataConnection) {
+            const oldConn = dataConnection;
+            dataConnection = null;
+            setTimeout(() => { try { oldConn.close(); } catch(err) {} }, 300);
+        }
+              setTimeout(() => {
+            alert(playerWon ? '対戦相手に勝利しました！🏆' : '敗北しました...');
+            finalizeMatchRating(playerWon, enemyRatingValue);
+            displayRanking(null, 0);
+            goToSelectScreen();
+        }, 100);
+        return;
+    }
+
     if (playerWon) { 
         alert('王将のストックをすべて削り切った！LV9 CPUに完全勝利です！🏆\nクリア記録: ' + formatTime(matchElapsedTime)); 
         let confirmRegister = confirm("ランキングに登録しますか？"); 
@@ -2601,9 +2387,6 @@ function endMatch(playerWon) {
         alert(name + 'の全ストックが消滅した…レベル9の圧倒的な力に敗北した。'); goToSelectScreen(); 
     }
 }
-
-
-
 
 function backToSelect() { goToSelectScreen(); }
 function toggleControlMode(mode) {
@@ -2665,96 +2448,6 @@ function finalizeMatchRating(playerWon, enemyRating) {
     const ratingUi = document.getElementById('ui-current-rating');
     if (ratingUi) ratingUi.textContent = newRating;
 }
-
-
-
-
-function syncMultiplayerFighters(serverPlayers) {
-    const stage = document.getElementById('battle-stage');
-    const uiBar = document.getElementById('ui-bar');
-    if (!stage || !uiBar) return;
-
-
-
-
-    activeFighters = serverPlayers;
-    let mySlot = 1;
-    Object.keys(serverPlayers).forEach(slot => {
-        if (serverPlayers[slot].id === socket.id) mySlot = parseInt(slot, 10);
-    });
-
-
-
-
-    Object.keys(serverPlayers).forEach(slotStr => {
-        const slot = parseInt(slotStr, 10);
-        if (slot === mySlot) return;
-
-
-
-
-        let fId = 'enemy-fighter-slot-' + slot;
-        let enemyEl = document.getElementById(fId);
-        if (!enemyEl) {
-            enemyEl = document.createElement('div');
-            enemyEl.id = fId;
-            enemyEl.className = 'piece';
-            enemyEl.style.cssText = 'width:38px; height:44px; z-index:20; position:absolute; font-size:16px; border-radius:6px;';
-            
-            const textSpan = document.createElement('span');
-            textSpan.id = 'e-text-slot-' + slot;
-            enemyEl.appendChild(textSpan);
-
-
-
-
-            const weaponEl = document.createElement('div');
-            weaponEl.id = 'enemy-weapon-slot-' + slot;
-            weaponEl.className = 'weapon';
-            weaponEl.style.cssText = 'background:#e74c3c; width:22px; height:4px; position:absolute; top:18px; transform-origin:right center; display:none;';
-            enemyEl.appendChild(weaponEl);
-
-
-
-
-            stage.appendChild(enemyEl);
-        }
-
-
-
-
-        let uiId = 'ui-box-slot-' + slot;
-        let uiBox = document.getElementById(uiId);
-        if (!uiBox) {
-            uiBox = document.createElement('div');
-            uiBox.id = uiId;
-            uiBox.className = 'ui-box';
-            uiBox.innerHTML = '<span id="ui-e-name-slot-' + slot + '" style="font-weight:bold;">P' + slot + '</span><span id="ui-e-stocks-slot-' + slot + '" class="ui-stocks">●●●</span><span id="ui-e-dmg-slot-' + slot + '" class="ui-dmg">0%</span>';
-            uiBar.appendChild(uiBox);
-        }
-
-
-
-
-        const cfg = FIGHTER_COLORS[slot] || { bg: '#ffd27f', text: '#b32727', name: 'P' + slot };
-        enemyEl.style.background = cfg.bg;
-        enemyEl.style.color = cfg.text;
-        enemyEl.style.boxShadow = 'inset 0 0 0 1px ' + cfg.text;
-        
-        const nameUi = document.getElementById('ui-e-name-slot-' + slot);
-        if (nameUi && serverPlayers[slot]) {
-            nameUi.textContent = cfg.name + ' (' + CHAR_DATA[serverPlayers[slot].char].name + ')';
-            nameUi.style.color = cfg.text;
-        }
-        const textUi = document.getElementById('e-text-slot-' + slot);
-        if (textUi && serverPlayers[slot]) {
-            textUi.textContent = CHAR_DATA[serverPlayers[slot].char].name;
-        }
-    });
-}
-
-
-
 
 // ==============================================================================
 // 🔌 【完全サーバーレス】WebRTC P2P直接通信システム（GitHub不要）
@@ -2818,30 +2511,21 @@ function initPeerConnection() {
 function setupConnection(conn) {
     dataConnection = conn;
 
-
-
-
     dataConnection.on('open', () => {
         isMatched = true;
-        // 自分の選んだキャラクターとステージ情報を相手に送信
         dataConnection.send({
             type: 'init',
             charKey: selectedCharKey,
-            stage: selectedStage
+            stage: selectedStage,
+            rating: playerRating
         });
         executeGameStart();
         triggerCutIn('P2P直結乱闘 開始！！');
     });
 
-
-
-
-
-
-    // 相手のパソコンからリアルタイム座標電波（データ）が届いたときの処理
     dataConnection.on('data', (data) => {
         if (data.type === 'init') {
-            // 相手の駒の名前と文字を画面に反映
+            if (data.rating) enemyRatingValue = data.rating;
             const enemyChar = CHAR_DATA[data.charKey];
             if (enemyChar) {
                 const eNameEl = document.getElementById('ui-e-name');
@@ -2849,7 +2533,6 @@ function setupConnection(conn) {
                 if (eNameEl) eNameEl.textContent = '対戦相手 (' + enemyChar.name + ')';
                 if (eTextEl) eTextEl.textContent = enemyChar.name;
             }
-            // ホスト側のステージ設定に合わせる
             if (myRole === 'guest' && data.stage) {
                 selectedStage = data.stage;
                 const isStage2 = (selectedStage === 2);
@@ -2859,23 +2542,15 @@ function setupConnection(conn) {
             }
             return;
         } else if (data.type === 'gameover') {
-            // 相手のストックが0になった通知を受け取ったら自分の勝利
             endMatch(true);
             return;
         }
         if (!isMatched || gameMode !== 'online') return;
 
-
-
-
         if (data.type === 'update') {
-            // 相手の位置、ダメージ、ストック、攻撃モーションを画面に反映
             let enemyEl = document.getElementById('enemy-fighter');
             let uiDmg = document.getElementById('ui-e-dmg');
             let uiStocks = document.getElementById('ui-e-stocks');
-
-
-
 
             if (enemyEl) {
                 e.x = data.x;
@@ -2886,21 +2561,48 @@ function setupConnection(conn) {
                 e.invulnTimer = data.invulnTimer;
                 e.onLift = data.onLift;
 
-
-
-
                 enemyEl.style.left = e.x + 'px';
                 enemyEl.style.top = e.y + 'px';
                 if (Math.abs(e.vx) > 0.1) { e.dir = e.vx > 0 ? 1 : -1; }
+
+                // 1. 武器の振り＆竜王（飛車SP）の巨大化同期
+                const eWp = document.getElementById('enemy-weapon');
+                if (eWp) {
+                    eWp.style.transform = (e.attacking > 0) ? (e.dir === 1 ? 'rotate(75deg)' : 'rotate(-75deg)') : 'rotate(0deg)';
+                    if (data.flySpecial) {
+                        eWp.style.background = "linear-gradient(90deg, #ffd32a, #ff3f3f)";
+                        eWp.style.boxShadow = "0 0 15px #ff3f3f";
+                        eWp.style.width = "120px";
+                    } else {
+                        eWp.style.background = "#e74c3c";
+                        eWp.style.boxShadow = "none";
+                        eWp.style.width = "22px";
+                    }
+                }
+
+                // 2. 歩の「と金」成金進化同期
+                if (data.isPromoted) {
+                    const eText = document.getElementById('e-text');
+                    if (eText) eText.textContent = 'と';
+                    enemyEl.style.background = '#ffccd2';
+                    enemyEl.style.color = '#d32f2f';
+                    enemyEl.style.boxShadow = 'inset 0 0 0 2px #d32f2f';
+                }
+
+                // 3. 銀の修羅オーラ・金の鉄壁結界の同期
+                const eAura = document.getElementById('e-aura');
+                if (eAura) eAura.style.display = data.silverMode ? 'block' : 'none';
+                const eShield = document.getElementById('e-shield');
+                if (eShield) eShield.style.display = data.goldMode ? 'block' : 'none';
             }
+
             if (uiDmg) uiDmg.textContent = data.dmg + '%';
             if (uiStocks) {
                 let st = '';
                 for(let i=0; i<data.stocks; i++) st += '●';
                 uiStocks.textContent = st;
             }
-                } else if (data.type === 'hit') {
-            // あなたが殴られたときのノックバックとダメージ加算処理
+        } else if (data.type === 'hit') {
             p.dmg += data.dmgDeal;
             p.vx = data.vx;
             p.vy = data.vy;
@@ -2929,11 +2631,26 @@ function setupConnection(conn) {
                         }, idx * 180);
                     });
                 }
+            } else if (data.actionType === 'status') {
+                myStatusTimer = data.payload.duration;
+                p.vx = 0; p.vy = 0;
+                if (data.payload.dmg > 0) {
+                    p.dmg += data.payload.dmg;
+                    spawnHitVisual(p.x + 18, p.y + 20, true);
+                    updateUI();
+                }
+                const pBubble = document.getElementById('p-status-bubble');
+                if (pBubble) {
+                    pBubble.textContent = (data.payload.statusType === 'sleep') ? 'Zzz...' : '⚡スタン⚡';
+                    pBubble.style.display = 'block';
+                }
             }
         }
     });
 
     dataConnection.on('close', () => {
+        if (!isMatched) return;
+        isMatched = false;
         alert("対戦相手との接続が切れました。");
         clearInterval(gameTimer);
         resetAllKeyStates();
@@ -2958,8 +2675,14 @@ function broadcastMultiplayerData() {
             stocks: p.stocks,
             attacking: p.attacking,
             invulnTimer: p.invulnTimer,
-            onLift: p.onLift
+            onLift: p.onLift,
+            isPromoted: p.isPromoted || false,
+            silverMode: p.silverMode || false,
+            goldMode: p.goldMode || false,
+            flySpecial: flySpecialActive || false
         });
+
+
     }
 }
 
@@ -3195,8 +2918,239 @@ setTimeout(() => {
     if (typeof resizeGame === 'function') resizeGame(); 
     if (typeof checkOrientation === 'function') checkOrientation();
 }, 200);
+// ==============================================================================
+// 🔊 Web Audio API 効果音（SE）システム（</script>直前貼り付け用）
+// ==============================================================================
+let audioCtx = null;
 
+function initAudio() {
+    if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
 
+function playSE(type) {
+    initAudio();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+
+    if (type === 'title_start') {
+        // タイトル画面決定音（鋭い高音スイープ＋金属的なシャキーン音）
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = 'sawtooth';
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(1200, now);
+        osc1.frequency.exponentialRampToValueAtTime(2800, now + 0.08);
+        osc1.frequency.exponentialRampToValueAtTime(1800, now + 0.35);
+        osc2.frequency.setValueAtTime(2400, now);
+        osc2.frequency.exponentialRampToValueAtTime(3600, now + 0.12);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc1.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
+        osc1.start(now); osc2.start(now);
+        osc1.stop(now + 0.4); osc2.stop(now + 0.4);
+    }
+    else if (type === 'select') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(660, now);
+        osc.frequency.setValueAtTime(880, now + 0.04);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.1);
+    }
+    else if (type === 'jump') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(520, now + 0.14);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.15);
+    }
+    else if (type === 'swing') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(90, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.09);
+    }
+    else if (type === 'hit' || type === 'critical') {
+        const isCrit = (type === 'critical');
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = isCrit ? 'sawtooth' : 'square';
+        osc.frequency.setValueAtTime(isCrit ? 180 : 240, now);
+        osc.frequency.exponentialRampToValueAtTime(isCrit ? 35 : 60, now + (isCrit ? 0.28 : 0.12));
+        gain.gain.setValueAtTime(isCrit ? 0.45 : 0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + (isCrit ? 0.3 : 0.13));
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + (isCrit ? 0.3 : 0.13));
+    }
+    else if (type === 'special') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(950, now + 0.35);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.4);
+    }
+    else if (type === 'burst') {
+        const bufferSize = audioCtx.sampleRate * 0.5;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(600, now);
+        filter.frequency.exponentialRampToValueAtTime(60, now + 0.48);
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+        noise.start(now); noise.stop(now + 0.5);
+    }
+}
+
+// --- 既存関数に効果音とバグ修正を自動フック ---
+if (typeof isMatched === 'undefined') window.isMatched = false;
+if (typeof myRole === 'undefined') window.myRole = 'offline';
+
+// 1. タイトル画面クリック時の決定音
+const _origGoToSelect = goToSelectScreen;
+goToSelectScreen = function() {
+    const titleEl = document.getElementById('title-screen');
+    if (titleEl && titleEl.style.display !== 'none') {
+        playSE('title_start');
+    } else {
+        playSE('select');
+    }
+    _origGoToSelect.apply(this, arguments);
+};
+
+// 2. キャラ・ステージ選択音
+const _origSelectChar = selectCharacter;
+selectCharacter = function() { playSE('select'); _origSelectChar.apply(this, arguments); };
+
+const _origSelectStage = selectStage;
+selectStage = function() { playSE('select'); _origSelectStage.apply(this, arguments); };
+
+// 3. 攻撃素振り音
+const _origTriggerAttack = triggerPlayerAttack;
+triggerPlayerAttack = function() {
+    if (p && !p.onLift && p.attacking === 0 && zReleased) playSE('swing');
+    _origTriggerAttack.apply(this, arguments);
+};
+
+// 4. 必殺技・カットイン音
+const _origTriggerCutIn = triggerCutIn;
+triggerCutIn = function(txt) {
+    playSE('special');
+    const ci = document.getElementById('cutin-text');
+    if (ci) {
+        ci.style.position = 'absolute';
+        ci.style.top = '45%';
+        ci.style.left = '50%';
+        ci.style.fontSize = '26px';
+        ci.style.fontWeight = 'bold';
+        ci.style.color = '#ffd32a';
+        ci.style.textShadow = '0 0 10px #eb2f06, 2px 2px 0 #000';
+        ci.style.zIndex = '50';
+        ci.style.whiteSpace = 'nowrap';
+    }
+    _origTriggerCutIn.apply(this, arguments);
+};
+
+// 5. ヒット音（通常＆強吹っ飛び）
+const _origSpawnHit = spawnHitVisual;
+spawnHitVisual = function(x, y, isSuper) {
+    playSE(isSuper ? 'critical' : 'hit');
+    _origSpawnHit.apply(this, arguments);
+};
+
+// 6. バースト撃墜音
+const _origSpawnKoBeam = spawnKoBeam;
+spawnKoBeam = function(x, dir) {
+    playSE('burst');
+    _origSpawnKoBeam.apply(this, arguments);
+};
+
+// 7. ジャンプ音（キー・ボタン押下時）
+window.addEventListener('keydown', (ev) => {
+    if ((ev.key === ' ' || ev.key.toLowerCase() === 'arrowup') && p && !p.onLift && (p.isGrounded || p.airJumpsLeft > 0)) {
+        playSE('jump');
+    }
+});
+['btn-up', 'btn-jump-action'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.addEventListener('touchstart', () => {
+        if (p && !p.onLift && (p.isGrounded || p.airJumpsLeft > 0)) playSE('jump');
+    });
+});
+// // ==============================================================================
+// 🎵 キャラ選択画面 BGMループ再生システム（バックグラウンド自動停止対応）
+// ==============================================================================
+const selectBGM = new Audio('蒼晶のトレイル.mp3'); // 👈 ここに実際のMP3ファイル名を入れる
+selectBGM.loop = true;   // ループ再生を有効化
+selectBGM.volume = 0.4;  // 音量（0.0 〜 1.0 で調整可能）
+
+function playSelectBGM() {
+    selectBGM.play().catch((err) => {
+        console.log('BGM自動再生待機中:', err);
+    });
+}
+
+function stopSelectBGM() {
+    selectBGM.pause();
+    selectBGM.currentTime = 0; // 次回再生時に最初から流す
+}
+
+// 1. キャラ選択画面に移動したときにBGMを再生
+const _bgmHookGoToSelect = goToSelectScreen;
+goToSelectScreen = function() {
+    _bgmHookGoToSelect.apply(this, arguments);
+    playSelectBGM();
+};
+
+// 2. バトルが始まったらBGMを停止
+const _bgmHookGameStart = executeGameStart;
+executeGameStart = function() {
+    stopSelectBGM();
+    _bgmHookGameStart.apply(this, arguments);
+};
+
+// 3. スマホの別アプリやPCの別タブへ切り替えたときの自動停止・再開
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        // 画面が隠れたらBGMを一時停止
+        selectBGM.pause();
+    } else {
+        // 画面に戻ったとき、現在「キャラ選択画面」が表示中であればBGMを再開
+        const selectScr = document.getElementById('select-screen');
+        if (selectScr && selectScr.style.display !== 'none') {
+            playSelectBGM();
+        }
+    }
+});
 
 
 </script>
