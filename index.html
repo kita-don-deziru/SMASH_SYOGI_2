@@ -695,6 +695,49 @@
         .opt-toggle-container { display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.4); padding: 5px 10px; border-radius: 6px; border: 1px solid #555; }
         .btn-toggle { background: #34495e; color: #fff; border: 1px solid #7f8c8d; padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         .btn-toggle.active { background: #2ecc71; border-color: #fff; box-shadow: 0 0 8px #2ecc71; }
+        /* カットイン演出のスタイル */
+        #cutin-text {
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffd32a;
+            text-shadow: 0 0 10px #ff3f3f, 2px 2px 0 #000, -2px -2px 0 #000;
+            white-space: nowrap;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        /* ステージ選択・戻るボタンの統一スタイル */
+        .stage-select {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .stage-btn, .back-btn {
+            padding: 8px 16px;
+            font-weight: bold;
+            background: #3c6382;
+            color: #fff;
+            border: 2px solid #0a3d62;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .stage-btn:hover, .stage-btn.selected, .back-btn:hover {
+            background: #60a3bc;
+            border-color: #fff;
+        }
+        .back-btn {
+            margin-top: 15px;
+            background: #eb2f06;
+            border-color: #ff6b4a;
+        }
+
+
     </style>
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
    <script>
@@ -1144,6 +1187,8 @@ const BOSS_DATA = [
 
 
 let selectedCharKey = 'pawn'; let selectedStage = 1; let gameTimer = null; let p = {}, e = {};
+let isMatched = false; let myRole = 'offline';
+let spaceReleased = true; let zReleased = true; let xReleased = true;
 const keys = { arrowleft: false, arrowright: false, ' ': false, z: false, x: false, shift: false };
 // ==============================================================================
 // 🏆 【消失データ完全大復活】レート・カラー・オンライン通信システム基礎全集
@@ -1866,59 +1911,32 @@ function triggerPlayerAttack() {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function triggerPlayerSpecial() {
     if (p.spGauge < 100 || p.onLift || !xReleased) return;
     xReleased = false;
     if (selectedCharKey === 'pawn' && p.isPromoted && !p.usedPawnSuper) {
         p.usedPawnSuper = true; p.spGauge = 0; updateSPBar(); triggerCutIn('秘技・金駒大散布爆撃！');
+        if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '秘技・金駒大散布爆撃！', effect: 'none' });
         for (let i=0; i<8; i++) {
             setTimeout(() => { spawnProjectile('coin-bomb', p.x + 18, p.y, p.dir, p.dir * (3 + Math.random()*5), -4 - Math.random()*5); }, i * 80);
         }
     }
     else if (selectedCharKey === 'bow') {
         p.spGauge = 0; updateSPBar(); triggerCutIn('究極貫通大矢射撃！');
+        if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '究極貫通大矢射撃！', effect: 'none' });
         spawnProjectile('hyper-arrow', p.x + (p.dir === 1 ? 40 : -45), p.y + 16, p.dir, p.dir * 16, 0);
     }
     else if (selectedCharKey === 'lance') {
         p.spGauge = 0; updateSPBar(); triggerCutIn('成香：超睡眠香霧！');
+        if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '成香：超睡眠香霧！', effect: 'none' });
         if (e.invulnTimer <= 0 && !e.onLift && Math.abs((p.x+18) - (e.x+20)) < 160 && Math.abs(p.y - e.y) < 60) {
             enemySleepTimer = Math.floor(90 + Math.random() * 210); enemyStunTimer = 0; e.vx = 0; e.vy = 0;
             const bubble = document.getElementById('e-status-bubble'); bubble.textContent = 'Zzz...'; bubble.style.display = 'block';
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     else if (selectedCharKey === 'knight') {
         p.spGauge = 0; updateSPBar(); triggerCutIn('成桂：極太天罰レーザー！');
+        if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '成桂：極太天罰レーザー！', effect: 'laser' });
         const laser = document.getElementById('keima-laser'); laser.style.left = (e.x - 2) + 'px'; laser.style.display = 'block'; laser.style.opacity = '1';
         setTimeout(() => { laser.style.opacity = '0'; setTimeout(() => { laser.style.display = 'none'; }, 100); }, 300);
         if(e.invulnTimer <= 0 && !e.onLift){
@@ -1928,16 +1946,19 @@ function triggerPlayerSpecial() {
     }
     else if (selectedCharKey === 'silver') {
         p.spGauge = 0; updateSPBar(); p.silverMode = true; triggerCutIn('成銀：修羅修羅の境地！');
+        if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '成銀：修羅修羅の境地！', effect: 'none' });
         document.getElementById('p-aura').style.display = 'block'; document.getElementById('ui-p-status').textContent = '【成銀: 攻撃機動最強化・被ダメ2倍】';
         p.speed = 6.2; p.jump = -15.0; p.power = 2.0;
     }
     else if (selectedCharKey === 'gold') {
         p.spGauge = 0; updateSPBar(); p.goldMode = true; triggerCutIn('金剛鉄壁：八方結界陣！');
+        if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '金剛鉄壁：八方結界陣！', effect: 'none' });
         document.getElementById('p-shield').style.display = 'block'; document.getElementById('ui-p-status').textContent = '【鉄壁: 攻撃1.5倍・被ダメ永続半減】';
         p.power = 1.8;
     }
     else if (selectedCharKey === 'bishop') {
         p.spGauge = 0; updateSPBar(); triggerCutIn('竜馬：三連真・円月斬！');
+        if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '竜馬：三連真・円月斬！', effect: 'wave' });
         let waves = [document.getElementById('s-wave-1'), document.getElementById('s-wave-2'), document.getElementById('s-wave-3')];
         waves.forEach((w, idx) => {
             setTimeout(() => {
@@ -1951,23 +1972,12 @@ function triggerPlayerSpecial() {
     }
     else if (selectedCharKey === 'rook') {
         p.spGauge = 0; updateSPBar(); flySpecialActive = true; flySpecialTimer = 600; triggerCutIn('竜王：十秒間・神滅大伸刀！');
+        if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '竜王：十秒間・神滅大伸刀！', effect: 'none' });
         document.getElementById('ui-p-status').textContent = '【竜王: 10秒間 攻撃リーチ超大幅延長】';
         const pWp = document.getElementById('player-weapon');
         if (pWp) { pWp.style.background = "linear-gradient(90deg, #ffd32a, #ff3f3f)"; pWp.style.boxShadow = "0 0 15px #ff3f3f"; pWp.style.width = "120px"; }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2083,16 +2093,13 @@ function executeGameStart() {
         const eF = document.getElementById('enemy-fighter'); 
         if (eF) eF.style.background = chosenBoss.color;
         e.speed = chosenBoss.speed; e.jump = chosenBoss.jump; e.weight = chosenBoss.weight; e.power = chosenBoss.power; e.range = chosenBoss.range;
-    } else {
-        // 💡【オンライン複数人対応】：フレンド対戦時はBOT戦をスキップし、集まった友達のデータをそのまま使います
-        document.getElementById('ui-e-name').textContent = "対戦相手 (P2)"; 
+      } else {
+        document.getElementById('ui-e-name').textContent = "対戦相手"; 
         document.getElementById('e-text').textContent = "敵";
-        
-        // 3〜4人対戦のときは、事前にサーバーから届いた全メンバーの駒（syncMultiplayerFighters）を画面上に強制可視化させます
-        if (typeof activeFighters === 'object') {
-            syncMultiplayerFighters(activeFighters);
-        }
+        const eF = document.getElementById('enemy-fighter');
+        if (eF) eF.style.background = '#ffd27f';
     }
+
 
 
 
@@ -2346,14 +2353,27 @@ function updateFrame() {
         proj.el.style.left = proj.x + 'px'; proj.el.style.top = proj.y + 'px';
 
         let hit = false;
-        if (e.invulnTimer <= 0 && !e.onLift && Math.abs(proj.x - (e.x + 20)) < 25 && Math.abs(proj.y - (e.y + 20)) < 30) {
-            let dmg = (proj.type === 'hyper-arrow') ? 22 : ((proj.type === 'coin-bomb') ? 12 : 5);
-            e.dmg += Math.floor(dmg * p.power);
-            let kb = (proj.type === 'hyper-arrow') ? 8 : ((proj.type === 'coin-bomb') ? 5 : 2);
-            e.vx = proj.dir * (kb + e.dmg * 0.1) / e.weight; e.vy = -3 / e.weight; e.knockbackTimer = 20;
-            spawnHitVisual(proj.x, proj.y, proj.type !== 'arrow'); hit = true;
+        if (!proj.isEnemy) {
+            // 自分の弾が相手に当たった場合
+            if (e.invulnTimer <= 0 && !e.onLift && Math.abs(proj.x - (e.x + 20)) < 25 && Math.abs(proj.y - (e.y + 20)) < 30) {
+                let dmg = (proj.type === 'hyper-arrow') ? 22 : ((proj.type === 'coin-bomb') ? 12 : 5);
+                e.dmg += Math.floor(dmg * p.power);
+                let kb = (proj.type === 'hyper-arrow') ? 8 : ((proj.type === 'coin-bomb') ? 5 : 2);
+                e.vx = proj.dir * (kb + e.dmg * 0.1) / e.weight; e.vy = -3 / e.weight; e.knockbackTimer = 20;
+                spawnHitVisual(proj.x, proj.y, proj.type !== 'arrow'); hit = true;
+            }
+        } else {
+            // 相手の弾が自分に当たった場合
+            if (p.invulnTimer <= 0 && !p.onLift && Math.abs(proj.x - (p.x + 18)) < 25 && Math.abs(proj.y - (p.y + 20)) < 30) {
+                let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
+                let dmg = (proj.type === 'hyper-arrow') ? 22 : ((proj.type === 'coin-bomb') ? 12 : 5);
+                p.dmg += Math.floor(dmg * dmgFactor);
+                let kb = (proj.type === 'hyper-arrow') ? 8 : ((proj.type === 'coin-bomb') ? 5 : 2);
+                p.vx = proj.dir * (kb + p.dmg * 0.1) / p.weight; p.vy = -3 / p.weight; p.knockbackTimer = 20;
+                spawnHitVisual(proj.x, proj.y, proj.type !== 'arrow'); updateUI(); hit = true;
+            }
         }
-        if (proj.type === 'coin-bomb' && proj.y >= 218) hit = true;
+
         if (proj.x < -100 || proj.x > 700 || proj.y > 500 || hit) { proj.el.remove(); projectiles.splice(i, 1); }
     }
 
@@ -2367,8 +2387,10 @@ function updateFrame() {
         if (gameMode === 'online' && isMatched && typeof broadcastMultiplayerData === 'function') {
             broadcastMultiplayerData();
         }
-        
-        if (p.stocks <= 0) { 
+                if (p.stocks <= 0) { 
+            if (gameMode === 'online' && isMatched && dataConnection && dataConnection.open) {
+                dataConnection.send({ type: 'gameover' });
+            }
             endMatch(false); return; 
         } else { 
             p.vx = 0; p.vy = 0; p.knockbackTimer = 0;
@@ -2455,8 +2477,26 @@ function spawnHitVisual(x, y, isSuper = false) {
 function spawnProjectile(type, x, y, dir, vx, vy) {
     const stage = document.getElementById('battle-stage'); if (!stage) return;
     const el = document.createElement('div'); el.className = 'projectile ' + type; el.style.left = x + 'px'; el.style.top = y + 'px'; if (type === 'coin-bomb') el.textContent = '金';
-    stage.appendChild(el); projectiles.push({ el: el, type: type, x: x, y: y, dir: dir, vx: vx, vy: vy });
+    stage.appendChild(el); projectiles.push({ el: el, type: type, x: x, y: y, dir: dir, vx: vx, vy: vy, isEnemy: false });
+
+    // 自分が撃った飛び道具を相手の画面にも送る
+    if (gameMode === 'online' && isMatched && typeof sendActionToEnemy === 'function') {
+        sendActionToEnemy('projectile', { pType: type, x: x, y: y, dir: dir, vx: vx, vy: vy });
+    }
 }
+
+function spawnEnemyProjectile(type, x, y, dir, vx, vy) {
+    const stage = document.getElementById('battle-stage'); if (!stage) return;
+    const el = document.createElement('div'); el.className = 'projectile ' + type; el.style.left = x + 'px'; el.style.top = y + 'px';
+    if (type === 'coin-bomb') el.textContent = '金';
+    stage.appendChild(el);
+    projectiles.push({ el: el, type: type, x: x, y: y, dir: dir, vx: vx, vy: vy, isEnemy: true });
+}
+
+
+
+
+
 // ✨ これに丸ごと差し替えてください（コピペOK）
 function setupRespawn(char, isPlayer) {
     char.dmg = 0; char.vx = 0; char.vy = 0; char.knockbackTimer = 0;
@@ -2478,6 +2518,7 @@ function setupRespawn(char, isPlayer) {
     char.airJumpsLeft = CHAR_DATA[selectedCharKey].maxAirJumps;
     updateUI();
 }
+
 
 function formatTime(ms) { 
     let totalSec = ms / 1000; 
@@ -2565,7 +2606,28 @@ function endMatch(playerWon) {
 
 
 function backToSelect() { goToSelectScreen(); }
-function toggleControlMode(mode) { controlMode = mode; resetAllKeyStates(); resetAnalogKnobPosition(); }
+function toggleControlMode(mode) {
+    controlMode = mode;
+    resetAllKeyStates();
+    resetAnalogKnobPosition();
+    
+    const dpadBox = document.getElementById('dpad-node-box');
+    const analogBox = document.getElementById('analog-node-box');
+    const btnDpad = document.getElementById('opt-dpad');
+    const btnAnalog = document.getElementById('opt-analog');
+    
+    if (mode === 'dpad') {
+        if (dpadBox) dpadBox.style.display = 'block';
+        if (analogBox) analogBox.style.display = 'none';
+        if (btnDpad) btnDpad.classList.add('active');
+        if (btnAnalog) btnAnalog.classList.remove('active');
+    } else {
+        if (dpadBox) dpadBox.style.display = 'none';
+        if (analogBox) analogBox.style.display = 'block';
+        if (btnDpad) btnDpad.classList.remove('active');
+        if (btnAnalog) btnAnalog.classList.add('active');
+    }
+}
 function resetAnalogKnobPosition() { const knob = document.getElementById('analog-knob'); if (knob) knob.style.transform = 'translate(0px, 0px)'; }
 if (!isTouchDevice) { window.addEventListener('touchstart', function initTouch() { isTouchDevice = true; window.removeEventListener('touchstart', initTouch); }); }
 
@@ -2761,7 +2823,12 @@ function setupConnection(conn) {
 
     dataConnection.on('open', () => {
         isMatched = true;
-        // お互いの画面でゲームを強制スタート
+        // 自分の選んだキャラクターとステージ情報を相手に送信
+        dataConnection.send({
+            type: 'init',
+            charKey: selectedCharKey,
+            stage: selectedStage
+        });
         executeGameStart();
         triggerCutIn('P2P直結乱闘 開始！！');
     });
@@ -2769,8 +2836,33 @@ function setupConnection(conn) {
 
 
 
+
+
     // 相手のパソコンからリアルタイム座標電波（データ）が届いたときの処理
     dataConnection.on('data', (data) => {
+        if (data.type === 'init') {
+            // 相手の駒の名前と文字を画面に反映
+            const enemyChar = CHAR_DATA[data.charKey];
+            if (enemyChar) {
+                const eNameEl = document.getElementById('ui-e-name');
+                const eTextEl = document.getElementById('e-text');
+                if (eNameEl) eNameEl.textContent = '対戦相手 (' + enemyChar.name + ')';
+                if (eTextEl) eTextEl.textContent = enemyChar.name;
+            }
+            // ホスト側のステージ設定に合わせる
+            if (myRole === 'guest' && data.stage) {
+                selectedStage = data.stage;
+                const isStage2 = (selectedStage === 2);
+                document.getElementById('plat-left').style.display = isStage2 ? 'block' : 'none';
+                document.getElementById('plat-right').style.display = isStage2 ? 'block' : 'none';
+                document.getElementById('plat-top').style.display = isStage2 ? 'block' : 'none';
+            }
+            return;
+        } else if (data.type === 'gameover') {
+            // 相手のストックが0になった通知を受け取ったら自分の勝利
+            endMatch(true);
+            return;
+        }
         if (!isMatched || gameMode !== 'online') return;
 
 
@@ -2807,7 +2899,7 @@ function setupConnection(conn) {
                 for(let i=0; i<data.stocks; i++) st += '●';
                 uiStocks.textContent = st;
             }
-        } else if (data.type === 'hit') {
+                } else if (data.type === 'hit') {
             // あなたが殴られたときのノックバックとダメージ加算処理
             p.dmg += data.dmgDeal;
             p.vx = data.vx;
@@ -2816,11 +2908,30 @@ function setupConnection(conn) {
             p.dir = -e.dir;
             spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80);
             updateUI();
+        } else if (data.type === 'action') {
+            if (data.actionType === 'projectile') {
+                spawnEnemyProjectile(data.payload.pType, data.payload.x, data.payload.y, data.payload.dir, data.payload.vx, data.payload.vy);
+            } else if (data.actionType === 'cutin') {
+                triggerCutIn('相手：' + data.payload.text);
+                if (data.payload.effect === 'laser') {
+                    const laser = document.getElementById('keima-laser');
+                    if (laser) {
+                        laser.style.left = (p.x - 2) + 'px'; laser.style.display = 'block'; laser.style.opacity = '1';
+                        setTimeout(() => { laser.style.opacity = '0'; setTimeout(() => { laser.style.display = 'none'; }, 100); }, 300);
+                    }
+                } else if (data.payload.effect === 'wave') {
+                    let waves = [document.getElementById('s-wave-1'), document.getElementById('s-wave-2'), document.getElementById('s-wave-3')];
+                    waves.forEach((w, idx) => {
+                        setTimeout(() => {
+                            if (!w) return;
+                            w.style.left = (e.x + 18) + 'px'; w.style.top = (e.y + 21) + 'px'; w.style.display = 'block'; w.style.opacity = '1'; w.style.transform = 'translate(-50%, -50%) scale(2.2)';
+                            setTimeout(() => { w.style.opacity = '0'; w.style.transform = 'translate(-50%, -50%) scale(0)'; }, 250);
+                        }, idx * 180);
+                    });
+                }
+            }
         }
     });
-
-
-
 
     dataConnection.on('close', () => {
         alert("対戦相手との接続が切れました。");
@@ -2830,14 +2941,10 @@ function setupConnection(conn) {
     });
 }
 
-
-
-
-let netSendCounter = 0; // 送信タイミングを数えるカウンター
+let netSendCounter = 0;
 
 function broadcastMultiplayerData() {
     netSendCounter++;
-    // 2回に1回（約30fps）だけ送信して通信の渋滞を防ぐ
     if (netSendCounter % 2 !== 0) return;
 
     if (gameMode === 'online' && isMatched && dataConnection && dataConnection.open) {
@@ -2856,12 +2963,6 @@ function broadcastMultiplayerData() {
     }
 }
 
-
-
-
-
-
-// 💡 相手に攻撃を当てた瞬間、相手を吹っ飛ばすためのダメージデータを送信する関数
 function sendHitToEnemy(dmgDeal, vx, vy, knockbackTimer) {
     if (gameMode === 'online' && isMatched && dataConnection && dataConnection.open) {
         dataConnection.send({
@@ -2874,7 +2975,15 @@ function sendHitToEnemy(dmgDeal, vx, vy, knockbackTimer) {
     }
 }
 
-
+function sendActionToEnemy(actionType, payload) {
+    if (gameMode === 'online' && isMatched && dataConnection && dataConnection.open) {
+        dataConnection.send({
+            type: 'action',
+            actionType: actionType,
+            payload: payload
+        });
+    }
+}
 
 
 // ==============================================================================
@@ -3047,8 +3156,19 @@ setTimeout(() => {
     const registerTouchBtn = (id, targetKey) => {
         const btn = document.getElementById(id);
         if (!btn) return;
-        const startAction = (e) => { e.preventDefault(); keys[targetKey] = true; if (targetKey === 'z') triggerPlayerAttack(); if (targetKey === 'x') triggerPlayerSpecial(); };
-        const endAction = (e) => { e.preventDefault(); keys[targetKey] = false; if (targetKey === ' ') spaceReleased = true; };
+        const startAction = (e) => { 
+            e.preventDefault(); 
+            keys[targetKey] = true; 
+            if (targetKey === 'z') { zReleased = true; triggerPlayerAttack(); }
+            if (targetKey === 'x') { xReleased = true; triggerPlayerSpecial(); }
+        };
+        const endAction = (e) => { 
+            e.preventDefault(); 
+            keys[targetKey] = false; 
+            if (targetKey === ' ') spaceReleased = true; 
+            if (targetKey === 'z') zReleased = true; 
+            if (targetKey === 'x') xReleased = true; 
+        };
         btn.addEventListener('touchstart', startAction, { passive: false }); btn.addEventListener('touchend', endAction, { passive: false });
         btn.addEventListener('mousedown', startAction); btn.addEventListener('mouseup', endAction); btn.addEventListener('mouseleave', endAction);
     };
