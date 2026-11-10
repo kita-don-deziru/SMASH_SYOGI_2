@@ -1911,14 +1911,17 @@ function injectOnlineRoomUI() {
 }
 
 setTimeout(() => { 
+    // 1. まず各画面のグローバル変数を確実に確保して初期化します
     window.scrTitle = document.getElementById('title-screen');
     window.scrSelect = document.getElementById('select-screen');
     window.scrGame = document.getElementById('game-view');
     window.scrResult = document.getElementById('result-screen');
     
+    // 2. その後に同意画面を表示します
     const notice = document.getElementById('notice-screen'); 
     if (notice) notice.style.display = 'flex';
     
+    // 3. 各キーボードイベントやボタンイベントを登録します
     window.addEventListener('keydown', (ev) => { if (typeof handleKeyDown === 'function') handleKeyDown(ev); });
     window.addEventListener('keyup', (ev) => { if (typeof handleKeyUp === 'function') handleKeyUp(ev); });
     
@@ -1944,12 +1947,14 @@ setTimeout(() => {
     activateClickEvent('mode-offline', () => toggleGameMode('offline'));
     activateClickEvent('mode-online', () => toggleGameMode('online'));
     
+    // 4. キャラクター選択画面とオンライン部屋のUIを構築します
     if (typeof initSelectScreen === 'function') initSelectScreen();
     if (typeof injectOnlineRoomUI === 'function') injectOnlineRoomUI(); 
     
+    // 5. 最後に画面のリサイズ処理を実行します
     if (typeof resizeGame === 'function') resizeGame(); 
     if (typeof checkOrientation === 'function') checkOrientation();
-}, 100);
+}, 200); // 💡 安全のために読み込み待ちタイマーを「200ms」に少し伸ばして確実に動作させます
 
 </script>
 </body>
