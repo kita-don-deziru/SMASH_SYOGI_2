@@ -360,20 +360,7 @@
         .btn-toggle { background: #34495e; color: #fff; border: 1px solid #7f8c8d; padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         .btn-toggle.active { background: #2ecc71; border-color: #fff; box-shadow: 0 0 8px #2ecc71; }
     </style>
-<!-- ◯ 125行目付近：学校が絶対に遮断できないGoogleのFirebaseライブラリに切り替えます -->
-<script src="https://shogi-smash-default-rtdb.asia-southeast1.firebasedatabase.app
-"></script>
-<script src="https://shogi-smash-default-rtdb.asia-southeast1.firebasedatabase.app
-"></script>
-<script>
-    // グローバル変数の宣言
-    let myRole = null; 
-    let roomId = null; 
-    let isMatched = false;
-</script>
-
-
-
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 <div id="notice-screen" style="display: flex;">
@@ -708,127 +695,55 @@ function broadcastMultiplayerData() {
 
 
 
-// ==============================================================================
-// 🏆 【学校セキュリティ完全突破版】：Google Firebase リアルタイム通信エンジン
-// ==============================================================================
 
-// 💡 さっきスマホの画面に出た「あなたのURL」を下のクォーテーションの中に貼り付けてください！
-const firebaseConfig = {
-    databaseURL: "https://shogi-smash-default-rtdb.asia-southeast1.firebasedatabase.app
-"
-};
 
-// Googleシステムを起動
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const uParts = [ 'ht', 'tps', '://', 'solid', '-space', '-dollop', '-w9gg5wqvw5j394rx', '-3000', '.app', '.github', '.dev' ];
+let socket = null;
 
-// Socket.IOの代わりになるダミーオブジェクトを作ってエラーを防ぎます
-let socket = {
-    connected: true,
-    emit: function(eventName, data) {
-        if (!currentRoomId) return;
-        // 位置情報などの常時通信データをGoogleに送信
-        if (eventName === 'multi_player_update') {
-            db.ref('rooms/' + currentRoomId + '/players/' + myPlayerSlot).set(data);
-        }
+// エラーが発生してもゲームが止まらないようにガードします
+try {
+    if (typeof io !== 'undefined') {
+        // 💡 発行された無敵のGitHub Pages専用トンネルURLを直接指定します！
+        socket = io('https://vigilant-space-goggles-6vp45pq9r79r35jwq-3000.app.github.dev', { 
+            transports: ['websocket', 'polling'],
+            secure: true,
+            rejectUnauthorized: false
+        });
+    } else {
+        console.warn("Socket.IOが読み込まれていないため、オフラインモードのみ動作します。");
     }
-};
-
-let myPlayerSlot = 1;
-
-// 💡 部屋番号を教えてくれた友達と合流するための監視カメラ（リスナー）を設置
-function listenToRoom(rId) {
-    db.ref('rooms/' + rId).on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-
-        // 1. 友達が部屋に入ってきた時
-        if (!isMatched && data.players) {
-            let currentPlayers = Object.keys(data.players).length;
-            const txt = document.getElementById('room-status-text');
-            if (txt) {
-                txt.textContent = '部屋 [' + rId + '] に合流！ 現在の人数: ' + currentPlayers + ' / ' + data.maxPlayers + ' 人';
-            }
-            
-            // もし設定した人数が揃ったら、自動でバトル開始！
-            if (currentPlayers >= data.maxPlayers && myPlayerSlot === 1) {
-                db.ref('rooms/' + rId).update({ isStarted: true });
-            }
-        }
-
-        // 2. 本番開始の合図がGoogleから届いた瞬間！
-        if (data.isStarted && !isMatched) {
-            isMatched = true;
-            gameMode = 'online';
-            selectedStage = data.stage;
-            
-            // 全員の駒を画面に発生させて同期
-            if (typeof syncMultiplayerFighters === 'function') {
-                syncMultiplayerFighters(data.players);
-            }
-            executeGameStart();
-            if (typeof triggerCutIn === 'function') {
-                triggerCutIn('ルーム対戦 開始！！');
-            }
-        }
-
-        // 3. リアルタイム大乱闘中の位置情報の同期
-        if (isMatched && data.players) {
-            Object.keys(data.players).forEach(slotStr => {
-                const slot = parseInt(slotStr, 10);
-                if (slot === myPlayerSlot) return; // 自分のデータはスキップ
-
-                let fId = 'enemy-fighter-slot-' + slot; 
-                let enemyEl = document.getElementById(fId);
-                let uiDmg = document.getElementById('ui-e-dmg-slot-' + slot); 
-                let uiStocks = document.getElementById('ui-e-stocks-slot-' + slot);
-                
-                const ep = data.players[slotStr];
-                if (enemyEl && ep) {
-                    enemyEl.style.left = ep.x + 'px'; 
-                    enemyEl.style.top = ep.y + 'px';
-                    enemyEl.style.opacity = (ep.invulnTimer % 6 > 3) ? '0.4' : '1';
-                    if (uiDmg) uiDmg.textContent = ep.dmg + '%';
-                    if (uiStocks) { 
-                        let st = ''; 
-                        for(let i=0; i<ep.stocks; i++) st += '●'; 
-                        uiStocks.textContent = st; 
-                    }
-                }
-            });
-        }
-    });
+} catch (ex) {
+    console.error("通信初期化エラー:", ex);
 }
 
 
-    socket.on('friend_match_over', (data) => {
-        const playerWon = (data.winnerId === socket.id);
-        finalizeMatchRating(playerWon, data.averageEnemyRating);
-        clearInterval(gameTimer); resetAllKeyStates();
-        for(let i=1; i<=4; i++) {
-            let eEl = document.getElementById('enemy-fighter-slot-' + i); if (eEl) eEl.remove();
-            let uBox = document.getElementById('ui-box-slot-' + i); if (uBox) uBox.remove();
-        }
-        goToSelectScreen();
-    });
-
-    socket.on('friend_room_error', (data) => {
-        alert('ルームエラー：' + data.message);
-    });
-}
 
 
+
+
+
+
+
+
+
+
+
+
+let myRole = null; let roomId = null; let isMatched = false;
 let spaceReleased = true; let zReleased = true; let xReleased = true;
 let projectiles = []; let activeFireTimer = 0; let enemySleepTimer = 0; let enemyStunTimer = 0; let isHitStopping = false;
+
+
+
 
 let matchStartTime = 0; let matchElapsedTime = 0; let enemyWasAirAttacking = false; let enemyAirAttackFrameCount = 0;
 let flySpecialActive = false; let flySpecialTimer = 0;
 
+
+
+
 let controlMode = 'dpad'; let isTouchDevice = false; let analogActiveTouchId = null;
 let gameMode = 'offline';
-// 💡 ここまで貼り付け（このすぐ下に function toggleGameMode が綺麗に繋がります！）
-
-
 
 
 
@@ -1761,7 +1676,11 @@ function checkOrientation() {
 
 
 
-
+if (socket) {
+    socket.on('match_start', (data) => { myRole = data.role; roomId = data.roomId; isMatched = true; if (myRole === 'guest') { selectedStage = data.stage; } executeGameStart(); });
+    socket.on('enemy_update', (enemyData) => { e.x = enemyData.x; e.y = enemyData.y; e.vx = enemyData.vx; e.vy = enemyData.vy; e.dmg = enemyData.dmg; e.stocks = enemyData.stocks; e.attacking = enemyData.attacking; e.invulnTimer = enemyData.invulnTimer; e.onLift = enemyData.onLift; });
+    socket.on('receive_hit', (hitData) => { if (gameMode !== 'online') return; p.dmg += hitData.dmgDeal; p.vx = hitData.vx; p.vy = hitData.vy; p.knockbackTimer = hitData.knockbackTimer; spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80); updateUI(); });
+}
 
 
 
@@ -1935,7 +1854,95 @@ function finalizeMatchRating(playerWon, enemyRating) {
 }
 
 
+// 💡【フレンドルーム通信のイベント受信一覧】
+if (socket) {
+    socket.on('friend_room_created', (data) => {
+        currentRoomId = data.roomId;
+        const txt = document.getElementById('room-status-text');
+        if (txt) {
+            txt.innerHTML = '部屋を建てました！ 部屋番号: <span style="font-size:16px; color:#ffd32a; font-weight:bold;">' + data.roomId + '</span><br>友達に番号を伝えて、満員まで待ってください。';
+        }
+        const input = document.getElementById('input-room-id');
+        if (input) input.value = data.roomId;
+    });
 
+
+  // ✨ ここからコピペして、画像に写っている socket.on ２つの塊を丸ごと上書きしてください（コピペOK）
+socket.on('friend_room_joined', (data) => {
+    currentRoomId = data.roomId;
+    const txt = document.getElementById('room-status-text');
+    if (txt) {
+        // 💡 友達が合流した時は、画面テキストを更新して「選択画面のまま待機」させます
+        txt.textContent = '部屋 [' + data.roomId + '] に合流！ 現在の人数: ' + data.currentPlayers + ' / ' + data.maxPlayers + ' 人';
+    }
+    
+    // オンラインモードであることをプログラムに確定させます
+    gameMode = 'online';
+});
+
+
+socket.on('friend_match_start', (data) => {
+    // 💡【フライングバグ完全修正】：
+    // 部屋が完全に満員（4/4人など）になり、サーバーから「戦闘開始（match_start）」の電波が届いたこの瞬間だけ、
+    // 初めてゲーム画面への切り替えと、3人目・4人目のカラー駒の自動生成を実行します！
+    myRole = data.role; 
+    roomId = data.roomId; 
+    currentRoomId = data.roomId;
+    isMatched = true; 
+    gameMode = 'online'; 
+    selectedStage = data.stage;
+    
+    // サーバーから集まった全員のファイターデータを画面に発生させて同期します
+    if (typeof syncMultiplayerFighters === 'function') {
+        syncMultiplayerFighters(data.players);
+    }
+    
+    // 満員になったので、ここで初めてバトルを起動！
+    executeGameStart();
+    
+    if (typeof triggerCutIn === 'function') {
+        triggerCutIn('ルーム対戦 開始！！');
+    }
+});
+
+
+    socket.on('multi_enemy_update', (data) => {
+        Object.keys(data.players).forEach(slotStr => {
+            const slot = parseInt(slotStr, 10);
+            let fId = 'enemy-fighter-slot-' + slot; 
+            let enemyEl = document.getElementById(fId);
+            let uiDmg = document.getElementById('ui-e-dmg-slot-' + slot); 
+            
+            // 💡【バグ6修正】：通信イベントでのフリーズを防ぐため、uiStocksを確実に定義！
+            let uiStocks = document.getElementById('ui-e-stocks-slot-' + slot);
+            
+            if (enemyEl && data.players[slot].id !== socket.id) {
+                const ep = data.players[slot];
+                enemyEl.style.left = ep.x + 'px'; enemyEl.style.top = ep.y + 'px';
+                enemyEl.style.opacity = (ep.invulnTimer % 6 > 3) ? '0.4' : '1';
+                if (uiDmg) uiDmg.textContent = ep.dmg + '%';
+                if (uiStocks) { let st = ''; for(let i=0; i<ep.stocks; i++) st += '●'; uiStocks.textContent = st; }
+            }
+        });
+    });
+
+
+    socket.on('friend_match_over', (data) => {
+        const playerWon = (data.winnerId === socket.id);
+        finalizeMatchRating(playerWon, data.averageEnemyRating);
+        clearInterval(gameTimer); resetAllKeyStates();
+        for(let i=1; i<=4; i++) {
+            let eEl = document.getElementById('enemy-fighter-slot-' + i); if (eEl) eEl.remove();
+            let uBox = document.getElementById('ui-box-slot-' + i); if (uBox) uBox.remove();
+        }
+        goToSelectScreen();
+    });
+
+
+    socket.on('friend_room_error', (data) => {
+        alert('ルームエラー：' + data.message);
+    });
+}
 
 
 // 💡【ランキング表示バグ修正】：安全なインデックス指定へ書き換え
