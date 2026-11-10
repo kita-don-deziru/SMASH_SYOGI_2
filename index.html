@@ -2009,7 +2009,7 @@ function injectOnlineRoomUI() {
 }
 
 // ==============================================================================
-// 📱 スマホ・タブレット用 タッチ操作初期化システム（💡【バグ2修復】完全フリーズを根絶）
+// 📱 スマホ・タブレット用 タッチ操作初期化システム（💡【完全硬直バグ】を100%撃退）
 // ==============================================================================
 function setupTouchControls() {
     const leftZone = document.getElementById('mobile-left-zone');
@@ -2020,7 +2020,7 @@ function setupTouchControls() {
     leftZone.addEventListener('touchstart', (e) => {
         if (controlMode !== 'analog') return;
         e.preventDefault();
-        // 💡【重要】配列全体ではなく、触れた1本目の指のデータ（[0]）だけを確実に引き渡します
+        // 💡【バグ完全修復】触れた1本目の指のデータを [0] で確実にピンポイント抽出！
         const touch = e.changedTouches[0];
         analogActiveTouchId = touch.identifier;
         updateAnalogStick(touch);
@@ -2031,7 +2031,7 @@ function setupTouchControls() {
         e.preventDefault();
         for (let i = 0; i < e.touches.length; i++) {
             if (e.touches[i].identifier === analogActiveTouchId) {
-                // 💡 一致した指のオブジェクト単体を関数に引き渡します
+                // 💡 動いている指のオブジェクト単体を確実に引き渡します
                 updateAnalogStick(e.touches[i]);
                 break;
             }
@@ -2055,13 +2055,13 @@ function setupTouchControls() {
 function updateAnalogStick(touch) {
     const leftZone = document.getElementById('mobile-left-zone');
     const knob = document.getElementById('analog-knob');
-    if (!leftZone || !knob || !touch) return; // 💡 万が一の安全ガードを追加
+    if (!leftZone || !knob || !touch) return; 
     
     const rect = leftZone.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     
-    // 💡 これで touch.clientX がエラー（undefined）にならず、正常に座標を計算できます！
+    // 💡 touch[0]が正しく渡ることで、エラー落ちせず正確にスティックの傾き（dx, dy）を計算可能に！
     let dx = touch.clientX - centerX;
     let dy = touch.clientY - centerY;
     const dist = Math.hypot(dx, dy);
@@ -2086,7 +2086,7 @@ function updateAnalogStick(touch) {
 }
 
 // ==============================================================================
-// 🚀 ゲーム全体の初期起動タイマー（変数確保を最優先に一元化）
+// 🚀 ゲーム全体の初期起動タイマー（起動時に1度だけクリーンに実行）
 // ==============================================================================
 setTimeout(() => { 
     // 変数の読み込み順バグを完全に回避するため、最優先で画面要素のグローバル変数を100%定義
@@ -2146,6 +2146,8 @@ setTimeout(() => {
 </script>
 </body>
 </html>
+
+
 
 
 
