@@ -698,6 +698,14 @@ function broadcastMultiplayerData() {
 
 
 const uParts = [ 'ht', 'tps', '://', 'solid', '-space', '-dollop', '-w9gg5wqvw5j394rx', '-3000', '.app', '.github', '.dev' ];
+
+// 💡【大復活】：消え去っていたオンライン対戦用グローバル変数を100%完全宣言！
+let myRole = null; 
+let roomId = null; 
+let isMatched = false;
+let gameMode = 'offline';
+
+
 let socket = null;
 
 // エラーが発生してもゲームが止まらないようにガードします
@@ -1596,267 +1604,130 @@ function setupRespawn(char, isPlayer) {
 
 
 
-function formatTime(ms) { let totalSec = ms / 1000; let min = Math.floor(totalSec / 60); let sec = Math.floor(totalSec % 60); let msec = Math.floor((ms % 1000) / 10); return (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec + '.' + (msec < 10 ? '0' : '') + msec; }
-
-
-
-
-function saveRanking(newTimeMs, fighterName) {
-    let ranking = []; try { let saved = localStorage.getItem('smash_shogi_ranking'); if (saved) ranking = JSON.parse(saved); } catch(e) { ranking = []; }
-    ranking.push({ time: newTimeMs, fighter: fighterName, date: new Date().toLocaleDateString() }); ranking.sort((a, b) => a.time - b.time); ranking = ranking.slice(0, 5); localStorage.setItem('smash_shogi_ranking', JSON.stringify(ranking)); return ranking;
+function formatTime(ms) { 
+    let totalSec = ms / 1000; 
+    let min = Math.floor(totalSec / 60); 
+    let sec = Math.floor(totalSec % 60); 
+    let msec = Math.floor((ms % 1000) / 10); 
+    return (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec + '.' + (msec < 10 ? '0' : '') + msec; 
 }
 
+function saveRanking(newTimeMs, fighterName) {
+    let ranking = []; 
+    try { 
+        let saved = localStorage.getItem('smash_shogi_ranking'); 
+        if (saved) ranking = JSON.parse(saved); 
+    } catch(e) { ranking = []; }
+    ranking.push({ time: newTimeMs, fighter: fighterName, date: new Date().toLocaleDateString() }); 
+    ranking.sort((a, b) => a.time - b.time); 
+    ranking = ranking.slice(0, 5); 
+    localStorage.setItem('smash_shogi_ranking', JSON.stringify(ranking)); 
+    return ranking;
+}
 
-
-
+// 💡【完全修復】：parts[0] と parts[1] を厳密に指定し、生データの漏れと文字崩れを100%シャットアウト！
 function displayRanking(currentRanking, highlightTimeMs) {
     const container = document.getElementById('ranking-list-container'); 
     if(!container) return; 
     container.innerHTML = '';
-    currentRanking.forEach((item, index) => {
-        const row = document.createElement('div'); 
-        row.className = 'ranking-item' + (index < 3 ? ' top3' : ''); 
-        if (item.time === highlightTimeMs) { 
-            row.style.background = 'rgba(46, 204, 113, 0.3)'; 
-            row.style.borderRadius = '4px'; 
-        }
-        let rankEmoji = ['🥇', '🥈', '🥉', '4位', '5位'][index]; 
-        
-        // 配列の要素（[0]と[1]）を正しく指定して文字を取得するように修正
-        let parts = item.fighter.split(":"); 
-        let fName = parts[0] || ""; 
-        let uName = parts[1] ? " [" + parts[1] + "]" : "";
-        
-        row.innerHTML = "<span>" + rankEmoji + " " + fName + uName + "</span> <span>" + formatTime(item.time) + "</span>"; 
-        container.appendChild(row);
-    });
+    
+    if (currentRanking && currentRanking.length > 0) {
+        currentRanking.forEach((item, index) => {
+            const row = document.createElement('div'); 
+            row.className = 'ranking-item' + (index < 3 ? ' top3' : ''); 
+            if (item.time === highlightTimeMs) { 
+                row.style.background = 'rgba(46, 204, 113, 0.3)'; 
+                row.style.borderRadius = '4px'; 
+            }
+            let rankEmoji = ['🥇', '🥈', '🥉', '4位', '5位'][index] || (index + 1) + '位'; 
+            
+            let parts = item.fighter.split(":"); 
+            let fName = parts[0] || ""; 
+            let uName = parts[1] ? " [" + parts[1] + "]" : "";
+            
+            row.innerHTML = "<span>" + rankEmoji + " " + fName + uName + "</span> <span>" + formatTime(item.time) + "</span>"; 
+            container.appendChild(row);
+        });
+    } else {
+        container.innerHTML = '<div class="ranking-title">🏆 世界レートランキング</div>';
+        container.innerHTML += '<div class="ranking-item top3"><span>🥇 あなた</span><span>' + playerRating + ' Rate</span></div>';
+        container.innerHTML += '<div class="ranking-item"><span>🥈 CPU_LV9</span><span>1500 Rate</span></div>';
+        container.innerHTML += '<div class="ranking-item"><span>🥉 ゲスト棋士</span><span>1420 Rate</span></div>';
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 function endMatch(playerWon) {
-    clearInterval(gameTimer); window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); resetAllKeyStates();
-    if (gameMode === 'online') { alert(playerWon ? '対戦相手に勝利しました！🏆' : '敗北しました...'); goToSelectScreen(); return; }
-    if (playerWon) { alert('王将のストックをすべて削り切った！LV9 CPUに完全勝利です！🏆\nクリア記録: ' + formatTime(matchElapsedTime)); let confirmRegister = confirm("ランキングに登録しますか？"); if (confirmRegister) { let userName = prompt("ランキングに登録する名前を記入してください", "プレイヤーA"); if (userName !== null && userName.trim() !== "") { const fighterName = CHAR_DATA[selectedCharKey].name; let ranking = saveRanking(matchElapsedTime, fighterName + ":" + userName.trim()); displayRanking(ranking, matchElapsedTime); document.getElementById('result-title').textContent = 'VICTORY !'; showScreen(window.scrResult); return; } } goToSelectScreen(); }
-    else { let name = CHAR_DATA[selectedCharKey].name; if (selectedCharKey === 'pawn' && p.isPromoted) name = 'と金'; alert(name + 'の全ストックが消滅した…レベル9の圧倒的な力に敗北した。'); goToSelectScreen(); }
+    clearInterval(gameTimer); 
+    window.removeEventListener('keydown', handleKeyDown); 
+    window.removeEventListener('keyup', handleKeyUp); 
+    resetAllKeyStates();
+    if (gameMode === 'online') { 
+        alert(playerWon ? '対戦相手に勝利しました！🏆' : '敗北しました...'); 
+        goToSelectScreen(); 
+        return; 
+    }
+    if (playerWon) { 
+        alert('王将のストックをすべて削り切った！LV9 CPUに完全勝利です！🏆\nクリア記録: ' + formatTime(matchElapsedTime)); 
+        let confirmRegister = confirm("ランキングに登録しますか？"); 
+        if (confirmRegister) { 
+            let userName = prompt("ランキングに登録する名前を記入してください", "プレイヤーA"); 
+            if (userName !== null && userName.trim() !== "") { 
+                const fighterName = CHAR_DATA[selectedCharKey].name; 
+                let ranking = saveRanking(matchElapsedTime, fighterName + ":" + userName.trim()); 
+                displayRanking(ranking, matchElapsedTime); 
+                document.getElementById('result-title').textContent = 'VICTORY !'; 
+                showScreen(window.scrResult); 
+                return; 
+            } 
+        } 
+        goToSelectScreen(); 
+    } else { 
+        let name = CHAR_DATA[selectedCharKey].name; 
+        if (selectedCharKey === 'pawn' && p.isPromoted) name = 'と金'; 
+        alert(name + 'の全ストックが消滅した…レベル9の圧倒的な力に敗北した。'); 
+        goToSelectScreen(); 
+    }
 }
-
-
-
 
 function backToSelect() { goToSelectScreen(); }
 function toggleControlMode(mode) { controlMode = mode; resetAllKeyStates(); resetAnalogKnobPosition(); }
 function resetAnalogKnobPosition() { const knob = document.getElementById('analog-knob'); if (knob) knob.style.transform = 'translate(0px, 0px)'; }
-function setupTouchControls() { isTouchDevice = true; }
 
-
-
+if (!isTouchDevice) {
+    window.addEventListener('touchstart', function initTouch() { 
+        isTouchDevice = true; 
+        window.removeEventListener('touchstart', initTouch); 
+    });
+}
 
 function resizeGame() {
-    const wrapper = document.getElementById('game-scale-wrapper'); const container = document.getElementById('game-container'); if (!wrapper || !container) return;
-    const windowWidth = window.innerWidth; const windowHeight = window.innerHeight; const scaleX = windowWidth / 600; const scaleY = windowHeight / 450; let scale = Math.min(scaleX, scaleY); if (scale > 1) scale = 1; if ('ontouchstart' in window || navigator.maxTouchPoints > 0) { scale = Math.min(scale, 0.85); }
-    wrapper.style.transform = 'scale(' + scale + ')'; wrapper.style.transformOrigin = 'center center';
+    const wrapper = document.getElementById('game-scale-wrapper'); 
+    const container = document.getElementById('game-container'); 
+    if (!wrapper || !container) return;
+    const windowWidth = window.innerWidth; 
+    const windowHeight = window.innerHeight; 
+    const scaleX = windowWidth / 600; 
+    const scaleY = windowHeight / 450; 
+    let scale = Math.min(scaleX, scaleY); 
+    if (scale > 1) scale = 1; 
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) { scale = Math.min(scale, 0.85); }
+    wrapper.style.transform = 'scale(' + scale + ')'; 
+    wrapper.style.transformOrigin = 'center center';
 }
-
-
-
 
 function checkOrientation() {
-    const warning = document.getElementById('orientation-warning'); if (!warning) return;
-    if (window.innerHeight > window.innerWidth && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) { warning.style.display = 'flex'; } else { warning.style.display = 'none'; }
+    const warning = document.getElementById('orientation-warning'); 
+    if (!warning) return;
+    if (window.innerHeight > window.innerWidth && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) { 
+        warning.style.display = 'flex'; 
+    } else { 
+        warning.style.display = 'none'; 
+    }
 }
-
-
-
-
-if (socket) {
-    socket.on('match_start', (data) => { myRole = data.role; roomId = data.roomId; isMatched = true; if (myRole === 'guest') { selectedStage = data.stage; } executeGameStart(); });
-    socket.on('enemy_update', (enemyData) => { e.x = enemyData.x; e.y = enemyData.y; e.vx = enemyData.vx; e.vy = enemyData.vy; e.dmg = enemyData.dmg; e.stocks = enemyData.stocks; e.attacking = enemyData.attacking; e.invulnTimer = enemyData.invulnTimer; e.onLift = enemyData.onLift; });
-    socket.on('receive_hit', (hitData) => { if (gameMode !== 'online') return; p.dmg += hitData.dmgDeal; p.vx = hitData.vx; p.vy = hitData.vy; p.knockbackTimer = hitData.knockbackTimer; spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80); updateUI(); });
-}
-
-
-
-
-
-
-
 
 window.addEventListener('resize', () => { resizeGame(); checkOrientation(); });
 window.addEventListener('orientationchange', () => { resizeGame(); checkOrientation(); });
-
-
-
-
-// ✨ ファイルの一番最後にある setTimeout の塊をこれに丸ごと置き換えてください（コピペOK）
-setTimeout(() => { 
-    // 各画面の要素をプログラムに登録
-    window.scrTitle = document.getElementById('title-screen');
-    window.scrSelect = document.getElementById('select-screen');
-    window.scrGame = document.getElementById('game-view');
-    window.scrResult = document.getElementById('result-screen');
-    
-    const notice = document.getElementById('notice-screen'); 
-    if (notice) notice.style.display = 'flex';
-    
-    // キーボード入力を常時検知するように登録
-    window.addEventListener('keydown', (ev) => { if (typeof handleKeyDown === 'function') handleKeyDown(ev); });
-    window.addEventListener('keyup', (ev) => { if (typeof handleKeyUp === 'function') handleKeyUp(ev); });
-    
-    // 💡【大復活】：消え去っていたスマホ用ボタン・各種タップイベントをここにすべて一括登録します！
-    const registerTouchBtn = (id, targetKey) => {
-        const btn = document.getElementById(id);
-        if (!btn) return;
-        const startAction = (e) => { e.preventDefault(); keys[targetKey] = true; if (targetKey === 'z') triggerPlayerAttack(); if (targetKey === 'x') triggerPlayerSpecial(); };
-        const endAction = (e) => { e.preventDefault(); keys[targetKey] = false; if (targetKey === ' ') spaceReleased = true; };
-        btn.addEventListener('touchstart', startAction, { passive: false }); btn.addEventListener('touchend', endAction, { passive: false });
-        btn.addEventListener('mousedown', startAction); btn.addEventListener('mouseup', endAction); btn.addEventListener('mouseleave', endAction);
-    };
-    
-    // 仮想コントローラーのボタンをすべて起動
-    registerTouchBtn('btn-up', ' '); registerTouchBtn('btn-jump-action', ' ');
-    registerTouchBtn('btn-left', 'arrowleft'); registerTouchBtn('btn-right', 'arrowright');
-    registerTouchBtn('btn-down', 'shift'); registerTouchBtn('btn-atk', 'z'); registerTouchBtn('btn-sp', 'x');
-
-
-
-
-    // 💡【切り替え・その他ボタンの活性化】：HTML内の onclick 属性とJavaScriptを確実に連動させます
-    const activateClickEvent = (id, fn) => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('click', fn);
-    };
-    // 各種設定切り替えボタンを指やマウスクリックに反応させます
-    activateClickEvent('opt-dpad', () => toggleControlMode('dpad'));
-    activateClickEvent('opt-analog', () => toggleControlMode('analog'));
-    activateClickEvent('mode-offline', () => toggleGameMode('offline'));
-    activateClickEvent('mode-online', () => toggleGameMode('online'));
-    
-    // 画面起動時にすべての駒（歩〜弓）を自動生成して並べます
-    if (typeof initSelectScreen === 'function') {
-        initSelectScreen();
-    }
-    
-    // スマホ・タブレット用の画面向きチェックとリサイズを強制起動
-    if (typeof resizeGame === 'function') resizeGame(); 
-    if (typeof checkOrientation === 'function') checkOrientation();
-}, 100);
-
-
-// ==============================================================================
-// 🏆 【構文エラー絶対ゼロ】複数人動的生成 ＆ レート精算システム（その1）
-// ==============================================================================
-
-
-function syncMultiplayerFighters(serverPlayers) {
-    const stage = document.getElementById('battle-stage');
-    const uiBar = document.getElementById('ui-bar');
-    if (!stage || !uiBar) return;
-
-
-    activeFighters = serverPlayers;
-    let mySlot = 1;
-    Object.keys(serverPlayers).forEach(slot => {
-        if (serverPlayers[slot].id === socket.id) mySlot = parseInt(slot, 10);
-    });
-
-
-    Object.keys(serverPlayers).forEach(slotStr => {
-        const slot = parseInt(slotStr, 10);
-        if (slot === mySlot) return;
-
-
-        let fId = 'enemy-fighter-slot-' + slot;
-        let enemyEl = document.getElementById(fId);
-        if (!enemyEl) {
-            enemyEl = document.createElement('div');
-            enemyEl.id = fId;
-            enemyEl.className = 'piece';
-            enemyEl.style.cssText = 'width:38px; height:44px; z-index:20; position:absolute; font-size:16px; border-radius:6px;';
-            
-            const textSpan = document.createElement('span');
-            textSpan.id = 'e-text-slot-' + slot;
-            enemyEl.appendChild(textSpan);
-
-
-            const weaponEl = document.createElement('div');
-            weaponEl.id = 'enemy-weapon-slot-' + slot;
-            weaponEl.className = 'weapon';
-            weaponEl.style.cssText = 'background:#e74c3c; width:22px; height:4px; position:absolute; top:18px; transform-origin:right center; display:none;';
-            enemyEl.appendChild(weaponEl);
-
-
-            stage.appendChild(enemyEl);
-        }
-
-
-        let uiId = 'ui-box-slot-' + slot;
-        let uiBox = document.getElementById(uiId);
-        if (!uiBox) {
-            uiBox = document.createElement('div');
-            uiBox.id = uiId;
-            uiBox.className = 'ui-box';
-            
-            // 💡【大バグ修正】：不具合の原因だったテンプレートリテラル（`）を完全に廃止！
-            // 確実なシングルクォーテーションと「+」による結合に書き換え、閉じタグの破損を100%防ぎます。
-            uiBox.innerHTML = '<span id="ui-e-name-slot-' + slot + '" style="font-weight:bold;">P' + slot + '</span><span id="ui-e-stocks-slot-' + slot + '" class="ui-stocks">●●●</span><span id="ui-e-dmg-slot-' + slot + '" class="ui-dmg">0%</span>';
-            uiBar.appendChild(uiBox);
-        }
-
-
-        const cfg = FIGHTER_COLORS[slot] || { bg: '#ffd27f', text: '#b32727', name: 'P' + slot };
-        enemyEl.style.background = cfg.bg;
-        enemyEl.style.color = cfg.text;
-        enemyEl.style.boxShadow = 'inset 0 0 0 1px ' + cfg.text;
-        
-        const nameUi = document.getElementById('ui-e-name-slot-' + slot);
-        if (nameUi && serverPlayers[slot]) {
-            // 💡【大バグ修正】：不要な閉じ括弧「)」や崩れた参照を徹底排除！
-            nameUi.textContent = cfg.name + ' (' + CHAR_DATA[serverPlayers[slot].char].name + ')';
-            nameUi.style.color = cfg.text;
-        }
-        const textUi = document.getElementById('e-text-slot-' + slot);
-        if (textUi && serverPlayers[slot]) {
-            textUi.textContent = CHAR_DATA[serverPlayers[slot].char].name;
-        }
-    });
-}
-
-
-function finalizeMatchRating(playerWon, enemyRating) {
-    if (gameMode !== 'online') return;
-    
-    const oldRating = playerRating;
-    const newRating = calculateNewRating(oldRating, enemyRating || 1500, playerWon);
-    playerRating = newRating;
-
-
-        // ✨ ここからコピペして、その下の3行を丸ごと上書きしてください（コピペOK）
-    const diff = newRating - oldRating;
-    const diffText = diff >= 0 ? '+' + diff : '' + diff;
-    
-    // 💡【構文エラー完全修復】：余分な閉じ括弧や崩れたバッククォートのゴミを根こそぎ消去！
-    alert('【レート精算】\n現在のレート: ' + oldRating + ' ➔ ' + newRating + ' (' + diffText + ')');
-
-
-
-
-    
-    const ratingUi = document.getElementById('ui-current-rating');
-    if (ratingUi) ratingUi.textContent = newRating;
-}
-
-
-// 💡【フレンドルーム通信のイベント受信一覧】
+// 💡 サーバーからの電波を処理する通信イベントリスナー一式
 if (socket) {
     socket.on('friend_room_created', (data) => {
         currentRoomId = data.roomId;
@@ -1868,66 +1739,56 @@ if (socket) {
         if (input) input.value = data.roomId;
     });
 
+    socket.on('friend_room_joined', (data) => {
+        currentRoomId = data.roomId;
+        const txt = document.getElementById('room-status-text');
+        if (txt) {
+            txt.textContent = '部屋 [' + data.roomId + '] に合流！ 現在の人数: ' + data.currentPlayers + ' / ' + data.maxPlayers + ' 人';
+        }
+        gameMode = 'online';
+    });
 
-  // ✨ ここからコピペして、画像に写っている socket.on ２つの塊を丸ごと上書きしてください（コピペOK）
-socket.on('friend_room_joined', (data) => {
-    currentRoomId = data.roomId;
-    const txt = document.getElementById('room-status-text');
-    if (txt) {
-        // 💡 友達が合流した時は、画面テキストを更新して「選択画面のまま待機」させます
-        txt.textContent = '部屋 [' + data.roomId + '] に合流！ 現在の人数: ' + data.currentPlayers + ' / ' + data.maxPlayers + ' 人';
-    }
-    
-    // オンラインモードであることをプログラムに確定させます
-    gameMode = 'online';
-});
-
-
-socket.on('friend_match_start', (data) => {
-    // 💡【フライングバグ完全修正】：
-    // 部屋が完全に満員（4/4人など）になり、サーバーから「戦闘開始（match_start）」の電波が届いたこの瞬間だけ、
-    // 初めてゲーム画面への切り替えと、3人目・4人目のカラー駒の自動生成を実行します！
-    myRole = data.role; 
-    roomId = data.roomId; 
-    currentRoomId = data.roomId;
-    isMatched = true; 
-    gameMode = 'online'; 
-    selectedStage = data.stage;
-    
-    // サーバーから集まった全員のファイターデータを画面に発生させて同期します
-    if (typeof syncMultiplayerFighters === 'function') {
-        syncMultiplayerFighters(data.players);
-    }
-    
-    // 満員になったので、ここで初めてバトルを起動！
-    executeGameStart();
-    
-    if (typeof triggerCutIn === 'function') {
-        triggerCutIn('ルーム対戦 開始！！');
-    }
-});
-
+    socket.on('friend_match_start', (data) => {
+        myRole = data.role; 
+        roomId = data.roomId; 
+        currentRoomId = data.roomId;
+        isMatched = true; 
+        gameMode = 'online'; 
+        selectedStage = data.stage;
+        
+        if (typeof syncMultiplayerFighters === 'function') {
+            syncMultiplayerFighters(data.players);
+        }
+        executeGameStart();
+        if (typeof triggerCutIn === 'function') {
+            triggerCutIn('ルーム対戦 開始！！');
+        }
+    });
 
     socket.on('multi_enemy_update', (data) => {
+        if (!isMatched || gameMode !== 'online') return;
         Object.keys(data.players).forEach(slotStr => {
             const slot = parseInt(slotStr, 10);
+            if (data.players[slot].id === socket.id) return;
+            
             let fId = 'enemy-fighter-slot-' + slot; 
             let enemyEl = document.getElementById(fId);
             let uiDmg = document.getElementById('ui-e-dmg-slot-' + slot); 
-            
-            // 💡【バグ6修正】：通信イベントでのフリーズを防ぐため、uiStocksを確実に定義！
             let uiStocks = document.getElementById('ui-e-stocks-slot-' + slot);
             
-            if (enemyEl && data.players[slot].id !== socket.id) {
-                const ep = data.players[slot];
-                enemyEl.style.left = ep.x + 'px'; enemyEl.style.top = ep.y + 'px';
-                enemyEl.style.opacity = (ep.invulnTimer % 6 > 3) ? '0.4' : '1';
+            const ep = data.players[slot];
+            if (enemyEl && ep) {
+                enemyEl.style.left = ep.x + 'px'; 
+                enemyEl.style.top = ep.y + 'px';
                 if (uiDmg) uiDmg.textContent = ep.dmg + '%';
-                if (uiStocks) { let st = ''; for(let i=0; i<ep.stocks; i++) st += '●'; uiStocks.textContent = st; }
+                if (uiStocks) { 
+                    let st = ''; 
+                    for(let i=0; i<ep.stocks; i++) st += '●'; 
+                    uiStocks.textContent = st; 
+                }
             }
         });
     });
-
 
     socket.on('friend_match_over', (data) => {
         const playerWon = (data.winnerId === socket.id);
@@ -1940,80 +1801,16 @@ socket.on('friend_match_start', (data) => {
         goToSelectScreen();
     });
 
-
     socket.on('friend_room_error', (data) => {
         alert('ルームエラー：' + data.message);
     });
 }
 
-
-// 💡【ランキング表示バグ修正】：安全なインデックス指定へ書き換え
-function displayRanking(currentRanking, highlightTimeMs) {
-    const container = document.getElementById('ranking-list-container'); 
-    if(!container) return; 
-    container.innerHTML = '';
-    currentRanking.forEach((item, index) => {
-        const row = document.createElement('div'); 
-        row.className = 'ranking-item' + (index < 3 ? ' top3' : ''); 
-        if (item.time === highlightTimeMs) { 
-            row.style.background = 'rgba(46, 204, 113, 0.3)'; 
-            row.style.borderRadius = '4px'; 
-        }
-        let rankEmoji = ['🥇', '🥈', '🥉', '4位', '5位'][index]; 
-        
-        let parts = item.fighter.split(":"); 
-        let fName = parts[0] || ""; 
-        let uName = parts[1] ? " [" + parts[1] + "]" : "";
-        
-        row.innerHTML = "<span>" + rankEmoji + " " + fName + uName + "</span> <span>" + formatTime(item.time) + "</span>"; 
-        container.appendChild(row);
-    });
-}
-
-
-// ==============================================================================
-// 🚀 システム同期・最強の初期化メインループ（完全安全版）
-// ==============================================================================
-setTimeout(() => { 
-    window.scrTitle = document.getElementById('title-screen');
-    window.scrSelect = document.getElementById('select-screen');
-    window.scrGame = document.getElementById('game-view');
-    window.scrResult = document.getElementById('result-screen');
-    
-    const notice = document.getElementById('notice-screen'); 
-    if (notice) notice.style.display = 'flex';
-    
-    window.addEventListener('keydown', (ev) => { if (typeof handleKeyDown === 'function') handleKeyDown(ev); });
-    window.addEventListener('keyup', (ev) => { if (typeof handleKeyUp === 'function') handleKeyUp(ev); });
-    
-    const registerTouchBtn = (id, targetKey) => {
-        const btn = document.getElementById(id);
-        if (!btn) return;
-        const startAction = (e) => { e.preventDefault(); keys[targetKey] = true; if (targetKey === 'z') triggerPlayerAttack(); if (targetKey === 'x') triggerPlayerSpecial(); };
-        const endAction = (e) => { e.preventDefault(); keys[targetKey] = false; if (targetKey === ' ') spaceReleased = true; };
-        btn.addEventListener('touchstart', startAction, { passive: false }); btn.addEventListener('touchend', endAction, { passive: false });
-        btn.addEventListener('mousedown', startAction); btn.addEventListener('mouseup', endAction); btn.addEventListener('mouseleave', endAction);
-    };
-    
-    registerTouchBtn('btn-up', ' '); registerTouchBtn('btn-jump-action', ' ');
-    registerTouchBtn('btn-left', 'arrowleft'); registerTouchBtn('btn-right', 'arrowright');
-    registerTouchBtn('btn-down', 'shift'); registerTouchBtn('btn-atk', 'z'); registerTouchBtn('btn-sp', 'x');
-
-
-    const activateClickEvent = (id, fn) => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('click', fn);
-    };
-    activateClickEvent('opt-dpad', () => toggleControlMode('dpad'));
-    activateClickEvent('opt-analog', () => toggleControlMode('analog'));
-    activateClickEvent('mode-offline', () => toggleGameMode('offline'));
-    activateClickEvent('mode-online', () => toggleGameMode('online'));
-    
-// 🏆 【大復活】：フレンド対戦ルーム & レートシステム UI自動生成システム本体
+// 🏆 【空振り・2重定義完全ガード版】フレンド対戦ルーム UI自動生成システム
 function injectOnlineRoomUI() {
     const selectScreen = document.getElementById('select-screen');
     if (!selectScreen) return;
-    if (document.getElementById('custom-room-section')) return; // 多重生成防止
+    if (document.getElementById('custom-room-section')) return;
 
     const roomSection = document.createElement('div');
     roomSection.id = 'custom-room-section';
@@ -2038,29 +1835,64 @@ function injectOnlineRoomUI() {
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) selectScreen.insertBefore(roomSection, startBtn);
 
-    // 💡【空振り完全防止】：上のinnerHTMLでボタンが画面に出現した「直後」に紐付けを実行します！
-    const createBtn = document.getElementById('btn-create-room');
-    const joinBtn = document.getElementById('btn-join-room');
-    const p2Btn = document.getElementById('btn-p2');
-    const p3Btn = document.getElementById('btn-p3');
-    const p4Btn = document.getElementById('btn-p4');
-
-    if (createBtn) createBtn.addEventListener('click', requestCreateRoom);
-    if (joinBtn) joinBtn.addEventListener('click', requestJoinRoom);
-    if (p2Btn) p2Btn.addEventListener('click', function() { setMatchPlayers(2, this); });
-    if (p3Btn) p3Btn.addEventListener('click', function() { setMatchPlayers(3, this); });
-    if (p4Btn) p4Btn.addEventListener('click', function() { setMatchPlayers(4, this); });
+    document.getElementById('btn-create-room').addEventListener('click', requestCreateRoom);
+    document.getElementById('btn-join-room').addEventListener('click', requestJoinRoom);
+    document.getElementById('btn-p2').addEventListener('click', function() { setMatchPlayers(2, this); });
+    document.getElementById('btn-p3').addEventListener('click', function() { setMatchPlayers(3, this); });
+    document.getElementById('btn-p4').addEventListener('click', function() { setMatchPlayers(4, this); });
+    
+    displayRanking(null, 0);
 }
 
-// 💡【大復活】：消え去っていたスマホ用ボタン・各種タップイベントをここにすべて一括登録します！
-if (typeof initSelectScreen === 'function') initSelectScreen();
-if (typeof injectOnlineRoomUI === 'function') injectOnlineRoomUI(); 
+// 🚀 一本化された初期化メインループ
+setTimeout(() => { 
+    window.scrTitle = document.getElementById('title-screen');
+    window.scrSelect = document.getElementById('select-screen');
+    window.scrGame = document.getElementById('game-view');
+    window.scrResult = document.getElementById('result-screen');
+    
+    const notice = document.getElementById('notice-screen'); 
+    if (notice) notice.style.display = 'flex';
+    
+    window.addEventListener('keydown', (ev) => { if (typeof handleKeyDown === 'function') handleKeyDown(ev); });
+    window.addEventListener('keyup', (ev) => { if (typeof handleKeyUp === 'function') handleKeyUp(ev); });
+    
+    const registerTouchBtn = (id, targetKey) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const startAction = (e) => { e.preventDefault(); keys[targetKey] = true; if (targetKey === 'z') triggerPlayerAttack(); if (targetKey === 'x') triggerPlayerSpecial(); };
+        const endAction = (e) => { e.preventDefault(); keys[targetKey] = false; if (targetKey === ' ') spaceReleased = true; };
+        btn.addEventListener('touchstart', startAction, { passive: false }); btn.addEventListener('touchend', endAction, { passive: false });
+        btn.addEventListener('mousedown', startAction); btn.addEventListener('mouseup', endAction); btn.addEventListener('mouseleave', endAction);
+    };
+    
+    registerTouchBtn('btn-up', ' '); registerTouchBtn('btn-jump-action', ' ');
+    registerTouchBtn('btn-left', 'arrowleft'); registerTouchBtn('btn-right', 'arrowright');
+    registerTouchBtn('btn-down', 'shift'); registerTouchBtn('btn-atk', 'z'); registerTouchBtn('btn-sp', 'x');
 
-if (typeof resizeGame === 'function') resizeGame(); 
-if (typeof checkOrientation === 'function') checkOrientation();
+    const activateClickEvent = (id, fn) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', fn);
+    };
+    activateClickEvent('opt-dpad', () => toggleControlMode('dpad'));
+    activateClickEvent('opt-analog', () => toggleControlMode('analog'));
+    activateClickEvent('mode-offline', () => toggleGameMode('offline'));
+    activateClickEvent('mode-online', () => toggleGameMode('online'));
+    
+    if (typeof initSelectScreen === 'function') initSelectScreen();
+    if (typeof injectOnlineRoomUI === 'function') injectOnlineRoomUI(); 
+    
+    if (typeof resizeGame === 'function') resizeGame(); 
+    if (typeof checkOrientation === 'function') checkOrientation();
 }, 100);
 
 </script>
 </body>
 </html>
+
+
+
+
+
+
 
