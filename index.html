@@ -942,199 +942,53 @@ function resetAllKeyStates() { keys.arrowleft = false; keys.arrowright = false; 
 
 
 
+// ==============================================================================
+// ⌨️ キーボード操作受付システム（💡 消失していた操作判定を完全復活！）
+// ==============================================================================
 function handleKeyDown(ev) {
     const k = ev.key.toLowerCase();
-    if (k === 'arrowleft') keys.arrowleft = true; if (k === 'arrowright') keys.arrowright = true; if (k === 'arrowup' || k === ' ') keys[' '] = true;
-    if (k === 'arrowdown' || k === 'shift') { keys.shift = true; if (p) p.passThroughTimer = 15; }
-    if (k === 'z') triggerPlayerAttack(); if (k === 'x') triggerPlayerSpecial();
+    if (k === 'arrowleft' || k === 'a') keys.arrowleft = true; 
+    if (k === 'arrowright' || k === 'd') keys.arrowright = true; 
+    if (k === 'arrowup' || k === 'w' || k === ' ') {
+        keys[' '] = true;
+    }
+    if (k === 'arrowdown' || k === 's' || k === 'shift') { 
+        keys.shift = true; 
+        if (p) p.passThroughTimer = 15; 
+    }
+    if (k === 'z' || k === 'j') triggerPlayerAttack(); 
+    if (k === 'x' || k === 'k') triggerPlayerSpecial();
 }
-
-
-
 
 function handleKeyUp(ev) {
     const k = ev.key.toLowerCase();
-    if (k === 'arrowleft') keys.arrowleft = false; if (k === 'arrowright') keys.arrowright = false;
-    if (ev.key === ' ') { keys[' '] = false; spaceReleased = true; } if (k === 'z') { keys.z = false; zReleased = true; } if (k === 'x') { keys.x = false; xReleased = true; }
-    if (k === 'arrowdown' || k === 'shift') keys.shift = false;
+    if (k === 'arrowleft' || k === 'a') keys.arrowleft = false; 
+    if (k === 'arrowright' || k === 'd') keys.arrowright = false;
+    if (k === 'arrowup' || k === 'w' || k === ' ') { 
+        keys[' '] = false; 
+        spaceReleased = true; // 💡 ジャンプキーを離したことを記憶
+    } 
+    if (k === 'z' || k === 'j') { keys.z = false; zReleased = true; } 
+    if (k === 'x' || k === 'k') { keys.x = false; xReleased = true; }
+    if (k === 'arrowdown' || k === 's' || k === 'shift') keys.shift = false;
 }
 
+function selectCharacter(key, element) { selectedCharKey = key; document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('selected')); element.classList.add('selected'); document.getElementById('char-desc').textContent = CHAR_DATA[selectedCharKey].desc; }
+function selectStage(num, element) { selectedStage = num; document.querySelectorAll('.stage-btn').forEach(b => b.classList.remove('selected')); element.classList.add('selected'); }
+function resetAllKeyStates() { keys.arrowleft = false; keys.arrowright = false; keys[' '] = false; keys.z = false; keys.x = false; keys.shift = false; spaceReleased = true; zReleased = true; xReleased = true; }
 
-
-
-function triggerPlayerAttack() {
-    if (p.onLift) return;
-    let isRookSpecial = (selectedCharKey === 'rook' && flySpecialActive);
-    let reach = isRookSpecial ? p.range * 3.5 : (flySpecialActive ? p.range * 2.5 : p.range);
-    let dist = Math.abs(p.x - e.x);
-
-
-
-
-    if (enemyWasAirAttacking && enemyAirAttackFrameCount >= 1 && enemyAirAttackFrameCount <= 2 && dist < (reach + 20) && Math.abs(p.y - e.y) < 55) {
-        e.cooldown = 45; e.attacking = 0; enemyWasAirAttacking = false;
-        p.vx = 0; p.vy = 0; p.knockbackTimer = 0;
-        e.dmg += Math.floor(15 * p.power); let kbScale = (5.0 + (e.dmg * 0.12)) / e.weight;
-        e.vx = p.dir * kbScale; e.vy = -3.5;
-
-
-
-
-        triggerCutIn('ジャストカウンター！！');
-        spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20);
-        if (p.spGauge < 100) p.spGauge = Math.min(100, p.spGauge + 25); 
-        updateUI();
-        
-        const pWp = document.getElementById('player-weapon');
-        if (pWp) pWp.style.transform = "scaleX(2.0)";
-        setTimeout(() => { if(pWp) pWp.style.transform = "scaleX(1)"; }, 120);
-        return;
-    }
-
-
-
-
-    if (p.attacking === 0 && zReleased) {
-        p.attacking = 12; zReleased = false; 
-        const pWp = document.getElementById('player-weapon');
-        if (pWp) pWp.style.transform = p.dir === 1 ? 'rotate(75deg)' : 'rotate(-75deg)';
-        
-        if (selectedCharKey === 'bow') { 
-            spawnProjectile('arrow', p.x + (p.dir === 1 ? 38 : -18), p.y + 18, p.dir, p.dir * 12, 0); 
-        } else {
-            let pCenterX = p.x + 18; let eCenterX = e.x + 20;
-            if (e.invulnTimer <= 0 && !e.onLift && Math.abs(pCenterX - eCenterX) < reach && Math.abs(p.y - e.y) < 32) {
-                let pBonus = 1.0 + (e.dmg * 0.005); 
-                let dmgDeal = Math.floor((Math.random() * 6 + 6) * p.power * pBonus); 
-                e.dmg += dmgDeal;
-                
-                const dmgUi = document.getElementById('ui-e-dmg');
-                if (dmgUi) {
-                    dmgUi.textContent = e.dmg + '%';
-                    dmgUi.style.color = e.dmg > 100 ? '#ff3f3f' : (e.dmg > 50 ? '#ff9f43' : '#2ecc71');
-                }
-                
-                let kbScale = (3.5 + (e.dmg * 0.18)) / e.weight; 
-                e.vx = p.dir * kbScale; 
-                e.vy = - (2.5 + (e.dmg * 0.09)) / e.weight; 
-                e.knockbackTimer = Math.min(50, Math.floor(12 + e.dmg * 0.15));
-                
-                if (enemySleepTimer <= 0 && enemyStunTimer <= 0) e.dir = -p.dir;
-                if (p.spGauge < 100) { p.spGauge = Math.min(100, p.spGauge + 14.3); updateSPBar(); }
-                spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, e.dmg > 80);
-
-
-
-
-               // ⭕ PeerJS用に新しく作られた通信関数に差し替えます
-if (gameMode === 'online' && isMatched) {
-    sendHitToEnemy(dmgDeal, e.vx, e.vy, e.knockbackTimer);
-}
-
-
-                
-                if (selectedCharKey === 'pawn' && !p.isPromoted) {
-                    p.hitCount++; 
-                    if (p.hitCount >= 5) {
-                        p.isPromoted = true; 
-                        document.getElementById('p-text').textContent = 'と'; 
-                        const pEl = document.getElementById('player-fighter');
-                        if (pEl) { pEl.style.background = '#ffccd2'; pEl.style.color = '#d32f2f'; pEl.style.boxShadow = 'inset 0 0 0 2px #d32f2f'; }
-                        document.getElementById('ui-p-status').textContent = '【成金化! 全能力1.5倍】'; 
-                        p.speed *= 1.5; p.power *= 1.5; p.weight *= 1.3; 
-                        triggerCutIn('と金へ成金進化！');
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-
-
-function triggerPlayerSpecial() {
-    if (p.spGauge < 100 || p.onLift || !xReleased) return;
-    xReleased = false;
-    if (selectedCharKey === 'pawn' && p.isPromoted && !p.usedPawnSuper) {
-        p.usedPawnSuper = true; p.spGauge = 0; updateSPBar(); triggerCutIn('秘技・金駒大散布爆撃！');
-        for (let i=0; i<8; i++) {
-            setTimeout(() => { spawnProjectile('coin-bomb', p.x + 18, p.y, p.dir, p.dir * (3 + Math.random()*5), -4 - Math.random()*5); }, i * 80);
-        }
-    }
-    else if (selectedCharKey === 'bow') {
-        p.spGauge = 0; updateSPBar(); triggerCutIn('究極貫通大矢射撃！');
-        spawnProjectile('hyper-arrow', p.x + (p.dir === 1 ? 40 : -45), p.y + 16, p.dir, p.dir * 16, 0);
-    }
-    else if (selectedCharKey === 'lance') {
-        p.spGauge = 0; updateSPBar(); triggerCutIn('成香：超睡眠香霧！');
-        if (e.invulnTimer <= 0 && !e.onLift && Math.abs((p.x+18) - (e.x+20)) < 160 && Math.abs(p.y - e.y) < 60) {
-            enemySleepTimer = Math.floor(90 + Math.random() * 210); enemyStunTimer = 0; e.vx = 0; e.vy = 0;
-            const bubble = document.getElementById('e-status-bubble'); bubble.textContent = 'Zzz...'; bubble.style.display = 'block';
-        }
-    }
-
-
-
-
-    else if (selectedCharKey === 'knight') {
-        p.spGauge = 0; updateSPBar(); triggerCutIn('成桂：極太天罰レーザー！');
-        const laser = document.getElementById('keima-laser'); laser.style.left = (e.x - 2) + 'px'; laser.style.display = 'block'; laser.style.opacity = '1';
-        setTimeout(() => { laser.style.opacity = '0'; setTimeout(() => { laser.style.display = 'none'; }, 100); }, 300);
-        if(e.invulnTimer <= 0 && !e.onLift){
-            e.dmg += 18.5; document.getElementById('ui-e-dmg').textContent = e.dmg + '%'; enemyStunTimer = 180; enemySleepTimer = 0; e.vx = 0; e.vy = 0;
-            const bubble = document.getElementById('e-status-bubble'); bubble.textContent = '⚡スタン⚡'; bubble.style.display = 'block'; spawnHitVisual(e.x + 20, e.y + 20, true);
-        }
-    }
-    else if (selectedCharKey === 'silver') {
-        p.spGauge = 0; updateSPBar(); p.silverMode = true; triggerCutIn('成銀：修羅修羅の境地！');
-        document.getElementById('p-aura').style.display = 'block'; document.getElementById('ui-p-status').textContent = '【成銀: 攻撃機動最強化・被ダメ2倍】';
-        p.speed = 6.2; p.jump = -15.0; p.power = 2.0;
-    }
-    else if (selectedCharKey === 'gold') {
-        p.spGauge = 0; updateSPBar(); p.goldMode = true; triggerCutIn('金剛鉄壁：八方結界陣！');
-        document.getElementById('p-shield').style.display = 'block'; document.getElementById('ui-p-status').textContent = '【鉄壁: 攻撃1.5倍・被ダメ永続半減】';
-        p.power = 1.8;
-    }
-    else if (selectedCharKey === 'bishop') {
-        p.spGauge = 0; updateSPBar(); triggerCutIn('竜馬：三連真・円月斬！');
-        let waves = [document.getElementById('s-wave-1'), document.getElementById('s-wave-2'), document.getElementById('s-wave-3')];
-        waves.forEach((w, idx) => {
-            setTimeout(() => {
-                w.style.left = (p.x + 18) + 'px'; w.style.top = (p.y + 21) + 'px'; w.style.display = 'block'; w.style.opacity = '1'; w.style.transform = 'translate(-50%, -50%) scale(2.2)'; w.style.transition = 'transform 0.25s, opacity 0.25s';
-                setTimeout(() => { w.style.opacity = '0'; w.style.transform = 'translate(-50%, -50%) scale(0)'; }, 250);
-                if(e.invulnTimer<=0 && !e.onLift && Math.hypot((p.x + 18) - (e.x + 20), (p.y + 21) - (e.y + 23)) < 110) {
-                    e.dmg += 20.5; document.getElementById('ui-e-dmg').textContent = e.dmg + '%'; e.vx = (e.x > p.x ? 1 : -1) * 6; e.vy = -4; spawnHitVisual(e.x + 20, e.y + 23, true);
-                }
-            }, idx * 180);
-        });
-    }
-    else if (selectedCharKey === 'rook') {
-        p.spGauge = 0; updateSPBar(); flySpecialActive = true; flySpecialTimer = 600; triggerCutIn('竜王：十秒間・神滅大伸刀！');
-        document.getElementById('ui-p-status').textContent = '【竜王: 10秒間 攻撃リーチ超大幅延長】';
-        const pWp = document.getElementById('player-weapon');
-        if (pWp) { pWp.style.background = "linear-gradient(90deg, #ffd32a, #ff3f3f)"; pWp.style.boxShadow = "0 0 15px #ff3f3f"; pWp.style.width = "120px"; }
-    }
-}
-
-
-
-
-// 💡 510行目付近にある pressStartButton 関数をこれに丸ごと上書きしてください
 function pressStartButton() {
     if (gameMode === 'offline') { 
         myRole = 'offline'; 
         executeGameStart(); 
     } else {
-        // 💡【重要】オンラインモード時は、一番下のボタンではなくP2Pパネル側で接続するため、誤作動ガードを配置
         alert("オンライン対戦時は、このボタンではなく上の『相手の対戦IDを入力して乱闘』欄にIDを入れ、『相手に突撃』ボタンを押して対戦を開始してください！\n\n自分がホスト（待ち受け側）になる場合は、この画面のまま相手からの接続を待ってください。");
     }
 }
 
-
-
-
-
+// ==============================================================================
+// ⚔️ バトル開始時・ファイターパラメータ初期化
+// ==============================================================================
 function executeGameStart() {
     window.scrSelect.style.display = 'none'; window.scrGame.style.display = 'block';
     const c = CHAR_DATA[selectedCharKey]; let startLeft = (gameMode === 'offline' || myRole === 'host');
@@ -1146,10 +1000,7 @@ function executeGameStart() {
         document.getElementById('plat-left').style.display = 'none'; document.getElementById('plat-right').style.display = 'none'; document.getElementById('plat-top').style.display = 'none';
     }
 
-
-
-
-    // プレイヤーの初期設定（hitCountの重複や最初からと金になっていた重大バグを完全修復）
+    // プレイヤーと敵の初期生命・パラメータ同期
     p = {
         x: startLeft ? 150 : 410, y: 212, vx: 0, vy: 0, dmg: 0, isGrounded: true, dir: startLeft ? 1 : -1, stocks: 3, spGauge: 0,
         isPromoted: false, hitCount: 0, speed: c.speed, jump: c.jump, weight: c.weight, power: c.power, range: c.range,
@@ -1160,22 +1011,14 @@ function executeGameStart() {
         cooldown: 0, speed: 2.3, jump: -9.5, weight: 1.4, power: 1.3, range: 45, invulnTimer: 0, onLift: false, liftTimer: 0, attacking: 0
     };
 
-
-
-
     flySpecialActive = false; flySpecialTimer = 0; projectiles = []; enemyWasAirAttacking = false; enemyAirAttackFrameCount = 0;
     matchStartTime = Date.now(); matchElapsedTime = 0;
-
-
-
 
     const pEl = document.getElementById('player-fighter'); if (pEl) { pEl.style.background = '#ffebc2'; pEl.style.color = '#000'; pEl.style.boxShadow = 'inset 0 0 0 1px #000'; }
     document.getElementById('p-aura').style.display = 'none'; document.getElementById('p-shield').style.display = 'none'; document.getElementById('e-status-bubble').style.display = 'none';
     document.getElementById('ui-p-status').textContent = '';
     
-    // ✨ こう書き換えてください（コピペOK）
     if (gameMode === 'offline') {
-        // オフライン（VS CPU）のときだけBOTを1人生成します
         let chosenBoss = BOSS_DATA[Math.floor(Math.random() * BOSS_DATA.length)];
         document.getElementById('ui-e-name').textContent = chosenBoss.name; 
         document.getElementById('e-text').textContent = chosenBoss.text;
@@ -1183,28 +1026,23 @@ function executeGameStart() {
         if (eF) eF.style.background = chosenBoss.color;
         e.speed = chosenBoss.speed; e.jump = chosenBoss.jump; e.weight = chosenBoss.weight; e.power = chosenBoss.power; e.range = chosenBoss.range;
     } else {
-        // 💡【オンライン複数人対応】：フレンド対戦時はBOT戦をスキップし、集まった友達のデータをそのまま使います
         document.getElementById('ui-e-name').textContent = "対戦相手 (P2)"; 
         document.getElementById('e-text').textContent = "敵";
-        
-        // 3〜4人対戦のときは、事前にサーバーから届いた全メンバーの駒（syncMultiplayerFighters）を画面上に強制可視化させます
-        if (typeof activeFighters === 'object') {
-            syncMultiplayerFighters(activeFighters);
-        }
     }
 
-
-       updateUI(); setupTouchControls();
+    updateUI(); setupTouchControls();
     const overlay = document.getElementById('touch-pad-overlay'); if (overlay) overlay.style.display = 'block';
-    window.addEventListener('keydown', handleKeyDown); window.addEventListener('keyup', handleKeyUp);
     
-    // 💡【大熱戦の演出復活】：バトルが始まった瞬間に「乱闘開始！」と大きく表示させます！
-    if (typeof triggerCutIn === 'function') triggerCutIn('乱闘開始！！');
+    // 💡 リスナーの多重登録を防ぎつつ確実にキーボードイベントをオン
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    window.addEventListener('keydown', handleKeyDown); 
+    window.addEventListener('keyup', handleKeyUp);
+    
+    triggerCutIn('乱闘開始！！');
 
-
-
-
-    if (gameTimer) clearInterval(gameTimer); gameTimer = setInterval(updateFrame, 1000 / 60);
+    if (gameTimer) clearInterval(gameTimer); 
+    gameTimer = setInterval(updateFrame, 1000 / 60);
 }
 
 
@@ -1218,60 +1056,70 @@ function executeGameStart() {
 
 
 
+
+
+// ==============================================================================
+// ⏱️ メインループ ＆ プレイヤー物理演算（💡 消失していた物理挙動が完全大復活！）
+// ==============================================================================
 function updateFrame() {
     if (isHitStopping) return;
 
-
-
-
-    // 1. タイマーの更新
+    // 1. タイマーのリアルタイム更新
     matchElapsedTime = Date.now() - matchStartTime;
     const timerDisplay = document.getElementById('timer-display');
     if (timerDisplay) timerDisplay.textContent = formatTime(matchElapsedTime);
 
-
-
-
-    // 2. 復活リフト（スポーンプラットフォーム）の処理
+    // 2. 復活リフト（スポーンプラットフォーム）の上での処理
     if (p.onLift) {
         p.liftTimer--; p.vx = 0; p.vy = 0;
         let inputDetected = keys[' '] || keys.arrowleft || keys.arrowright || keys.z || keys.x;
-        if (p.liftTimer <= 0 || inputDetected) { p.onLift = false; spaceReleased = false; const liftEl = document.getElementById('player-lift'); if (liftEl) liftEl.style.display = 'none'; }
+        if (p.liftTimer <= 0 || inputDetected) { 
+            p.onLift = false; spaceReleased = false; 
+            const liftEl = document.getElementById('player-lift'); 
+            if (liftEl) liftEl.style.display = 'none'; 
+        }
     }
     if (e.onLift) {
         e.liftTimer--; e.vx = 0; e.vy = 0;
-        if (e.liftTimer <= 0 || e.cooldown <= 5) { e.onLift = false; const liftEl = document.getElementById('enemy-lift'); if (liftEl) liftEl.style.display = 'none'; }
+        if (e.liftTimer <= 0 || e.cooldown <= 5) { 
+            e.onLift = false; 
+            const liftEl = document.getElementById('enemy-lift'); 
+            if (liftEl) liftEl.style.display = 'none'; 
+        }
     }
 
-
-
-
+    // 各種無敵・スタン・攻撃クールダウンのタイマー減少処理
     if (p.invulnTimer > 0 && !p.onLift) p.invulnTimer--;
     if (e.invulnTimer > 0 && !e.onLift) e.invulnTimer--;
-
-
-
-
     if (enemySleepTimer > 0) enemySleepTimer--;
     if (enemyStunTimer > 0) enemyStunTimer--;
     if (e.cooldown > 0) e.cooldown--;
-    if (p.attacking > 0) { p.attacking--; if (p.attacking === 0) { const pWp = document.getElementById('player-weapon'); if (pWp) pWp.style.transform = 'rotate(0deg)'; } }
-    if (e.attacking > 0) { e.attacking--; if (e.attacking === 0) { const eWp = document.getElementById('enemy-weapon'); if (eWp) eWp.style.transform = 'rotate(0deg)'; } }
+    
+    if (p.attacking > 0) { 
+        p.attacking--; 
+        if (p.attacking === 0) { 
+            const pWp = document.getElementById('player-weapon'); 
+            if (pWp) pWp.style.transform = 'rotate(0deg)'; 
+        } 
+    }
+    if (e.attacking > 0) { 
+        e.attacking--; 
+        if (e.attacking === 0) { 
+            const eWp = document.getElementById('enemy-weapon'); 
+            if (eWp) eWp.style.transform = 'rotate(0deg)'; 
+        } 
+    }
     
     if (flySpecialActive) {
         flySpecialTimer--;
         if (flySpecialTimer <= 0) {
             flySpecialActive = false; document.getElementById('ui-p-status').textContent = '';
-            const pWp = document.getElementById('player-weapon'); if (pWp) { pWp.style.background = '#e0e0e0'; pWp.style.boxShadow = 'none'; pWp.style.width = '22px'; }
+            const pWp = document.getElementById('player-weapon'); 
+            if (pWp) { pWp.style.background = '#e0e0e0'; pWp.style.boxShadow = 'none'; pWp.style.width = '22px'; }
         }
     }
 
-
-
-
-     // ==========================================
-    // 3. プレイヤーの移動と物理演算（💡【2段ジャンプ暴走バグ】を完全修復）
-    // ==========================================
+    // 3. プレイヤーの移動速度計算 ＆ 2段ジャンプ暴走バグの完全ロック
     if (!p.onLift) {
         if (p.knockbackTimer > 0) { 
             p.knockbackTimer--; 
@@ -1281,34 +1129,33 @@ function updateFrame() {
             else { p.vx *= 0.8; }
         }
         
-        // 地面にいるときは、選んだキャラクターの最大空中ジャンプ回数をリセット
         if (p.isGrounded) { 
             p.airJumpsLeft = CHAR_DATA[selectedCharKey].maxAirJumps; 
         }
         
-        // 💡 ジャンプキーが押されていて、かつ一度キーが「離された状態（spaceReleased）」の時だけジャンプを許可
         if (keys[' '] && p.knockbackTimer <= 0 && !p.onLift && spaceReleased) {
             if (p.isGrounded) { 
                 p.vy = p.jump; 
                 p.isGrounded = false; 
-                spaceReleased = false; // 💡【重要】押しっぱなしによる連続暴走を防ぐロック
+                spaceReleased = false; 
                 keys[' '] = false; 
             } 
-            // 空中ジャンプの残りの回数がある場合のみ発動
             else if (p.airJumpsLeft > 0) { 
                 p.vy = p.jump * 0.85; 
                 p.airJumpsLeft--; 
-                spaceReleased = false; // 💡【重要】1ボタンで1回だけ消費するように厳密にロック！
+                spaceReleased = false; 
                 keys[' '] = false; 
-                spawnHitVisual(p.x + 18, p.y + 40, false); // 空中ジャンプの煙エフェクト
+                spawnHitVisual(p.x + 18, p.y + 40, false); 
             }
         }
     }
 
+    // 重力（下方向の加速）を加え、実際にプレイヤーの座標を更新！
+    p.vy += 0.45; 
+    p.x += p.vx; 
+    p.y += p.vy;
 
-
-
-    // 4. 行動処理（オフラインならCPUのAI、オンラインならデータ通信に分岐）
+    // 4. 行動処理（オフラインならCPUのAI、オンラインならP2P同期）
     if (gameMode === 'offline') {
         if (!e.onLift) {
             if (e.knockbackTimer > 0) {
@@ -1318,16 +1165,9 @@ function updateFrame() {
                 let eCenterX = e.x + 20;
                 let dist = eCenterX - pCenterX;
 
-
-
-
-                // 崖際安全ブレーキシステム
                 let isNearLeftCliff = (e.x < 110);
                 let isNearRightCliff = (e.x > 450);
                 let isPlayerOutside = (p.x < 75 || p.x > 485);
-
-
-
 
                 if (Math.abs(dist) > e.range - 10) {
                     e.vx = dist > 0 ? -e.speed : e.speed;
@@ -1336,17 +1176,10 @@ function updateFrame() {
                     e.vx *= 0.7;
                 }
 
-
-
-
                 if ((isNearLeftCliff && e.vx < 0 && isPlayerOutside) || (isNearRightCliff && e.vx > 0 && isPlayerOutside)) {
                     e.vx = 0;
                 }
 
-
-
-
-                // ガチ崖復帰アルゴリズム
                 if (e.x < 75) {
                     e.vx = e.speed; e.dir = 1;
                     if (!e.isGrounded && e.vy > 0 && !e.hasAirJumped) { e.vy = e.jump * 0.9; e.hasAirJumped = true; }
@@ -1355,50 +1188,33 @@ function updateFrame() {
                     if (!e.isGrounded && e.vy > 0 && !e.hasAirJumped) { e.vy = e.jump * 0.9; e.hasAirJumped = true; }
                 }
 
-
-
-
-                               // ✨ ここからコピペして、その3行の部分を丸ごと上書き（差し替え）してください
                 if (p.y < e.y - 45 && Math.random() < 0.05 && e.isGrounded) {
                     e.vy = e.jump; e.isGrounded = false;
                 }
                 
-                // 💡【2段ジャンプ即死バグ・最終大修正】：
-                // 敵（e）のデータだけを厳密に計算し、プレイヤー（p）のジャンプデータを巻き込んで破壊する暴走を100%シャットアウトします！
-                if (gameMode === 'offline' && !e.isGrounded && e.vy > 0 && e.hasAirJumped === false && e.y < 208) { 
+                if (!e.isGrounded && e.vy > 0 && e.hasAirJumped === false && e.y < 208) { 
                     e.vy = e.jump * 0.9; 
                     e.hasAirJumped = true; 
                 }
                 if (e.isGrounded) { e.hasAirJumped = false; }
 
-
-
-
-
-
-
-
-
-
-
-
-                // 超反応攻撃（LV9）
                 if (e.cooldown <= 0 && Math.abs(dist) < e.range + 15 && Math.abs(e.y - p.y) < 35 && e.x >= 75 && e.x <= 485) {
                     e.attacking = 12; e.cooldown = 25;
                     const eWp = document.getElementById('enemy-weapon');
                     if (eWp) eWp.style.transform = e.dir === 1 ? 'rotate(75deg)' : 'rotate(-75deg)';
                     if (!e.isGrounded) { enemyWasAirAttacking = true; enemyAirAttackFrameCount = 0; }
 
-
-
-
                     if (p.invulnTimer <= 0 && !p.onLift) {
                         let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
                         let dmgDeal = Math.floor((Math.random() * 8 + 8) * e.power * (1.0 + p.dmg * 0.005));
                         p.dmg += Math.floor(dmgDeal * dmgFactor);
+                        
+                        // 💡【物理演算復活】：攻撃を食らった際の吹っ飛びベクトル（ノックバックvx, vy）を完璧に計算！
                         let kbScale = (4.0 + (p.dmg * 0.16)) / p.weight;
-                        p.vx = e.dir * kbScale; p.vy = -(2.5 + (p.dmg * 0.08)) / p.weight;
-                        p.knockbackTimer = Math.min(50, Math.floor(12 + p.dmg * 0.15)); p.dir = -e.dir;
+                        p.vx = e.dir * kbScale; 
+                        p.vy = -(2.5 + (p.dmg * 0.08)) / p.weight;
+                        p.knockbackTimer = Math.min(50, Math.floor(12 + p.dmg * 0.15)); 
+                        p.dir = -e.dir;
                         spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80); updateUI();
                     }
                 }
@@ -1406,79 +1222,10 @@ function updateFrame() {
         }
         if (enemyWasAirAttacking) { enemyAirAttackFrameCount++; if (enemyAirAttackFrameCount > 15) enemyWasAirAttacking = false; }
 
-
-
-
-        e.vy += 0.45; e.x += e.vx; e.y += e.vy;
-    } else {
-        if (isMatched && roomId) {
-            socket.emit('player_update', {
-                roomId: roomId, x: p.x, y: p.y, vx: p.vx, vy: p.vy,
-                dmg: p.dmg, stocks: p.stocks, attacking: p.attacking,
-                invulnTimer: p.invulnTimer, onLift: p.onLift
-            });
-        }
+        e.vy += 0.45; 
+        e.x += e.vx; 
+        e.y += e.vy;
     }
-// ==========================================
-// 5. ステージの床判定【上から殴られた時の超高速貫通を100%シャットアウト版】
-// ==========================================
-const checkPlatform = (char) => {
-    let isSteeringDown = (char === p && keys.shift);
-    char.isGrounded = false;
-    if (char.vy < 0) return;
-
-
-
-
-    // 💡【衝撃貫通防止】：上から殴られた時などの吹っ飛び速度（char.vy）に合わせて、
-    // 着地をキャッチする「網の目の広さ」を動的に自動で拡大させ、すり抜けを物理的に不可能にします！
-    let buffer = Math.max(6, char.vy + 2);
-
-
-
-
-    // 1. 一番下のメインの土台（グレーの床、高さ 212 または 208）
-    if (char.x >= 75 && char.x <= 485) { 
-        let mainGroundY = (char === p) ? 212 : 208;
-        // 直前のフレームで床より上にいて、現在のフレームで床を突き抜けた瞬間を確実に捕まえます
-        if ((char.y - char.vy <= mainGroundY) && char.y >= mainGroundY - buffer) {
-            char.y = mainGroundY; char.vy = 0; char.isGrounded = true; return;
-        }
-    }
-
-
-
-
-    // 2. ステージ2（戦場風浮島）の左右・および中央のすり抜け床の着地判定
-    if (selectedStage === 2 && !isSteeringDown) {
-        let plats = [
-            { l: 110, r: 230, top: (char === p) ? 137 : 133 }, // 左の足場
-            { l: 330, r: 450, top: (char === p) ? 137 : 133 }, // 右 of 足場
-            { l: 220, r: 340, top: (char === p) ? 92 : 88 }    // 中央の足場
-        ];
-        for (let pl of plats) {
-            if (char.x >= pl.l && char.x <= pl.r) {
-                // 強烈な下方向への吹っ飛び（メテオ）を食らっても、足場の床でピタッとキャッチして引き戻します
-                if ((char.y - char.vy <= pl.top) && char.y >= pl.top - buffer) {
-                    char.y = pl.top; char.vy = 0; char.isGrounded = true; return;
-                }
-            }
-        }
-    }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
