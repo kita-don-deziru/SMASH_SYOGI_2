@@ -904,6 +904,50 @@
             filter: brightness(1.45);
             box-shadow: 0 0 16px #ffffff, inset 0 0 10px rgba(255, 255, 255, 0.8) !important;
         }
+
+        /* 🌋 ステージ3（紅蓮・灼熱溶岩城）の背景＆マグマ噴火ギミック */
+        #game-view.stage-3-bg {
+            background: radial-gradient(circle at 50% 80%, #7f1d1d 0%, #3b0707 55%, #0f0202 100%);
+        }
+        #game-view.stage-3-bg #battle-stage::before {
+            background: radial-gradient(circle, rgba(255, 80, 0, 0.45) 0%, rgba(235, 47, 6, 0.15) 55%, transparent 75%);
+            box-shadow: 0 0 70px rgba(255, 63, 63, 0.4);
+        }
+        #game-view.stage-3-bg #battle-stage::after {
+            background: linear-gradient(to top, rgba(255, 63, 63, 0.45) 0%, rgba(255, 159, 67, 0.12) 50%, transparent 100%);
+        }
+        /* 噴火予兆の警告ゾーン */
+        #magma-warning-zone {
+            position: absolute;
+            bottom: 124px;
+            height: 24px;
+            background: repeating-linear-gradient(45deg, rgba(255, 0, 0, 0.65) 0px, rgba(255, 0, 0, 0.65) 10px, rgba(255, 211, 42, 0.65) 10px, rgba(255, 211, 42, 0.65) 20px);
+            border: 2px solid #ff3f3f;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            text-shadow: 1px 1px 2px #000;
+            animation: blink 0.25s infinite alternate;
+            z-index: 12;
+            pointer-events: none;
+        }
+        /* 噴き上がるマグマ柱 */
+        #magma-pillar {
+            position: absolute;
+            bottom: 124px;
+            height: 175px;
+            background: linear-gradient(90deg, rgba(235,47,6,0.2) 0%, rgba(255,63,63,0.9) 25%, rgba(255,235,120,1) 50%, rgba(255,63,63,0.9) 75%, rgba(235,47,6,0.2) 100%);
+            box-shadow: 0 0 30px #ff3f3f, 0 0 50px #ff9f43;
+            border-top: 4px solid #fff;
+            border-radius: 12px 12px 0 0;
+            display: none;
+            z-index: 16;
+            pointer-events: none;
+        }
     </style>
 
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
@@ -1063,12 +1107,12 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                     <button type="button" class="stage-btn" onclick="selectCpuBoss('king2', this)" style="border-color: #ff3f3f; color: #ff9f43;">玉将 🔥上級者向け</button>
                 </div>
                 <div class="section-label">ステージを選択してください：</div>
-
-
-                <div class="stage-select">
+                <div class="stage-select" style="flex-wrap: wrap;">
                     <button type="button" class="stage-btn selected" onclick="selectStage(1, this)">終点風平原</button>
                     <button type="button" class="stage-btn" onclick="selectStage(2, this)">戦場風浮島</button>
+                    <button type="button" class="stage-btn" onclick="selectStage(3, this)" style="border-color: #ff9f43; color: #ffdd59;">🌋 灼熱溶岩城</button>
                 </div>
+
                 <div class="section-label">操作タイプ：</div>
                 <div style="display:flex; justify-content:center; margin-bottom:10px;">
                     <div class="opt-toggle-container">
@@ -1107,6 +1151,11 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                     <div id="plat-left" class="sub-plat" style="bottom:185px; left:112px; width:76px; display:none;"></div>
                     <div id="plat-right" class="sub-plat" style="bottom:185px; left:412px; width:76px; display:none;"></div>
                     <div id="plat-top" class="sub-plat" style="bottom:255px; left:262px; width:76px; display:none;"></div>
+                    <div id="plat-magma-center" class="sub-plat" style="bottom:195px; left:250px; width:100px; display:none; background: linear-gradient(180deg, #ff9f43 0%, #eb2f06 60%, #2c1a08 100%); box-shadow: 0 8px 16px rgba(0,0,0,0.8), 0 0 14px rgba(255,63,63,0.7);"></div>
+                    <div id="magma-warning-zone">⚠️ 噴火注意 ⚠️</div>
+                    <div id="magma-pillar"></div>
+
+
 
 
 
@@ -1858,13 +1907,26 @@ function executeGameStart() {
 
     
     const gv = document.getElementById('game-view');
+    if (gv) { gv.classList.remove('stage-2-bg'); gv.classList.remove('stage-3-bg'); }
+    document.getElementById('plat-left').style.display = 'none';
+    document.getElementById('plat-right').style.display = 'none';
+    document.getElementById('plat-top').style.display = 'none';
+    document.getElementById('plat-magma-center').style.display = 'none';
+    document.getElementById('magma-warning-zone').style.display = 'none';
+    document.getElementById('magma-pillar').style.display = 'none';
+    window.magmaCycleTimer = 0;
+    window.magmaSide = 'left';
+
     if (selectedStage === 2) {
         if (gv) gv.classList.add('stage-2-bg');
-        document.getElementById('plat-left').style.display = 'block'; document.getElementById('plat-right').style.display = 'block'; document.getElementById('plat-top').style.display = 'block';
-    } else {
-        if (gv) gv.classList.remove('stage-2-bg');
-        document.getElementById('plat-left').style.display = 'none'; document.getElementById('plat-right').style.display = 'none'; document.getElementById('plat-top').style.display = 'none';
+        document.getElementById('plat-left').style.display = 'block';
+        document.getElementById('plat-right').style.display = 'block';
+        document.getElementById('plat-top').style.display = 'block';
+    } else if (selectedStage === 3) {
+        if (gv) gv.classList.add('stage-3-bg');
+        document.getElementById('plat-magma-center').style.display = 'block';
     }
+
 
 
 
@@ -2136,13 +2198,17 @@ function updateFrame() {
             }
         }
 
-        // 戦場風浮島（ステージ2）のすり抜け床（コンパクト＆広間隔版）
-        if (selectedStage === 2 && !isSteeringDown) {
-            let plats = [
-                { l: 84, r: 182, top: (char === p) ? 137 : 133 }, 
-                { l: 384, r: 482, top: (char === p) ? 137 : 133 }, 
-                { l: 234, r: 332, top: (char === p) ? 87 : 83 }    
-            ];
+        // 戦場風浮島（ステージ2）＆ 灼熱溶岩城（ステージ3）のすり抜け床
+        if ((selectedStage === 2 || selectedStage === 3) && !isSteeringDown) {
+            let plats = (selectedStage === 2)
+                ? [
+                    { l: 84, r: 182, top: (char === p) ? 137 : 133 }, 
+                    { l: 384, r: 482, top: (char === p) ? 137 : 133 }, 
+                    { l: 234, r: 332, top: (char === p) ? 87 : 83 }    
+                  ]
+                : [
+                    { l: 222, r: 344, top: (char === p) ? 127 : 123 }
+                  ];
             for (let pl of plats) {
                 if (char.x >= pl.l && char.x <= pl.r) {
                     if (prevY <= pl.top + 4 && char.y >= pl.top - buffer) {
@@ -2154,11 +2220,11 @@ function updateFrame() {
                 }
             }
         }
-    };
+    }; // ← この閉じ括弧を追加する必要があります
+
+    checkPlatform(p);
 
 
-
-      checkPlatform(p);
     if (gameMode === 'offline') { 
         checkPlatform(e); 
     } else if (gameMode === 'online') {
@@ -2266,6 +2332,55 @@ function updateFrame() {
             if (typeof setupRespawn === 'function') { setupRespawn(e, false); }
             e.y = 10; 
             updateUI(); 
+        }
+    }
+
+    // 🌋 ステージ3（灼熱溶岩城）マグマ噴火ギミック進行（60fpsで約8秒周期）
+    if (selectedStage === 3) {
+        window.magmaCycleTimer = (window.magmaCycleTimer || 0) + 1;
+        const warnEl = document.getElementById('magma-warning-zone');
+        const pillarEl = document.getElementById('magma-pillar');
+        const cycle = window.magmaCycleTimer % 480; // 480フレーム = 8秒周期
+
+        if (cycle === 240) {
+            // 4秒経過：左右どちらに噴火するかランダム決定して警告開始
+            window.magmaSide = (Math.random() < 0.5) ? 'left' : 'right';
+            const leftPos = (window.magmaSide === 'left') ? 105 : 315;
+            if (warnEl) { warnEl.style.left = leftPos + 'px'; warnEl.style.width = '180px'; warnEl.style.display = 'flex'; }
+        } else if (cycle === 360) {
+            // 6秒経過（警告から2秒後）：マグマ大噴火！
+            if (warnEl) warnEl.style.display = 'none';
+            const leftPos = (window.magmaSide === 'left') ? 105 : 315;
+            if (pillarEl) { pillarEl.style.left = leftPos + 'px'; pillarEl.style.width = '180px'; pillarEl.style.display = 'block'; }
+            if (typeof playSE === 'function') playSE('burst');
+            if (typeof triggerCameraShake === 'function') triggerCameraShake();
+        } else if (cycle > 360 && cycle < 450) {
+            // 噴火中（1.5秒間）：マグマ柱に触れたファイターを大吹っ飛びさせる
+            const minX = (window.magmaSide === 'left') ? 95 : 305;
+            const maxX = (window.magmaSide === 'left') ? 275 : 485;
+
+            if (p.invulnTimer <= 0 && !p.onLift && p.x >= minX && p.x <= maxX && p.y > 60) {
+                let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
+                p.dmg += Math.floor(18 * dmgFactor);
+                p.vy = -(8.5 + p.dmg * 0.08) / p.weight;
+                p.vx = (window.magmaSide === 'left' ? 1 : -1) * 3.5;
+                p.knockbackTimer = 22;
+                p.invulnTimer = 35; // 連続ヒット防止
+                spawnHitVisual(p.x + 18, p.y + 21, true);
+                updateUI();
+            }
+            if (gameMode === 'offline' && e.invulnTimer <= 0 && !e.onLift && e.x >= minX && e.x <= maxX && e.y > 60) {
+                e.dmg += 18;
+                e.vy = -(8.5 + e.dmg * 0.08) / e.weight;
+                e.vx = (window.magmaSide === 'left' ? 1 : -1) * 3.5;
+                e.knockbackTimer = 22;
+                e.invulnTimer = 35;
+                spawnHitVisual(e.x + 20, e.y + 23, true);
+                updateUI();
+            }
+        } else if (cycle === 450) {
+            // 噴火終了
+            if (pillarEl) pillarEl.style.display = 'none';
         }
     }
 
