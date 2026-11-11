@@ -3097,7 +3097,7 @@ setTimeout(() => {
 function triggerCpuSpecial() {
     e.spGauge = 0;
     e.cooldown = 45;
-    const boss = window.currentCpuBoss || BOSS_DATA[0];
+     const boss = window.currentCpuBoss || BOSS_DATA.at(0);
     showSpecialCharacterCutIn('king', boss.spTitle, true);
 
     if (boss.type === 'king1') {
@@ -3328,8 +3328,11 @@ function playSE(type) {
         subOsc.start(now); subOsc.stop(now + 0.12);
 
         // 超高周波の金属共鳴（4200Hz〜8450Hzの非整数倍音で甲高いキーン音を作る）
-        const metalFreqs =;
+        const metalFreqs = new Array(4200, 5830, 7110, 8450);
         metalFreqs.forEach((freq, idx) => {
+
+
+
             const mOsc = audioCtx.createOscillator();
             const mGain = audioCtx.createGain();
             mOsc.type = 'sine';
