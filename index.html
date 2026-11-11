@@ -362,94 +362,99 @@
 
 
 
+        /* 🏯 ステージ1（終点風・天空の将棋盤）＆ ステージ2（戦場風・蒼穹の浮遊神殿） */
         #game-view {
-            background: #111322;
+            background: radial-gradient(circle at 50% 25%, #3b2d5e 0%, #1a1635 55%, #090a14 100%);
+            transition: background 0.5s ease;
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        #game-view.stage-2-bg {
+            background: radial-gradient(circle at 50% 20%, #1e4d6b 0%, #102542 55%, #060b19 100%);
+        }
 
         #battle-stage {
             width: 100%;
             height: 380px;
             position: relative;
+            overflow: hidden;
+        }
+        /* 背景の神秘的な太陽/月と遠景のシルエット */
+        #battle-stage::before {
+            content: '';
+            position: absolute;
+            top: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 223, 128, 0.35) 0%, rgba(255, 118, 117, 0.1) 55%, transparent 75%);
+            box-shadow: 0 0 60px rgba(255, 195, 18, 0.25);
+            pointer-events: none;
+            z-index: 1;
+        }
+        #game-view.stage-2-bg #battle-stage::before {
+            background: radial-gradient(circle, rgba(0, 210, 255, 0.35) 0%, rgba(52, 152, 219, 0.12) 55%, transparent 75%);
+            box-shadow: 0 0 60px rgba(0, 210, 255, 0.3);
+        }
+        /* 遠くに浮かぶ雲海のグラデーション */
+        #battle-stage::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -10%;
+            width: 120%;
+            height: 95px;
+            background: linear-gradient(to top, rgba(255, 159, 67, 0.16) 0%, rgba(162, 155, 254, 0.06) 50%, transparent 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        #game-view.stage-2-bg #battle-stage::after {
+            background: linear-gradient(to top, rgba(0, 210, 255, 0.18) 0%, rgba(116, 185, 255, 0.06) 50%, transparent 100%);
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        /* メイン足場（将棋盤の黄金縁取り＋立体的な浮遊台座） */
         #main-platform {
             position: absolute;
-            bottom: 110px;
+            bottom: 102px;
             left: 100px;
             width: 400px;
-            height: 16px;
-            background: #444;
-            border-top: 4px solid #777;
+            height: 24px;
+            background:
+                repeating-linear-gradient(90deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 40px),
+                linear-gradient(180deg, #e5b869 0%, #b88438 45%, #5c3a14 46%, #2c1a08 100%);
+            border-top: 3px solid #fff3b0;
+            border-left: 2px solid #ffd32a;
+            border-right: 2px solid #ffd32a;
+            border-bottom: 3px solid #ff9f43;
+            border-radius: 4px 4px 14px 14px;
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.8), 0 0 18px rgba(255, 211, 42, 0.35);
             box-sizing: border-box;
             z-index: 5;
         }
+        /* 台座の下に光るエネルギーコア */
+        #main-platform::after {
+            content: '';
+            position: absolute;
+            bottom: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 12px;
+            background: radial-gradient(ellipse at center, rgba(255, 211, 42, 0.7) 0%, transparent 75%);
+            pointer-events: none;
+        }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        /* 戦場風浮島（すり抜け床：光る翡翠〜蒼穹の浮遊プレート） */
         .sub-plat {
             position: absolute;
-            height: 8px;
-            background: #333;
-            border-top: 2px solid #555;
+            height: 10px;
+            background: linear-gradient(180deg, #74b9ff 0%, #0984e3 60%, #1e272e 100%);
+            border-top: 2px solid #ffffff;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0, 210, 255, 0.5);
             box-sizing: border-box;
             z-index: 5;
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1778,11 +1783,16 @@ function executeGameStart() {
     if (eTag) eTag.textContent = (gameMode === 'offline') ? 'CPU [LV.9]' : '対戦相手';
 
     
+    const gv = document.getElementById('game-view');
     if (selectedStage === 2) {
+        if (gv) gv.classList.add('stage-2-bg');
         document.getElementById('plat-left').style.display = 'block'; document.getElementById('plat-right').style.display = 'block'; document.getElementById('plat-top').style.display = 'block';
     } else {
+        if (gv) gv.classList.remove('stage-2-bg');
         document.getElementById('plat-left').style.display = 'none'; document.getElementById('plat-right').style.display = 'none'; document.getElementById('plat-top').style.display = 'none';
     }
+
+
 
 
 
