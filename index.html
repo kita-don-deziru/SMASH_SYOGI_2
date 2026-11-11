@@ -581,35 +581,40 @@
 
 
 
+        .fighter-nametag {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            padding: 1px 5px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 24;
+        }
+        #enemy-nametag {
+            color: #ff9f43;
+            border-color: rgba(255, 159, 67, 0.6);
+        }
         .status-bubble {
             position: absolute;
-            top: -25px;
+            top: -42px;
             left: 50%;
             transform: translateX(-50%);
             font-size: 12px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.85);
             color: #fff;
             padding: 2px 6px;
             border-radius: 10px;
             white-space: nowrap;
             display: none;
-            z-index: 25;
+            z-index: 26;
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         .silver-aura {
             position: absolute;
@@ -971,6 +976,7 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                     <div id="plat-right" class="sub-plat" style="bottom:185px; left:360px; width:100px; display:none;"></div>
                     <div id="plat-top" class="sub-plat" style="bottom:250px; left:250px; width:100px; display:none;"></div>
                     <div id="player-fighter" class="piece">
+                        <div id="player-nametag" class="fighter-nametag">あなた #00001</div>
                         <span id="p-text">歩</span>
                         <div id="p-status-bubble" class="status-bubble"></div>
                         <div id="p-aura" class="silver-aura"></div>
@@ -978,13 +984,13 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                         <div id="player-weapon" class="weapon" style="right:-22px; transform-origin: left center;"></div>
                     </div>
                     <div id="enemy-fighter" class="piece">
+                        <div id="enemy-nametag" class="fighter-nametag">敵</div>
                         <span id="e-text">王</span>
                         <div id="e-status-bubble" class="status-bubble">Zzz...</div>
                         <div id="e-aura" class="silver-aura"></div>
                         <div id="e-shield" class="gold-shield"></div>
                         <div id="enemy-weapon" class="weapon" style="left:-22px; transform-origin: right center;"></div>
                     </div>
-
 
                     <div id="player-lift" class="respawn-lift"></div>
                     <div id="enemy-lift" class="respawn-lift"></div>
@@ -1860,28 +1866,20 @@ function pressStartButton() {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function executeGameStart() {
     window.scrSelect.style.display = 'none'; window.scrGame.style.display = 'block';
     const c = CHAR_DATA[selectedCharKey]; let startLeft = (gameMode === 'offline' || myRole === 'host');
-    document.getElementById('ui-p-name').textContent = "あなた (" + c.name + ")"; document.getElementById('p-text').textContent = c.name;
+
+    const myName = window.myPlayerName || '名無しの棋士';
+    const myIdStr = (typeof formatSeqId === 'function') ? formatSeqId(assignedSeqNum) : '00001';
+    const pTag = document.getElementById('player-nametag');
+    if (pTag) pTag.textContent = myName + ' #' + myIdStr;
+    document.getElementById('ui-p-name').textContent = myName + ' (' + c.name + ')';
+    document.getElementById('p-text').textContent = c.name;
+
+    const eTag = document.getElementById('enemy-nametag');
+    if (eTag) eTag.textContent = (gameMode === 'offline') ? 'CPU [LV.9]' : '対戦相手';
+
     
     if (selectedStage === 2) {
         document.getElementById('plat-left').style.display = 'block'; document.getElementById('plat-right').style.display = 'block'; document.getElementById('plat-top').style.display = 'block';
@@ -2113,21 +2111,30 @@ function updateFrame() {
 
 
 
-    // 5. ステージの床判定
+    // 5. ステージの床判定（高速落下・吹っ飛び時のトンネル効果完全防止版）
     const checkPlatform = (char) => {
         let isSteeringDown = (char === p && keys.shift);
         char.isGrounded = false;
         if (char.vy < 0) return;
 
-        let buffer = Math.max(6, char.vy + 2);
+        // 異常な超高速落下で判定を飛び越えないよう最大落下速度を制限
+        if (char.vy > 18) char.vy = 18;
 
+        let prevY = char.y - char.vy;
+        let buffer = Math.max(8, char.vy + 4);
+
+        // メインの床（どんなに上から猛スピードで叩きつけられても絶対に貫通しない）
         if (char.x >= 75 && char.x <= 485) { 
             let mainGroundY = (char === p) ? 212 : 208;
-            if ((char.y - char.vy <= mainGroundY) && char.y >= mainGroundY - buffer) {
-                char.y = mainGroundY; char.vy = 0; char.isGrounded = true; return;
+            if (prevY <= mainGroundY + 4 && char.y >= mainGroundY - buffer) {
+                char.y = mainGroundY;
+                char.vy = 0;
+                char.isGrounded = true;
+                return;
             }
         }
 
+        // 戦場風浮島（ステージ2）のすり抜け床
         if (selectedStage === 2 && !isSteeringDown) {
             let plats = [
                 { l: 110, r: 230, top: (char === p) ? 137 : 133 }, 
@@ -2136,13 +2143,18 @@ function updateFrame() {
             ];
             for (let pl of plats) {
                 if (char.x >= pl.l && char.x <= pl.r) {
-                    if ((char.y - char.vy <= pl.top) && char.y >= pl.top - buffer) {
-                        char.y = pl.top; char.vy = 0; char.isGrounded = true; return;
+                    if (prevY <= pl.top + 4 && char.y >= pl.top - buffer) {
+                        char.y = pl.top;
+                        char.vy = 0;
+                        char.isGrounded = true;
+                        return;
                     }
                 }
             }
         }
     };
+
+
 
       checkPlatform(p);
     if (gameMode === 'offline') { 
@@ -2548,89 +2560,221 @@ let dataConnection = null;
 
 
 // 💡 ページを開いた瞬間に、自分だけのランダムな対戦IDを自動発行して待機します
-function initPeerConnection() {
+let assignedSeqNum = 1;
+let hasSavedSeqId = false;
+
+try {
+    const savedSeq = localStorage.getItem('smash_shogi_permanent_seq_id');
+    if (savedSeq && !isNaN(parseInt(savedSeq, 10))) {
+        assignedSeqNum = parseInt(savedSeq, 10);
+        hasSavedSeqId = true;
+    }
+} catch (err) {}
+
+function formatSeqId(num) {
+    return String(num).padStart(5, '0');
+}
+
+function initPeerConnection(seqNum) {
+    if (typeof seqNum === 'number') assignedSeqNum = seqNum;
     const statusTxt = document.getElementById('room-status-text');
     const myIpUi = document.getElementById('ui-my-local-ip');
+    const formattedId = formatSeqId(assignedSeqNum);
 
+    if (myIpUi) myIpUi.textContent = formattedId + ' を認証中...';
 
+    const fullPeerId = 'shogi-seq-' + formattedId;
+    if (peer) { try { peer.destroy(); } catch(e) {} }
 
-
-    // PeerJSの無料サーバーを使って、お互いのブラウザの位置だけを仲介させます
-       peer = new Peer({
+    peer = new Peer(fullPeerId, {
         host: '0.peer' + 'js.com',
         port: 443,
         secure: true,
         debug: 1
     });
 
+    peer.on('open', () => {
+        if (!hasSavedSeqId) {
+            try {
+                localStorage.setItem('smash_shogi_permanent_seq_id', String(assignedSeqNum));
+                hasSavedSeqId = true;
+            } catch (err) {}
+        }
 
-
-
-
-    // 自分専用のIDが作られたときの処理
-    peer.on('open', (id) => {
-        if (myIpUi) myIpUi.textContent = id;
-        if (statusTxt) statusTxt.innerHTML = '🟢 <span style="color:#2ecc71; font-weight:bold;">ID生成完了！</span> あなたの対戦IDを友達に教えるか、相手のIDをいれて突撃してね！';
+        const veteranBadge = (assignedSeqNum <= 10) ? ' 👑【古参勢】' : '';
+        if (myIpUi) myIpUi.textContent = formattedId + veteranBadge;
+        if (statusTxt) statusTxt.innerHTML = '🟢 <span style="color:#2ecc71; font-weight:bold;">固定ID認証完了（' + formattedId + '）！</span> 何度抜け直してもあなたの専用IDです！';
     });
 
-
-
-
-    // 友達からの接続（突撃）を待ち受ける処理（あなたがホストになります）
+    // 友達からの挑戦を受けたとき（すぐには開始せず、挑戦状を受け取る）
     peer.on('connection', (conn) => {
+        if (isMatched) {
+            // すでに対戦中なら自動でお断りする
+            conn.on('open', () => {
+                conn.send({ type: 'match_rejected', reason: '対戦中です' });
+                setTimeout(() => { try { conn.close(); } catch(e) {} }, 200);
+            });
+            return;
+        }
         myRole = 'host';
-        gameMode = 'online';
-        if (statusTxt) statusTxt.textContent = "対戦相手の接続をキャッチしました！同期中...";
         setupConnection(conn);
     });
 
 
 
-
     peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+            if (hasSavedSeqId && assignedSeqNum === parseInt(localStorage.getItem('smash_shogi_permanent_seq_id'), 10)) {
+                assignedSeqNum = 1;
+            } else {
+                assignedSeqNum++;
+            }
+            setTimeout(() => initPeerConnection(assignedSeqNum), 100);
+            return;
+        }
         console.error(err);
-        if (statusTxt) statusTxt.innerHTML = '🔴 <span style="color:#eb2f06; font-weight:bold;">通信初期化エラー。</span> ネット接続を確認するかリロードしてね。';
+        if (statusTxt) statusTxt.innerHTML = '🔴 <span style="color:#eb2f06; font-weight:bold;">通信エラー。</span> 相手のIDが違うかネット接続を確認してね。';
     });
 }
 
 
 
 
-// 接続が確立された後のデータ送受信ルールを設定する関数
+
+
+// 1. 挑戦者通知ポップアップを表示する関数
+function showChallengerDialog(conn, challengerInfo) {
+    const oldModal = document.getElementById('challenger-modal');
+    if (oldModal) oldModal.remove();
+
+    if (typeof playSE === 'function') playSE('special_cutin');
+
+    const cName = challengerInfo.playerName || '名無しの棋士';
+    const cId = challengerInfo.seqId ? ('#' + challengerInfo.seqId) : '';
+    const cChar = (CHAR_DATA[challengerInfo.charKey]) ? CHAR_DATA[challengerInfo.charKey].name : '歩';
+
+    const modal = document.createElement('div');
+    modal.id = 'challenger-modal';
+    modal.style.cssText =
+        'position:fixed; top:0; left:0; width:100vw; height:100vh; ' +
+        'background:rgba(0,0,0,0.82); z-index:99999; display:flex; ' +
+        'justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
+
+    modal.innerHTML =
+        '<div style="background:linear-gradient(135deg, #1e272e, #2f3640); border:3px solid #ffd32a; border-radius:12px; padding:20px; max-width:360px; width:100%; text-align:center; box-shadow:0 0 30px rgba(255,211,42,0.6);">' +
+            '<div style="font-size:22px; font-weight:bold; color:#ff3f3f; text-shadow:0 0 8px #000; margin-bottom:8px;">⚔️ 挑戦者現る！！ ⚔️</div>' +
+            '<div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #555;">' +
+                '<div style="font-size:15px; font-weight:bold; color:#ffd32a; margin-bottom:4px;">' + cName + ' ' + cId + '</div>' +
+                '<div style="font-size:13px; color:#00d2ff;">使用駒：【 ' + cChar + ' 】 / レート: ' + (challengerInfo.rating || 1500) + '</div>' +
+            '</div>' +
+            '<div style="display:flex; justify-content:center; gap:12px;">' +
+                '<button id="btn-accept-challenge" style="flex:1; padding:10px; font-size:14px; font-weight:bold; background:#2ecc71; color:#000; border:none; border-radius:6px; cursor:pointer;">受けて立つ！</button>' +
+                '<button id="btn-reject-challenge" style="flex:1; padding:10px; font-size:14px; font-weight:bold; background:#eb2f06; color:#fff; border:none; border-radius:6px; cursor:pointer;">拒否する</button>' +
+            '</div>' +
+        '</div>';
+
+    document.body.appendChild(modal);
+
+    document.getElementById('btn-accept-challenge').onclick = () => {
+        modal.remove();
+        myRole = 'host';
+        gameMode = 'online';
+        isMatched = true;
+
+        conn.send({
+            type: 'match_accepted',
+            charKey: selectedCharKey,
+            stage: selectedStage,
+            rating: playerRating,
+            playerName: window.myPlayerName || '名無しの棋士',
+            seqId: formatSeqId(assignedSeqNum)
+        });
+
+        executeGameStart();
+        applyEnemyInitInfo(challengerInfo);
+        triggerCutIn('P2P直結乱闘 開始！！');
+    };
+
+    document.getElementById('btn-reject-challenge').onclick = () => {
+        modal.remove();
+        const statusTxt = document.getElementById('room-status-text');
+        if (statusTxt) statusTxt.textContent = cName + ' からの挑戦を拒否しました。';
+        try {
+            conn.send({ type: 'match_rejected' });
+            setTimeout(() => { try { conn.close(); } catch(e) {} }, 200);
+        } catch (e) {}
+    };
+}
+
+// 2. 相手の初期情報（名前・ID・使用駒・ステージ）を反映する関数
+function applyEnemyInitInfo(data) {
+    if (data.rating) enemyRatingValue = data.rating;
+    if (data.charKey) window.enemyCharKey = data.charKey;
+
+    const enemyChar = CHAR_DATA[data.charKey];
+    const eNameStr = data.playerName || '対戦相手';
+    const eIdStr = data.seqId ? (' #' + data.seqId) : '';
+    const eTag = document.getElementById('enemy-nametag');
+    if (eTag) eTag.textContent = eNameStr + eIdStr;
+
+    if (enemyChar) {
+        const eNameEl = document.getElementById('ui-e-name');
+        const eTextEl = document.getElementById('e-text');
+        if (eNameEl) eNameEl.textContent = eNameStr + ' (' + enemyChar.name + ')';
+        if (eTextEl) eTextEl.textContent = enemyChar.name;
+    }
+
+    if (myRole === 'guest' && data.stage) {
+        selectedStage = data.stage;
+        const isStage2 = (selectedStage === 2);
+        document.getElementById('plat-left').style.display = isStage2 ? 'block' : 'none';
+        document.getElementById('plat-right').style.display = isStage2 ? 'block' : 'none';
+        document.getElementById('plat-top').style.display = isStage2 ? 'block' : 'none';
+    }
+}
+// 3. 接続確立後の送受信ルール（バースト演出＆残機同期対応）
 function setupConnection(conn) {
     dataConnection = conn;
 
     dataConnection.on('open', () => {
-        isMatched = true;
-        dataConnection.send({
-            type: 'init',
-            charKey: selectedCharKey,
-            stage: selectedStage,
-            rating: playerRating
-        });
-        executeGameStart();
-        triggerCutIn('P2P直結乱闘 開始！！');
+        if (myRole === 'guest') {
+            const statusTxt = document.getElementById('room-status-text');
+            if (statusTxt) statusTxt.textContent = '⏳ 相手に挑戦状を送りました！承諾を待っています...';
+
+            dataConnection.send({
+                type: 'challenge_request',
+                charKey: selectedCharKey,
+                rating: playerRating,
+                playerName: window.myPlayerName || '名無しの棋士',
+                seqId: formatSeqId(assignedSeqNum)
+            });
+        }
     });
 
     dataConnection.on('data', (data) => {
-        if (data.type === 'init') {
-            if (data.rating) enemyRatingValue = data.rating;
-            const enemyChar = CHAR_DATA[data.charKey];
-            if (enemyChar) {
-                const eNameEl = document.getElementById('ui-e-name');
-                const eTextEl = document.getElementById('e-text');
-                if (eNameEl) eNameEl.textContent = '対戦相手 (' + enemyChar.name + ')';
-                if (eTextEl) eTextEl.textContent = enemyChar.name;
-            }
-            if (myRole === 'guest' && data.stage) {
-                selectedStage = data.stage;
-                const isStage2 = (selectedStage === 2);
-                document.getElementById('plat-left').style.display = isStage2 ? 'block' : 'none';
-                document.getElementById('plat-right').style.display = isStage2 ? 'block' : 'none';
-                document.getElementById('plat-top').style.display = isStage2 ? 'block' : 'none';
-            }
+        if (data.type === 'challenge_request' && myRole === 'host') {
+            showChallengerDialog(dataConnection, data);
             return;
-        } else if (data.type === 'gameover') {
+        }
+        if (data.type === 'match_accepted' && myRole === 'guest') {
+            isMatched = true;
+            gameMode = 'online';
+            executeGameStart();
+            applyEnemyInitInfo(data);
+            triggerCutIn('P2P直結乱闘 開始！！');
+            return;
+        }
+        if (data.type === 'match_rejected') {
+            isMatched = false;
+            const statusTxt = document.getElementById('room-status-text');
+            const msg = data.reason ? ('相手は現在' + data.reason + '。') : '相手に対戦を拒否されました。';
+            if (statusTxt) statusTxt.textContent = '❌ ' + msg;
+            alert(msg);
+            try { dataConnection.close(); } catch(e) {}
+            dataConnection = null;
+            return;
+        }
+        if (data.type === 'gameover') {
             endMatch(true);
             return;
         }
@@ -2641,20 +2785,22 @@ function setupConnection(conn) {
             let uiDmg = document.getElementById('ui-e-dmg');
             let uiStocks = document.getElementById('ui-e-stocks');
 
+            if (typeof data.stocks === 'number' && typeof e.stocks === 'number' && data.stocks < e.stocks) {
+                let eDir = e.x < 200 ? -1 : 1;
+                spawnKoBeam(Math.max(30, Math.min(570, e.x)), eDir);
+                spawnHitVisual(Math.max(10, Math.min(590, e.x)), Math.max(10, Math.min(370, e.y)), true);
+            }
+            e.stocks = data.stocks;
+            e.dmg = data.dmg;
+
             if (enemyEl) {
-                e.x = data.x;
-                e.y = data.y;
-                e.vx = data.vx;
-                e.vy = data.vy;
-                e.attacking = data.attacking;
-                e.invulnTimer = data.invulnTimer;
-                e.onLift = data.onLift;
+                e.x = data.x; e.y = data.y; e.vx = data.vx; e.vy = data.vy;
+                e.attacking = data.attacking; e.invulnTimer = data.invulnTimer; e.onLift = data.onLift;
 
                 enemyEl.style.left = e.x + 'px';
                 enemyEl.style.top = e.y + 'px';
                 if (Math.abs(e.vx) > 0.1) { e.dir = e.vx > 0 ? 1 : -1; }
 
-                // 1. 武器の振り＆竜王（飛車SP）の巨大化同期
                 const eWp = document.getElementById('enemy-weapon');
                 if (eWp) {
                     eWp.style.transform = (e.attacking > 0) ? (e.dir === 1 ? 'rotate(75deg)' : 'rotate(-75deg)') : 'rotate(0deg)';
@@ -2669,7 +2815,6 @@ function setupConnection(conn) {
                     }
                 }
 
-                // 2. 歩の「と金」成金進化同期
                 if (data.isPromoted) {
                     const eText = document.getElementById('e-text');
                     if (eText) eText.textContent = 'と';
@@ -2678,7 +2823,6 @@ function setupConnection(conn) {
                     enemyEl.style.boxShadow = 'inset 0 0 0 2px #d32f2f';
                 }
 
-                // 3. 銀の修羅オーラ・金の鉄壁結界の同期
                 const eAura = document.getElementById('e-aura');
                 if (eAura) eAura.style.display = data.silverMode ? 'block' : 'none';
                 const eShield = document.getElementById('e-shield');
@@ -2688,59 +2832,57 @@ function setupConnection(conn) {
             if (uiDmg) uiDmg.textContent = data.dmg + '%';
             if (uiStocks) {
                 let st = '';
-                for(let i=0; i<data.stocks; i++) st += '●';
+                for (let i = 0; i < data.stocks; i++) st += '●';
                 uiStocks.textContent = st;
             }
-         } else if (data.type === 'hit') {
+        } else if (data.type === 'hit') {
             let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
             p.dmg += Math.floor(data.dmgDeal * dmgFactor);
-            p.vx = data.vx;
-            p.vy = data.vy;
+            p.vx = data.vx; p.vy = data.vy;
             p.knockbackTimer = data.knockbackTimer;
             p.dir = -e.dir;
             spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80);
             updateUI();
         } else if (data.type === 'action') {
-
-
             if (data.actionType === 'projectile') {
                 spawnEnemyProjectile(data.payload.pType, data.payload.x, data.payload.y, data.payload.dir, data.payload.vx, data.payload.vy);
             } else if (data.actionType === 'cutin') {
                 triggerCutIn('相手：' + data.payload.text);
-                if (data.payload.effect === 'laser') {
+                if (data.payload.effect === 'laser_boom') {
+                    const tx = data.payload.tx || (p.x + 18);
+                    const ty = data.payload.ty || 245;
                     const laser = document.getElementById('keima-laser');
                     if (laser) {
-                        laser.style.left = (p.x - 2) + 'px'; laser.style.display = 'block'; laser.style.opacity = '1';
-                        setTimeout(() => { laser.style.opacity = '0'; setTimeout(() => { laser.style.display = 'none'; }, 100); }, 300);
+                        laser.style.left = (tx - 22) + 'px';
+                        laser.style.height = ty + 'px';
+                        laser.style.display = 'block';
+                        laser.style.opacity = '1';
+                        setTimeout(() => {
+                            laser.style.opacity = '0';
+                            setTimeout(() => { laser.style.display = 'none'; laser.style.height = '380px'; }, 120);
+                        }, 320);
                     }
+                    setTimeout(() => { spawnKeimaExplosion(tx, ty); }, 180);
                 } else if (data.payload.effect === 'wave') {
                     let waves = [document.getElementById('s-wave-1'), document.getElementById('s-wave-2'), document.getElementById('s-wave-3')];
                     waves.forEach((w, idx) => {
                         setTimeout(() => {
                             if (!w) return;
                             w.style.transition = 'none';
-                            w.style.left = (e.x + 18) + 'px';
-                            w.style.top = (e.y + 21) + 'px';
-                            w.style.width = '80px';
-                            w.style.height = '80px';
+                            w.style.left = (e.x + 18) + 'px'; w.style.top = (e.y + 21) + 'px';
+                            w.style.width = '80px'; w.style.height = '80px';
                             w.style.transform = 'translate(-50%, -50%) scale(0)';
-                            w.style.opacity = '1';
-                            w.style.display = 'block';
+                            w.style.opacity = '1'; w.style.display = 'block';
                             requestAnimationFrame(() => {
                                 requestAnimationFrame(() => {
                                     w.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
                                     w.style.transform = 'translate(-50%, -50%) scale(2.2)';
-                                    setTimeout(() => {
-                                        w.style.opacity = '0';
-                                        setTimeout(() => { w.style.display = 'none'; }, 250);
-                                    }, 150);
+                                    setTimeout(() => { w.style.opacity = '0'; setTimeout(() => { w.style.display = 'none'; }, 250); }, 150);
                                 });
                             });
                         }, idx * 180);
                     });
                 }
-
-
             } else if (data.actionType === 'status') {
                 myStatusTimer = data.payload.duration;
                 p.vx = 0; p.vy = 0;
@@ -2760,6 +2902,8 @@ function setupConnection(conn) {
     });
 
     dataConnection.on('close', () => {
+        const modal = document.getElementById('challenger-modal');
+        if (modal) modal.remove();
         if (!isMatched) return;
         isMatched = false;
         alert("対戦相手との接続が切れました。");
@@ -2828,70 +2972,69 @@ function injectOnlineRoomUI() {
     if (!selectScreen) return;
     if (document.getElementById('custom-room-section')) return;
 
-
-
+    let savedPlayerName = '名無しの棋士';
+    try {
+        const n = localStorage.getItem('smash_shogi_player_name');
+        if (n && n.trim()) savedPlayerName = n.trim();
+    } catch (e) {}
+    window.myPlayerName = savedPlayerName;
 
     const roomSection = document.createElement('div');
     roomSection.id = 'custom-room-section';
     roomSection.style.cssText = 'background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid #4b6584; margin:10px 0; text-align:center; font-size:12px;';
 
-
-
-
     roomSection.innerHTML = 
         '<div class="section-label" style="color:#ffd32a; font-weight:bold; margin-bottom:6px;">🏆 完全サーバーレス・P2P直結システム</div>' +
-        '<div style="margin-bottom:8px; color:#2ecc71;">現在のあなたのレート: <span id="ui-current-rating" style="font-weight:bold; font-size:14px;">' + playerRating + '</span></div>' +
-        
-        // 🔗 あなたの接続ID（これを友達に教えます）
+        '<div style="margin-bottom:6px; color:#2ecc71;">現在のあなたのレート: <span id="ui-current-rating" style="font-weight:bold; font-size:14px;">' + playerRating + '</span></div>' +
+        '<div style="margin-bottom:8px;">' +
+            '<span style="font-size:11px; color:#fff;">プレイヤー名: </span>' +
+            '<input type="text" id="input-player-name" maxlength="10" value="' + savedPlayerName + '" placeholder="名前を入力" style="width:130px; padding:4px 6px; border-radius:4px; border:1px solid #ffd32a; text-align:center; background:#222; color:#ffd32a; font-weight:bold; font-size:12px;">' +
+        '</div>' +
         '<div style="background:rgba(0,210,255,0.15); padding:6px; border-radius:6px; margin-bottom:8px; border:1px solid #00d2ff; font-size:11px;">' +
             '🔑 あなたの対戦ID: <span id="ui-my-local-ip" style="font-weight:bold; color:#00d2ff; user-select:all;">ID生成中...</span>' +
         '</div>' +
-
-
-
-
         '<div style="background:rgba(255,255,255,0.1); padding:8px; border-radius:6px; margin-bottom:10px;">' +
             '<div class="section-label" style="margin:0 0 4px 0; color:#fff;">相手の対戦IDを入力して乱闘：</div>' +
-            '<input type="text" id="input-server-ip" placeholder="相手のIDをここにペースト" style="width:200px; padding:5px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold; font-size:12px;">' +
-            '<button type="button" class="stage-btn" id="btn-connect-ip" style="background:#3867d6; margin-left:5px; padding:4px 12px; font-size:11px;">相手に突撃（接続）</button>' +
+            '<input type="text" id="input-server-ip" inputmode="numeric" maxlength="5" placeholder="例: 00001" style="width:120px; padding:5px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold; font-size:15px; letter-spacing:2px;">' +
+            '<button type="button" class="stage-btn" id="btn-connect-ip" style="background:#3867d6; margin-left:5px; padding:5px 14px; font-size:12px;">相手に突撃（接続）</button>' +
         '</div>' +
-        '<div id="room-status-text" style="color:#ffd32a; font-size:11px; margin-top:4px;">【遊び方】起動すると自分専用のIDが自動で作られます。ホスト役の人のIDをコピーして、もう一人が入力欄に貼り付けて「相手に突撃」を押すだけで即対戦スタート！</div>';
-
-
-
+        '<div id="room-status-text" style="color:#ffd32a; font-size:11px; margin-top:4px;">【遊び方】接続した順に「00001」「00002」と永久IDが自動発行されます。相手のIDを入れて「相手に突撃」を押すだけ！</div>';
 
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) selectScreen.insertBefore(roomSection, startBtn);
 
+    initPeerConnection(1);
 
+    const nameInput = document.getElementById('input-player-name');
+    if (nameInput) {
+        nameInput.addEventListener('input', function() {
+            window.myPlayerName = this.value.trim() || '名無しの棋士';
+            try { localStorage.setItem('smash_shogi_player_name', window.myPlayerName); } catch (e) {}
+        });
+    }
 
-
-    // 自分専用の通信IDを発行
-    initPeerConnection();
-
-
-
-
-    // 「相手に突撃」ボタンを押したときの処理
     document.getElementById('btn-connect-ip').addEventListener('click', function() {
-        const targetPeerId = document.getElementById('input-server-ip').value.trim();
-        if (!targetPeerId) { alert("相手の対戦IDを入力してください！"); return; }
+        const rawDigits = document.getElementById('input-server-ip').value.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, '');
+        if (!rawDigits) { alert("相手の対戦ID（数字）を入力してください！"); return; }
+
+        const targetFormattedId = formatSeqId(parseInt(rawDigits, 10));
+        const myFormattedId = formatSeqId(assignedSeqNum);
+
+        if (targetFormattedId === myFormattedId) { alert("自分のIDには接続できません！相手のIDを入力してください。"); return; }
         
         const statusTxt = document.getElementById('room-status-text');
-        if (statusTxt) statusTxt.textContent = "相手（" + targetPeerId + "）の端末に直接電波を繋いでいます...";
+        if (statusTxt) statusTxt.textContent = "相手（ID: " + targetFormattedId + "）の端末に直接電波を繋いでいます...";
         
         myRole = 'guest';
         gameMode = 'online';
         
-        let conn = peer.connect(targetPeerId);
+        let conn = peer.connect('shogi-seq-' + targetFormattedId);
         setupConnection(conn);
     });
 
-
-
-
     displayRanking(null, 0);
 }
+
 // ==============================================================================
 // 📱 スマホ・タブレット用 タッチ操作初期化システム
 // ==============================================================================
@@ -2984,10 +3127,9 @@ setTimeout(() => {
     const notice = document.getElementById('notice-screen'); 
     if (notice) notice.style.display = 'flex';
     
-    window.addEventListener('keydown', (ev) => { if (typeof handleKeyDown === 'function') handleKeyDown(ev); });
-    window.addEventListener('keyup', (ev) => { if (typeof handleKeyUp === 'function') handleKeyUp(ev); });
-    
     const registerTouchBtn = (id, targetKey) => {
+
+
         const btn = document.getElementById(id);
         if (!btn) return;
         const startAction = (e) => { 
@@ -3430,35 +3572,6 @@ triggerCutIn = function(txt) {
     _origTriggerCutIn.apply(this, arguments);
 };
 
-// 相手の選択キャラキー記憶 ＋ 桂SPのレーザー＆大爆発受信処理
-const _origSetupConn = setupConnection;
-setupConnection = function(conn) {
-    _origSetupConn.apply(this, arguments);
-    conn.on('data', (data) => {
-        if (!data) return;
-        if (data.type === 'init' && data.charKey) {
-            window.enemyCharKey = data.charKey;
-        }
-        if (data.type === 'action' && data.actionType === 'cutin' && data.payload && data.payload.effect === 'laser_boom') {
-            const tx = data.payload.tx || (p.x + 18);
-            const ty = data.payload.ty || 245;
-            const laser = document.getElementById('keima-laser');
-            if (laser) {
-                laser.style.left = (tx - 22) + 'px';
-                laser.style.height = ty + 'px';
-                laser.style.display = 'block';
-                laser.style.opacity = '1';
-                setTimeout(() => {
-                    laser.style.opacity = '0';
-                    setTimeout(() => { laser.style.display = 'none'; laser.style.height = '380px'; }, 120);
-                }, 320);
-            }
-            setTimeout(() => {
-                spawnKeimaExplosion(tx, ty);
-            }, 180);
-        }
-    });
-};
 
 const _origSpawnHit = spawnHitVisual;
 spawnHitVisual = function(x, y, isSuper) {
