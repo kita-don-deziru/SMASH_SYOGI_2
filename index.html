@@ -835,6 +835,17 @@
         body.is-recording #record-control-panel:hover {
             opacity: 1;
         }
+
+        /* ✨ ボタン押下時のフィードバック（少し縮小＋白く発光） */
+        button, .char-btn, .stage-btn, .back-btn, .notice-btn, .btn-toggle, .dpad-btn, .action-btn {
+            transition: transform 0.06s ease-out, box-shadow 0.06s ease-out, filter 0.06s ease-out;
+        }
+        button:active, .char-btn:active, .stage-btn:active, .back-btn:active, .notice-btn:active, .btn-toggle:active,
+        .dpad-btn.key-pressed, .action-btn.key-pressed {
+            transform: scale(0.88) !important;
+            filter: brightness(1.45);
+            box-shadow: 0 0 16px #ffffff, inset 0 0 10px rgba(255, 255, 255, 0.8) !important;
+        }
     </style>
 
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
@@ -1431,41 +1442,43 @@ function resetAllKeyStates() { keys.arrowleft = false; keys.arrowright = false; 
 
 
 
+function setPadVisualState(keyName, isPressed) {
+    const map = {
+        'arrowleft': ['btn-left'],
+        'arrowright': ['btn-right'],
+        'arrowup': ['btn-up', 'btn-jump-action'],
+        ' ': ['btn-up', 'btn-jump-action'],
+        'arrowdown': ['btn-down'],
+        'shift': ['btn-down'],
+        'z': ['btn-atk'],
+        'x': ['btn-sp']
+    };
+    const ids = map[keyName];
+    if (!ids) return;
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isPressed) el.classList.add('key-pressed');
+            else el.classList.remove('key-pressed');
+        }
+    });
+}
+
 function handleKeyDown(ev) {
     const k = ev.key.toLowerCase();
+    setPadVisualState(k, true);
     if (k === 'arrowleft') keys.arrowleft = true; if (k === 'arrowright') keys.arrowright = true; if (k === 'arrowup' || k === ' ') keys[' '] = true;
     if (k === 'arrowdown' || k === 'shift') { keys.shift = true; if (p) p.passThroughTimer = 15; }
     if (k === 'z') triggerPlayerAttack(); if (k === 'x') triggerPlayerSpecial();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function handleKeyUp(ev) {
     const k = ev.key.toLowerCase();
+    setPadVisualState(k, false);
     if (k === 'arrowleft') keys.arrowleft = false; if (k === 'arrowright') keys.arrowright = false;
     if (ev.key === ' ') { keys[' '] = false; spaceReleased = true; } if (k === 'z') { keys.z = false; zReleased = true; } if (k === 'x') { keys.x = false; xReleased = true; }
     if (k === 'arrowdown' || k === 'shift') keys.shift = false;
 }
-
-
-
-
-
-
-
 
 
 
@@ -3113,12 +3126,11 @@ setTimeout(() => {
     if (notice) notice.style.display = 'flex';
     
     const registerTouchBtn = (id, targetKey) => {
-
-
         const btn = document.getElementById(id);
         if (!btn) return;
         const startAction = (e) => { 
             e.preventDefault(); 
+            btn.classList.add('key-pressed');
             if (targetKey === ' ') {
                 spaceReleased = true;
                 keys[' '] = true;
@@ -3130,12 +3142,16 @@ setTimeout(() => {
         };
         const endAction = (e) => { 
             e.preventDefault(); 
+            btn.classList.remove('key-pressed');
             keys[targetKey] = false; 
             if (targetKey === ' ') spaceReleased = true; 
             if (targetKey === 'z') zReleased = true; 
             if (targetKey === 'x') xReleased = true; 
         };
 
+        btn.addEventListener('touchstart', startAction, { passive: false }); btn.addEventListener('touchend', endAction, { passive: false });
+        btn.addEventListener('mousedown', startAction); btn.addEventListener('mouseup', endAction); btn.addEventListener('mouseleave', endAction);
+    };
 
 
         btn.addEventListener('touchstart', startAction, { passive: false }); btn.addEventListener('touchend', endAction, { passive: false });
