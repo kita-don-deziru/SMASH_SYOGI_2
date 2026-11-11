@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>大乱闘スマッシュ将棋 SPECIAL STOCKS - LV9 CPU EDITION</title>
-    <style>
+    
+
+<style>
         body {
             margin: 0; padding: 0; background: #111; color: #fff; font-family: sans-serif;
             display: flex; justify-content: center; align-items: center; height: 100vh;
@@ -694,9 +696,9 @@
         .analog-stick-knob { position: absolute; width: 48px; height: 48px; background: #34495e; border: 2px solid #fff; border-radius: 50%; top: 31px; left: 31px; }
         .action-container { position: absolute; bottom: 8%; right: 3%; width: 165px; height: 160px; pointer-events: auto; }
         .action-btn { position: absolute; border-radius: 50%; color: #fff; font-weight: bold; display: flex; justify-content: center; align-items: center; border: 2px solid rgba(255,255,255,0.4); }
-        #btn-atk { bottom: 10px; right: 10px; width: 70px; height: 68px; font-size: 15px; background: #eb2f06; border-color: #ff6b4a; }
-        #btn-sp { bottom: 70px; right: 90px; width: 58px; height: 57px; font-size: 12px; background: #f1c40f; border-color: #f39c12; color: #000; }
-        #btn-jump-action { bottom: 95px; right: 10px; width: 58px; height: 57px; font-size: 14px; background: #3498db; border-color: #5dade2; }
+        #btn-atk { bottom: 12px; right: 12px; width: 70px; height: 68px; font-size: 15px; background: #eb2f06; border-color: #ff6b4a; }
+        #btn-sp { bottom: 78px; right: 102px; width: 56px; height: 55px; font-size: 12px; background: #f1c40f; border-color: #f39c12; color: #000; }
+        #btn-jump-action { bottom: 105px; right: 12px; width: 56px; height: 55px; font-size: 14px; background: #3498db; border-color: #5dade2; }
         .opt-toggle-container { display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.4); padding: 5px 10px; border-radius: 6px; border: 1px solid #555; }
         .btn-toggle { background: #34495e; color: #fff; border: 1px solid #7f8c8d; padding: 3px 8px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         .btn-toggle.active { background: #2ecc71; border-color: #fff; box-shadow: 0 0 8px #2ecc71; }
@@ -779,10 +781,57 @@
             100% { opacity: 0.7;  filter: drop-shadow(0 0 8px #fff); }
         }
 
-
-
-
+        /* 🎥 プレイ画面録画UI用スタイル */
+        #record-control-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #555;
+            font-size: 11px;
+        }
+        #rec-mode-select {
+            background: #2f3640;
+            color: #fff;
+            border: 1px solid #7f8c8d;
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        #btn-toggle-rec {
+            background: #eb2f06;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        #btn-toggle-rec.recording {
+            background: #2ecc71;
+            color: #000;
+            animation: blink 0.8s infinite alternate;
+        }
+        /* 録画中はボタン類を透明化して動画に映り込まないようにする */
+        body.is-recording #record-control-panel {
+            opacity: 0.15;
+        }
+        body.is-recording #record-control-panel:hover {
+            opacity: 1;
+        }
     </style>
+
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
    <script>
 const pUrl = ['ht', 'tps', ':/', '/un', 'pkg', '.c', 'om/', 'pe', 'erj', 's@1', '.5.', '4/d', 'ist', '/pe', 'erj', 's.m', 'in.', 'js'].join('');
@@ -1050,19 +1099,14 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
     </div>
 </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+<!-- 🎥 プレイ画面録画コントロールパネル -->
+<div id="record-control-panel">
+    <select id="rec-mode-select">
+        <option value="game">四角い画面のみ</option>
+        <option value="full">コントローラー込み全体</option>
+    </select>
+    <button type="button" id="btn-toggle-rec" onclick="toggleScreenRecording()">● 録画開始</button>
+</div>
 
 
 <div class="outer-mobile-controls" id="touch-pad-overlay">
@@ -1200,40 +1244,11 @@ const CHAR_DATA = {
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const BOSS_DATA = [
-    { type: 'king1', name: '敵 (王将) [LV.9 バランス]', speed: 4.2, jump: -11.5, weight: 1.5, power: 1.5, range: 48, color: '#ffd27f', text: '王' },
-    { type: 'king2', name: '敵 (玉将) [LV.9 重量鉄壁]', speed: 3.2, jump: -10.5, weight: 2.4, power: 1.8, range: 52, color: '#bdc3c7', text: '玉' },
-    { type: 'king3', name: '敵 (裏王) [LV.9 快速猛攻]', speed: 5.0, jump: -13.0, weight: 1.2, power: 1.4, range: 46, color: '#e74c3c', text: '王' }
+    { type: 'king1', name: '敵 (王将) [LV.9 バランス]', speed: 4.2, jump: -11.5, weight: 1.5, power: 1.5, range: 48, color: '#ffd27f', text: '王', cutinColor: '#ff9f43', spTitle: '王手・覇王烈風斬！' },
+    { type: 'king2', name: '敵 (玉将) [LV.9 重量鉄壁]', speed: 3.2, jump: -10.5, weight: 2.4, power: 1.8, range: 52, color: '#bdc3c7', text: '玉', cutinColor: '#00d2ff', spTitle: '玉将・天罰雷光落！' },
+    { type: 'king3', name: '敵 (裏王) [LV.9 快速猛攻]', speed: 5.0, jump: -13.0, weight: 1.2, power: 1.4, range: 46, color: '#e74c3c', text: '王', cutinColor: '#ff3f3f', spTitle: '裏王・修羅暴走解放！' }
 ];
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1276,37 +1291,8 @@ let matchStartTime = 0; let matchElapsedTime = 0; let enemyWasAirAttacking = fal
 let flySpecialActive = false; let flySpecialTimer = 0;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let controlMode = 'dpad'; let isTouchDevice = false; let analogActiveTouchId = null;
 let gameMode = 'offline';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 function toggleGameMode(mode) {
     gameMode = mode;
@@ -1344,21 +1330,6 @@ function showScreen(s) {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // ✨ こう書き換えてください
 function acceptNotice() { 
     // 同意画面の要素を取得します
@@ -1377,97 +1348,22 @@ function acceptNotice() {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // ✨ こう書き換えてください
 function goToSelectScreen() { 
     // タイトル画面の文字の帯を強制的に非表示（none）にします
     const pBtn = document.getElementById('press-any-button');
     if (pBtn) pBtn.style.display = 'none';
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     showScreen('select-screen'); 
     resetAllKeyStates(); 
     if (typeof initSelectScreen === 'function') initSelectScreen();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // ✨ ここからコピペして丸ごと上書きしてください
 function initSelectScreen() {
     const container = document.getElementById('char-grid-container'); 
     if (!container) return; 
     container.innerHTML = ''; // 部屋の中を一度きれいにリセットします
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     // 💡 CHAR_DATAに登録されているすべての駒（歩〜弓）のボタンを1つずつ自動生成して並べます
     Object.keys(CHAR_DATA).forEach(key => {
@@ -1491,21 +1387,6 @@ function initSelectScreen() {
         descEl.textContent = CHAR_DATA[selectedCharKey].desc;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 function selectCharacter(key, element) { selectedCharKey = key; document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('selected')); element.classList.add('selected'); document.getElementById('char-desc').textContent = CHAR_DATA[selectedCharKey].desc; }
 function selectStage(num, element) { selectedStage = num; document.querySelectorAll('.stage-btn').forEach(b => b.classList.remove('selected')); element.classList.add('selected'); }
@@ -1939,8 +1820,11 @@ function executeGameStart() {
     const eStatusUi = document.getElementById('ui-e-status'); if (eStatusUi) eStatusUi.textContent = '';
     
     const eF = document.getElementById('enemy-fighter');
-    if (gameMode === 'offline') {
+       if (gameMode === 'offline') {
         let chosenBoss = BOSS_DATA[Math.floor(Math.random() * BOSS_DATA.length)];
+        window.currentCpuBoss = chosenBoss;
+        e.spGauge = 0;
+        e.bossType = chosenBoss.type;
         document.getElementById('ui-e-name').textContent = chosenBoss.name; 
         document.getElementById('e-text').textContent = chosenBoss.text;
         if (eF) {
@@ -1964,6 +1848,8 @@ function executeGameStart() {
     updateUI();
     setupTouchControls();
     const overlay = document.getElementById('touch-pad-overlay'); if (overlay) overlay.style.display = 'block';
+    const recPanel = document.getElementById('record-control-panel'); if (recPanel) recPanel.style.display = 'flex';
+
     
     // 多重登録防止のため一度削除してから登録
     window.removeEventListener('keydown', handleKeyDown);
@@ -2085,17 +1971,26 @@ function updateFrame() {
                 }
                 if (e.isGrounded) { e.hasAirJumped = false; }
 
+                // CPUのSPゲージ自然＆ダメージ蓄積（100%で必殺技発動！）
+                e.spGauge = Math.min(100, (e.spGauge || 0) + 0.18);
+                if (e.spGauge >= 100 && Math.abs(dist) < 180 && e.x >= 85 && e.x <= 475) {
+                    triggerCpuSpecial();
+                }
+
                 // 超反応攻撃（LV9）
                 if (e.cooldown <= 0 && Math.abs(dist) < e.range + 15 && Math.abs(e.y - p.y) < 35 && e.x >= 75 && e.x <= 485) {
                     e.attacking = 12; e.cooldown = 25;
+                    playSE('swing');
                     const eWp = document.getElementById('enemy-weapon');
                     if (eWp) eWp.style.transform = e.dir === 1 ? 'rotate(75deg)' : 'rotate(-75deg)';
                     if (!e.isGrounded) { enemyWasAirAttacking = true; enemyAirAttackFrameCount = 0; }
+
 
                     if (p.invulnTimer <= 0 && !p.onLift) {
                         let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
                         let dmgDeal = Math.floor((Math.random() * 8 + 8) * e.power * (1.0 + p.dmg * 0.005));
                         p.dmg += Math.floor(dmgDeal * dmgFactor);
+                        e.spGauge = Math.min(100, (e.spGauge || 0) + 20);
                         let kbScale = (4.0 + (p.dmg * 0.16)) / p.weight;
                         p.vx = e.dir * kbScale; p.vy = -(2.5 + (p.dmg * 0.08)) / p.weight;
                         p.knockbackTimer = Math.min(50, Math.floor(12 + p.dmg * 0.15)); p.dir = -e.dir;
@@ -2159,11 +2054,25 @@ function updateFrame() {
       checkPlatform(p);
     if (gameMode === 'offline') { 
         checkPlatform(e); 
-    } else if (gameMode === 'online' && !e.onLift) {
-        // 通信の合間も相手の速度から位置を予測して滑らかに見せる
-        e.x += e.vx;
-        e.y += e.vy;
+    } else if (gameMode === 'online') {
+        if (e.onLift) {
+            // リスポーンリフト中は空中へ即座に同期し、リフト表示も合わせる
+            const eLift = document.getElementById('enemy-lift');
+            if (eLift) {
+                eLift.style.display = 'block';
+                eLift.style.left = (e.x - 5) + 'px';
+                eLift.style.top = (e.y + 46) + 'px';
+            }
+        } else {
+            const eLift = document.getElementById('enemy-lift');
+            if (eLift) eLift.style.display = 'none';
+            // 通信の合間も相手の速度から位置を予測して滑らかに見せる（画面端での行き過ぎ防止付き）
+            e.x = Math.max(-50, Math.min(630, e.x + e.vx * 0.85));
+            e.y = Math.max(-50, Math.min(420, e.y + e.vy * 0.85));
+        }
     }
+
+
 
 
 
@@ -2450,6 +2359,11 @@ function endMatch(playerWon) {
     // スマホ操作パッドを隠してセレクト画面のタップを邪魔しないようにする
     const overlay = document.getElementById('touch-pad-overlay');
     if (overlay) overlay.style.display = 'none';
+    const recPanel = document.getElementById('record-control-panel');
+    if (recPanel) recPanel.style.display = 'none';
+    if (typeof stopScreenRecording === 'function' && isRecording) stopScreenRecording();
+
+
 
     if (gameMode === 'online') {
         isMatched = false;
@@ -3169,6 +3083,92 @@ setTimeout(() => {
     if (typeof resizeGame === 'function') resizeGame(); 
     if (typeof checkOrientation === 'function') checkOrientation();
 }, 200);
+
+// ==============================================================================
+// 👑 LV.9 CPU（王将・玉将・裏王）専用必殺技＆カットイン演出
+// ==============================================================================
+function triggerCpuSpecial() {
+    e.spGauge = 0;
+    e.cooldown = 45;
+    const boss = window.currentCpuBoss || BOSS_DATA[0];
+    showSpecialCharacterCutIn('king', boss.spTitle, true);
+
+    if (boss.type === 'king1') {
+        // 王将：三連・覇王円月斬（周囲に衝撃波）
+        let waves = [document.getElementById('s-wave-1'), document.getElementById('s-wave-2'), document.getElementById('s-wave-3')];
+        waves.forEach((w, idx) => {
+            setTimeout(() => {
+                if (!w) return;
+                w.style.transition = 'none';
+                w.style.left = (e.x + 20) + 'px';
+                w.style.top = (e.y + 23) + 'px';
+                w.style.width = '90px';
+                w.style.height = '90px';
+                w.style.borderColor = '#ff9f43';
+                w.style.transform = 'translate(-50%, -50%) scale(0)';
+                w.style.opacity = '1';
+                w.style.display = 'block';
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        w.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
+                        w.style.transform = 'translate(-50%, -50%) scale(2.3)';
+                        setTimeout(() => {
+                            w.style.opacity = '0';
+                            setTimeout(() => { w.style.display = 'none'; w.style.borderColor = '#00d2ff'; }, 250);
+                        }, 150);
+                    });
+                });
+
+                if (p.invulnTimer <= 0 && !p.onLift && Math.hypot((p.x + 18) - (e.x + 20), (p.y + 21) - (e.y + 23)) < 115) {
+                    let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
+                    p.dmg += Math.floor(8 * dmgFactor);
+                    p.vx = (p.x >= e.x ? 1 : -1) * (5.5 + p.dmg * 0.08) / p.weight;
+                    p.vy = -4.5 / p.weight;
+                    p.knockbackTimer = 18;
+                    spawnHitVisual(p.x + 18, p.y + 21, true);
+                    updateUI();
+                }
+            }, idx * 180);
+        });
+    } else if (boss.type === 'king2') {
+        // 玉将：天罰雷光レーザー＆大爆発
+        let targetX = Math.max(80, Math.min(520, p.x + 18));
+        let targetY = Math.min(245, p.y + 21);
+        const laser = document.getElementById('keima-laser');
+        if (laser) {
+            laser.style.left = (targetX - 22) + 'px';
+            laser.style.height = targetY + 'px';
+            laser.style.display = 'block';
+            laser.style.opacity = '1';
+            setTimeout(() => {
+                laser.style.opacity = '0';
+                setTimeout(() => { laser.style.display = 'none'; laser.style.height = '380px'; }, 120);
+            }, 320);
+        }
+        setTimeout(() => {
+            if (typeof spawnKeimaExplosion === 'function') spawnKeimaExplosion(targetX, targetY);
+            if (p.invulnTimer <= 0 && !p.onLift && Math.hypot((p.x + 18) - targetX, (p.y + 21) - targetY) < 115) {
+                let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
+                p.dmg += Math.floor(24 * dmgFactor);
+                p.vx = (p.x + 18 >= targetX ? 1 : -1) * (6.5 + p.dmg * 0.14) / p.weight;
+                p.vy = -(5.5 + p.dmg * 0.08) / p.weight;
+                p.knockbackTimer = 25;
+                spawnHitVisual(p.x + 18, p.y + 21, true);
+                updateUI();
+            }
+        }, 200);
+    } else {
+        // 裏王：修羅オーラ解放（スピード・攻撃力アップ＋突進）
+        const eAura = document.getElementById('e-aura');
+        if (eAura) eAura.style.display = 'block';
+        const eStatus = document.getElementById('ui-e-status');
+        if (eStatus) eStatus.textContent = '【裏王覚醒: 全能力上昇】';
+        e.speed = 6.2;
+        e.power = 1.8;
+        e.vx = (p.x > e.x ? 1 : -1) * 9;
+    }
+}
+
 // ==============================================================================
 // 💥 桂SP：大爆発アニメーション生成関数
 // ==============================================================================
@@ -3291,43 +3291,50 @@ function playSE(type) {
         osc.start(now); osc.stop(now + 0.15);
     }
     else if (type === 'swing') {
-        const bufferSize = Math.floor(audioCtx.sampleRate * 0.12);
-        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        const noise = audioCtx.createBufferSource();
-        noise.buffer = buffer;
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = 'bandpass'; filter.Q.value = 2.5;
-        filter.frequency.setValueAtTime(1800, now);
-        filter.frequency.exponentialRampToValueAtTime(450, now + 0.11);
+        // ⚔️ 鋭い刀剣の風切り＋金属の鳴り音（シャキン！）
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(0.35, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-        noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-        noise.start(now); noise.stop(now + 0.12);
+        osc1.type = 'triangle';
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(2600, now);
+        osc1.frequency.exponentialRampToValueAtTime(950, now + 0.11);
+        osc2.frequency.setValueAtTime(4150, now);
+        osc2.frequency.exponentialRampToValueAtTime(1600, now + 0.11);
+
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc1.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
+        osc1.start(now); osc2.start(now);
+        osc1.stop(now + 0.12); osc2.stop(now + 0.12);
     }
     else if (type === 'hit') {
+        // ⚔️ 重厚な打撃＋高周波の金属共鳴（ガキンッ！）
         const subOsc = audioCtx.createOscillator();
         const subGain = audioCtx.createGain();
         subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(160, now);
-        subOsc.frequency.exponentialRampToValueAtTime(42, now + 0.14);
-        subGain.gain.setValueAtTime(0.5, now);
-        subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        subOsc.frequency.setValueAtTime(150, now);
+        subOsc.frequency.exponentialRampToValueAtTime(38, now + 0.13);
+        subGain.gain.setValueAtTime(0.45, now);
+        subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
         subOsc.connect(subGain); subGain.connect(audioCtx.destination);
-        subOsc.start(now); subOsc.stop(now + 0.15);
+        subOsc.start(now); subOsc.stop(now + 0.14);
 
-        const slashOsc = audioCtx.createOscillator();
-        const slashGain = audioCtx.createGain();
-        slashOsc.type = 'sawtooth';
-        slashOsc.frequency.setValueAtTime(980, now);
-        slashOsc.frequency.exponentialRampToValueAtTime(180, now + 0.1);
-        slashGain.gain.setValueAtTime(0.28, now);
-        slashGain.gain.exponentialRampToValueAtTime(0.01, now + 0.11);
-        slashOsc.connect(slashGain); slashGain.connect(audioCtx.destination);
-        slashOsc.start(now); slashOsc.stop(now + 0.11);
+        // 金属の倍音（非整数倍の周波数を重ねて鋼鉄の響きを作る）
+        [1850, 2790, 4120].forEach((freq, idx) => {
+            const mOsc = audioCtx.createOscillator();
+            const mGain = audioCtx.createGain();
+            mOsc.type = idx === 0 ? 'sawtooth' : 'sine';
+            mOsc.frequency.setValueAtTime(freq, now);
+            mOsc.frequency.exponentialRampToValueAtTime(freq * 0.88, now + 0.18);
+            mGain.gain.setValueAtTime(idx === 0 ? 0.22 : 0.16, now);
+            mGain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+            mOsc.connect(mGain); mGain.connect(audioCtx.destination);
+            mOsc.start(now); mOsc.stop(now + 0.19);
+        });
     }
+
+
     else if (type === 'critical') {
         const boomOsc = audioCtx.createOscillator();
         const boomGain = audioCtx.createGain();
@@ -3426,10 +3433,12 @@ function showSpecialCharacterCutIn(charKey, skillTitle, isEnemy = false) {
     const oldOverlay = document.getElementById('sp-diagonal-cutin');
     if (oldOverlay) oldOverlay.remove();
 
-    const charInfo = CHAR_DATA[charKey] || { name: '将', cutinColor: '#0044ff' };
+     const cpuBoss = (isEnemy && gameMode === 'offline' && window.currentCpuBoss) ? window.currentCpuBoss : null;
+    const charInfo = cpuBoss
+        ? { name: cpuBoss.text, cutinColor: cpuBoss.cutinColor }
+        : (CHAR_DATA[charKey] || { name: '将', cutinColor: '#0044ff' });
     const themeColor = charInfo.cutinColor || '#0044ff';
     const pieceKanji = (charKey === 'pawn' && !isEnemy && p && p.isPromoted) ? 'と' : charInfo.name;
-
     const actor = isEnemy ? e : p;
     const focusX = actor ? Math.max(120, Math.min(480, actor.x + 18)) : 300;
     const focusY = actor ? Math.max(80, Math.min(300, actor.y + 21)) : 190;
@@ -3625,6 +3634,171 @@ document.addEventListener('visibilitychange', () => {
         }
     }
 });
+
+// ==============================================================================
+// 🎥 プレイ画面録画システム（四角い画面のみ / コントローラー込み全体 切替対応）
+// ==============================================================================
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+let recAnimFrameId = null;
+let recRawStream = null;
+
+async function toggleScreenRecording() {
+    if (isRecording) {
+        stopScreenRecording();
+    } else {
+        await startScreenRecording();
+    }
+}
+
+async function startScreenRecording() {
+    const mode = document.getElementById('rec-mode-select').value;
+    const btn = document.getElementById('btn-toggle-rec');
+
+    // 📱 スマホ・タブレット（getDisplayMedia非対応端末）の判定
+    const isMobileOrUnsupported = !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobileOrUnsupported) {
+        const msg = mode === 'game'
+            ? '【スマホ・タブレットでの録画案内】\nブラウザの制限により自動録画ができないため、端末の「画面収録」機能を使って録画してください！\n\n📱 iPhone/iPad：画面右上から下にスワイプ ＞ ◉（画面収録）\n🤖 Android：画面上から下にスワイプ ＞ スクリーンレコード\n\n※録画後に写真アプリで「四角いゲーム画面だけ」に切り抜き（トリミング）できます！'
+            : '【スマホ・タブレットでの録画案内】\n端末の「画面収録」機能を使うと、コントローラー込みでそのまま録画できます！\n\n📱 iPhone/iPad：画面右上から下にスワイプ ＞ ◉（画面収録）\n🤖 Android：画面上から下にスワイプ ＞ スクリーンレコード';
+        alert(msg);
+        return;
+    }
+
+    try {
+        // 現在のタブの映像を取得（preferCurrentTabで現在の画面を優先選択）
+        recRawStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { frameRate: 60 },
+            audio: true,
+            preferCurrentTab: true
+        });
+    } catch (err) {
+        alert('録画がキャンセルされました。');
+        return;
+    }
+
+    recordedChunks = [];
+    let targetStream = recRawStream;
+
+    // 「四角い画面のみ」モードの場合は #game-container の座標だけを切り抜く
+    if (mode === 'game') {
+        const videoTrack = recRawStream.getVideoTracks()[0];
+        const gameBox = document.getElementById('game-container');
+
+        // Chrome等のRegion Capture API対応環境ならネイティブクロップを使用
+        if (window.CropTarget && videoTrack.cropTo) {
+            try {
+                const cropTarget = await CropTarget.fromElement(gameBox);
+                await videoTrack.cropTo(cropTarget);
+            } catch (e) {
+                targetStream = createCroppedCanvasStream(recRawStream, gameBox);
+            }
+        } else {
+            // 非対応ブラウザ用のフォールバック（Canvasでリアルタイム切り抜き）
+            targetStream = createCroppedCanvasStream(recRawStream, gameBox);
+        }
+    }
+
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9'
+        : 'video/webm';
+
+    mediaRecorder = new MediaRecorder(targetStream, { mimeType: mimeType });
+
+    mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        a.href = url;
+        a.download = 'smash_shogi_' + mode + '_' + timestamp + '.webm';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            a.remove();
+            URL.revokeObjectURL(url);
+        }, 500);
+    };
+
+    // ブラウザ側の「共有を停止」ボタンが押された時の連動処理
+    recRawStream.getVideoTracks()[0].onended = () => {
+        if (isRecording) stopScreenRecording();
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+    document.body.classList.add('is-recording');
+    if (btn) {
+        btn.textContent = '■ 録画停止・保存';
+        btn.classList.add('recording');
+    }
+}
+
+function stopScreenRecording() {
+    isRecording = false;
+    document.body.classList.remove('is-recording');
+    if (recAnimFrameId) {
+        cancelAnimationFrame(recAnimFrameId);
+        recAnimFrameId = null;
+    }
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+    }
+    if (recRawStream) {
+        recRawStream.getTracks().forEach(track => track.stop());
+        recRawStream = null;
+    }
+    const btn = document.getElementById('btn-toggle-rec');
+    if (btn) {
+        btn.textContent = '● 録画開始';
+        btn.classList.remove('recording');
+    }
+}
+
+// #game-container の領域だけをリアルタイムで切り抜く補助関数
+function createCroppedCanvasStream(rawStream, targetEl) {
+    const hiddenVideo = document.createElement('video');
+    hiddenVideo.srcObject = rawStream;
+    hiddenVideo.muted = true;
+    hiddenVideo.play();
+
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = 600;
+    cropCanvas.height = 450;
+    const ctx = cropCanvas.getContext('2d');
+
+    const drawLoop = () => {
+        if (!isRecording) return;
+        if (hiddenVideo.readyState >= 2) {
+            const rect = targetEl.getBoundingClientRect();
+            const scaleX = hiddenVideo.videoWidth / window.innerWidth;
+            const scaleY = hiddenVideo.videoHeight / window.innerHeight;
+
+            ctx.drawImage(
+                hiddenVideo,
+                rect.left * scaleX,
+                rect.top * scaleY,
+                rect.width * scaleX,
+                rect.height * scaleY,
+                0, 0, 600, 450
+            );
+        }
+        recAnimFrameId = requestAnimationFrame(drawLoop);
+    };
+    drawLoop();
+
+    const canvasStream = cropCanvas.captureStream(60);
+    // 音声トラックがあれば合成する
+    rawStream.getAudioTracks().forEach(track => canvasStream.addTrack(track));
+    return canvasStream;
+}
+
 
 </script>
 </body>
