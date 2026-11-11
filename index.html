@@ -948,7 +948,52 @@
             z-index: 16;
             pointer-events: none;
         }
+
+        /* 🛡️ シールド（防御バリア）用スタイル */
+        .active-guard-bubble {
+            position: absolute;
+            top: -10px;
+            left: -12px;
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 210, 255, 0.15) 30%, rgba(0, 210, 255, 0.65) 100%);
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 15px #00d2ff, inset 0 0 10px #00d2ff;
+            display: none;
+            z-index: 25;
+            pointer-events: none;
+        }
+        .active-guard-bubble.just-guard {
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 20%, rgba(255, 211, 42, 0.9) 100%);
+            box-shadow: 0 0 30px #ffd32a, 0 0 50px #ffffff;
+            transform: scale(1.25);
+        }
+
+        /* ⚡ 撃墜確定（フィニッシュズーム＆赤い稲妻）フラッシュ */
+        #finish-lightning-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 600px; height: 380px;
+            background: radial-gradient(circle, rgba(255,0,0,0.35) 0%, rgba(0,0,0,0.88) 100%);
+            display: none;
+            z-index: 98;
+            pointer-events: none;
+        }
+
+        /* 📱 スマホ用 シールド・復帰ボタン追加配置 */
+        #btn-guard { bottom: 12px; right: 92px; width: 52px; height: 50px; font-size: 11px; background: #00a8ff; border-color: #74b9ff; }
+        #btn-recover { bottom: 128px; right: 78px; width: 52px; height: 50px; font-size: 11px; background: #2ecc71; border-color: #55efc4; color: #000; }
+
+        /* 🤝 フレンドリスト＆称号UI */
+        .friend-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.08); padding: 4px 8px; border-radius: 5px; margin-top: 4px; font-size: 11px;
+        }
+        .status-dot-online { color: #2ecc71; font-weight: bold; }
+        .status-dot-offline { color: #95a5a6; }
     </style>
+
+
 
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
    <script>
@@ -1165,8 +1210,12 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                         <div id="p-status-bubble" class="status-bubble"></div>
                         <div id="p-aura" class="silver-aura"></div>
                         <div id="p-shield" class="gold-shield"></div>
+                        <div id="p-guard-bubble" class="active-guard-bubble"></div>
                         <div id="player-weapon" class="weapon" style="right:-22px; transform-origin: left center;"></div>
                     </div>
+                    <div id="finish-lightning-overlay"></div>
+
+
                     <div id="enemy-fighter" class="piece">
                         <div id="enemy-nametag" class="fighter-nametag">敵</div>
                         <span id="e-text">王</span>
@@ -1257,10 +1306,14 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
         </div>
     </div>
     <div class="action-container">
+        <button class="action-btn" id="btn-recover">復帰</button>
         <button class="action-btn" id="btn-jump-action">▲跳</button>
         <button class="action-btn" id="btn-sp">SP技</button>
+        <button class="action-btn" id="btn-guard">盾</button>
         <button class="action-btn" id="btn-atk">攻撃</button>
     </div>
+
+
 </div>
 
 
@@ -1535,20 +1588,6 @@ function selectCpuBoss(type, element) {
 function resetAllKeyStates() { keys.arrowleft = false; keys.arrowright = false; keys[' '] = false; keys.z = false; keys.x = false; keys.shift = false; spaceReleased = true; zReleased = true; xReleased = true; }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function setPadVisualState(keyName, isPressed) {
     const map = {
         'arrowleft': ['btn-left'],
@@ -1558,7 +1597,9 @@ function setPadVisualState(keyName, isPressed) {
         'arrowdown': ['btn-down'],
         'shift': ['btn-down'],
         'z': ['btn-atk'],
-        'x': ['btn-sp']
+        'x': ['btn-sp'],
+        'c': ['btn-guard'],
+        'v': ['btn-recover']
     };
     const ids = map[keyName];
     if (!ids) return;
@@ -1577,6 +1618,8 @@ function handleKeyDown(ev) {
     if (k === 'arrowleft') keys.arrowleft = true; if (k === 'arrowright') keys.arrowright = true; if (k === 'arrowup' || k === ' ') keys[' '] = true;
     if (k === 'arrowdown' || k === 'shift') { keys.shift = true; if (p) p.passThroughTimer = 15; }
     if (k === 'z') triggerPlayerAttack(); if (k === 'x') triggerPlayerSpecial();
+    if (k === 'c') triggerPlayerGuard(true);
+    if (k === 'v') triggerPlayerRecovery();
 }
 
 function handleKeyUp(ev) {
@@ -1585,13 +1628,8 @@ function handleKeyUp(ev) {
     if (k === 'arrowleft') keys.arrowleft = false; if (k === 'arrowright') keys.arrowright = false;
     if (ev.key === ' ') { keys[' '] = false; spaceReleased = true; } if (k === 'z') { keys.z = false; zReleased = true; } if (k === 'x') { keys.x = false; xReleased = true; }
     if (k === 'arrowdown' || k === 'shift') keys.shift = false;
+    if (k === 'c') triggerPlayerGuard(false);
 }
-
-
-
-
-
-
 
 
 
@@ -1601,40 +1639,11 @@ function triggerPlayerAttack() {
     let reach = isRookSpecial ? p.range * 3.5 : (flySpecialActive ? p.range * 2.5 : p.range);
     let dist = Math.abs(p.x - e.x);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (enemyWasAirAttacking && enemyAirAttackFrameCount >= 1 && enemyAirAttackFrameCount <= 2 && dist < (reach + 20) && Math.abs(p.y - e.y) < 55) {
+  if (enemyWasAirAttacking && enemyAirAttackFrameCount >= 1 && enemyAirAttackFrameCount <= 2 && dist < (reach + 20) && Math.abs(p.y - e.y) < 55) {
         e.cooldown = 45; e.attacking = 0; enemyWasAirAttacking = false;
         p.vx = 0; p.vy = 0; p.knockbackTimer = 0;
         e.dmg += Math.floor(15 * p.power); let kbScale = (5.0 + (e.dmg * 0.12)) / e.weight;
         e.vx = p.dir * kbScale; e.vy = -3.5;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
         triggerCutIn('ジャストカウンター！！');
@@ -1692,6 +1701,12 @@ function triggerPlayerAttack() {
                 if (p.spGauge < 100) { p.spGauge = Math.min(100, p.spGauge + (CHAR_DATA[selectedCharKey].spGain || 14.3)); updateSPBar(); }
 
                 spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, e.dmg > 80);
+                // ⚡ 撃墜確定（フィニッシュズーム）演出判定（ダメージ115%以上＆場外方向への強吹っ飛び）
+                if (e.dmg >= 115 && Math.abs(e.vx) > 11 && typeof triggerFinishZoom === 'function') {
+                    triggerFinishZoom((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20);
+                }
+
+
 
 
 
@@ -2079,7 +2094,25 @@ function updateFrame() {
             else if (keys.arrowright) { p.vx = p.speed; p.dir = 1; }
             else { p.vx *= 0.8; }
         }
-        if (p.isGrounded) { p.airJumpsLeft = CHAR_DATA[selectedCharKey].maxAirJumps; }
+            if (p.isGrounded) {
+            p.airJumpsLeft = CHAR_DATA[selectedCharKey].maxAirJumps;
+            p.canRecover = true; // 着地すると復帰技が再使用可能になる
+        }
+        // シールド耐久値の処理（展開中は徐々に減少、離すと回復）
+        if (p.isGuarding) {
+            p.guardFrames = (p.guardFrames || 0) + 1;
+            p.guardHp = Math.max(0, (p.guardHp ?? 100) - 0.7);
+            p.vx *= 0.3;
+            if (p.guardHp <= 0) {
+                triggerPlayerGuard(false);
+                p.knockbackTimer = 45; // シールドブレイク硬直
+                triggerCutIn('シールドブレイク！！');
+            }
+        } else {
+            p.guardHp = Math.min(100, (p.guardHp ?? 100) + 0.35);
+        }
+
+
         if (keys[' '] && p.knockbackTimer <= 0 && !p.onLift) {
             if (p.isGrounded) {
                 p.vy = p.jump; p.isGrounded = false; keys[' '] = false;
@@ -2156,14 +2189,18 @@ function updateFrame() {
 
 
                     if (p.invulnTimer <= 0 && !p.onLift) {
-                        let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
-                        let dmgDeal = Math.floor((Math.random() * 8 + 8) * e.power * (1.0 + p.dmg * 0.005));
-                        p.dmg += Math.floor(dmgDeal * dmgFactor);
-                        e.spGauge = Math.min(100, (e.spGauge || 0) + 20);
-                        let kbScale = (4.0 + (p.dmg * 0.16)) / p.weight;
-                        p.vx = e.dir * kbScale; p.vy = -(2.5 + (p.dmg * 0.08)) / p.weight;
-                        p.knockbackTimer = Math.min(50, Math.floor(12 + p.dmg * 0.15)); p.dir = -e.dir;
-                        spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80); updateUI();
+                        if (p.isGuarding) {
+                            handleGuardedHit(e, true);
+                        } else {
+                            let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
+                            let dmgDeal = Math.floor((Math.random() * 8 + 8) * e.power * (1.0 + p.dmg * 0.005));
+                            p.dmg += Math.floor(dmgDeal * dmgFactor);
+                            e.spGauge = Math.min(100, (e.spGauge || 0) + 20);
+                            let kbScale = (4.0 + (p.dmg * 0.16)) / p.weight;
+                            p.vx = e.dir * kbScale; p.vy = -(2.5 + (p.dmg * 0.08)) / p.weight;
+                            p.knockbackTimer = Math.min(50, Math.floor(12 + p.dmg * 0.15)); p.dir = -e.dir;
+                            spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80); updateUI();
+                        }
                     }
                 }
             }
@@ -3009,13 +3046,18 @@ function setupConnection(conn) {
                 uiStocks.textContent = st;
             }
         } else if (data.type === 'hit') {
-            let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
-            p.dmg += Math.floor(data.dmgDeal * dmgFactor);
-            p.vx = data.vx; p.vy = data.vy;
-            p.knockbackTimer = data.knockbackTimer;
-            p.dir = -e.dir;
-            spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80);
-            updateUI();
+            if (p.isGuarding) {
+                handleGuardedHit(e, false);
+            } else {
+                let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
+                p.dmg += Math.floor(data.dmgDeal * dmgFactor);
+                p.vx = data.vx; p.vy = data.vy;
+                p.knockbackTimer = data.knockbackTimer;
+                p.dir = -e.dir;
+                spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80);
+// ⭕ 修正後
+                updateUI();
+            }
         } else if (data.type === 'action') {
             if (data.actionType === 'projectile') {
                 spawnEnemyProjectile(data.payload.pType, data.payload.x, data.payload.y, data.payload.dir, data.payload.vx, data.payload.vy);
@@ -3331,6 +3373,7 @@ setTimeout(() => {
     registerTouchBtn('btn-up', ' '); registerTouchBtn('btn-jump-action', ' ');
     registerTouchBtn('btn-left', 'arrowleft'); registerTouchBtn('btn-right', 'arrowright');
     registerTouchBtn('btn-down', 'shift'); registerTouchBtn('btn-atk', 'z'); registerTouchBtn('btn-sp', 'x');
+    registerTouchBtn('btn-guard', 'c'); registerTouchBtn('btn-recover', 'v');
 
 
 
@@ -4059,7 +4102,354 @@ function createCroppedCanvasStream(rawStream, targetEl) {
     return canvasStream;
 }
 
+// ==============================================================================
+// 🛡️ 1. シールド（防御）＆ ジャストガード処理
+// ==============================================================================
+function triggerPlayerGuard(active) {
+    if (!p || p.onLift || p.knockbackTimer > 0) return;
+    const bubble = document.getElementById('p-guard-bubble');
+    if (active && (p.guardHp ?? 100) > 10) {
+        if (!p.isGuarding) {
+            p.isGuarding = true;
+            p.guardFrames = 0; // ジャストガード判定用フレームカウンタ
+        }
+        if (bubble) { bubble.style.display = 'block'; bubble.classList.remove('just-guard'); }
+    } else {
+        p.isGuarding = false;
+        if (bubble) { bubble.style.display = 'none'; bubble.classList.remove('just-guard'); }
+    }
+}
 
+function handleGuardedHit(attacker, isOfflineCpu) {
+    const isJustGuard = (p.guardFrames <= 12); // 展開から0.2秒以内ならジャストガード！
+    const bubble = document.getElementById('p-guard-bubble');
+    playSE(isJustGuard ? 'critical' : 'swing');
+
+    if (isJustGuard) {
+        if (bubble) bubble.classList.add('just-guard');
+        triggerCutIn('ジャストガード！！');
+        p.invulnTimer = 25;
+        if (isOfflineCpu && attacker) {
+            attacker.vx = -attacker.dir * 8.5;
+            attacker.vy = -3.5;
+            attacker.knockbackTimer = 25;
+        }
+        setTimeout(() => { if (bubble) bubble.classList.remove('just-guard'); }, 200);
+    } else {
+        // 通常ガード：ダメージ無効、ノックバックだけ少し受ける
+        p.guardHp = Math.max(0, (p.guardHp ?? 100) - 22);
+        p.vx = (p.x >= attacker.x ? 1 : -1) * 4.5;
+        spawnHitVisual(p.x + 18, p.y + 21, false, true);
+    }
+}
+
+// ==============================================================================
+// 🕊️ 2. 復帰技（上B風・昇竜跳躍）
+// ==============================================================================
+function triggerPlayerRecovery() {
+    if (!p || p.onLift || p.knockbackTimer > 0 || p.canRecover === false) return;
+    p.canRecover = false;
+    p.isGrounded = false;
+    p.vy = -13.5; // 強力な上昇力
+    p.vx = p.dir * 4.2; // 向いているステージ方向へ前進
+    p.invulnTimer = Math.max(p.invulnTimer || 0, 18); // 出始めにわずかな無敵
+    playSE('jump');
+    spawnHitVisual(p.x + 18, p.y + 42, false, true);
+    triggerCutIn('昇竜復帰！！');
+}
+
+// ==============================================================================
+// ⚡ 3. 撃墜確定（フィニッシュズーム＆赤い稲妻）演出
+// ==============================================================================
+function triggerFinishZoom(x, y) {
+    const stage = document.getElementById('battle-stage');
+    const lightning = document.getElementById('finish-lightning-overlay');
+    if (!stage || !lightning) return;
+
+    playSE('critical');
+    triggerCameraShake();
+
+    // 赤黒い集中線フラッシュ＋稲妻SVG
+    lightning.innerHTML =
+        '<svg viewBox="0 0 600 380" width="600" height="380">' +
+            '<polyline points="' + (x - 40) + ',0 ' + (x + 15) + ',' + (y - 30) + ' ' + (x - 20) + ',' + y + ' ' + (x + 45) + ',380" fill="none" stroke="#ff3f3f" stroke-width="8" />' +
+            '<polyline points="' + (x - 40) + ',0 ' + (x + 15) + ',' + (y - 30) + ' ' + (x - 20) + ',' + y + ' ' + (x + 45) + ',380" fill="none" stroke="#ffffff" stroke-width="3" />' +
+        '</svg>';
+    lightning.style.display = 'block';
+
+    // 撃墜地点へカメラズーム＆一瞬のスロー演出
+    const ox = (300 - x) * 0.22;
+    const oy = (190 - y) * 0.22;
+    stage.style.transition = 'transform 0.12s ease-out';
+    stage.style.transform = 'translate(' + ox + 'px, ' + oy + 'px) scale(1.22)';
+    isHitStopping = true;
+
+    setTimeout(() => {
+        isHitStopping = false;
+        lightning.style.display = 'none';
+        stage.style.transform = 'translate(0px, 0px) scale(1)';
+        setTimeout(() => { stage.style.transition = ''; }, 150);
+    }, 320);
+}
+
+// ==============================================================================
+// 🏅 4. 称号システム（自動解放・保存・ネームタグ反映）
+// ==============================================================================
+const TITLE_LIST = [
+    { id: 'novice', name: '見習い棋士' },
+    { id: 'first_win', name: '初陣の勝者' },
+    { id: 'gyoku_slayer', name: '玉将殺し' },
+    { id: 'unpromoted_pawn', name: '不屈の歩兵' },
+    { id: 'speed_star', name: '電光石火' }
+];
+
+function getUnlockedTitles() {
+    try {
+        const raw = localStorage.getItem('smash_shogi_unlocked_titles');
+        const arr = raw ? JSON.parse(raw) : ['novice'];
+        return Array.isArray(arr) && arr.length > 0 ? arr : ['novice'];
+    } catch (e) { return ['novice']; }
+}
+
+function unlockTitle(titleId) {
+    const list = getUnlockedTitles();
+    if (!list.includes(titleId)) {
+        list.push(titleId);
+        localStorage.setItem('smash_shogi_unlocked_titles', JSON.stringify(list));
+        const info = TITLE_LIST.find(t => t.id === titleId);
+        if (info) alert('🏅 新しい称号を獲得しました！\n【 ' + info.name + ' 】');
+    }
+}
+
+function getEquippedTitleName() {
+    const eqId = localStorage.getItem('smash_shogi_equipped_title') || 'novice';
+    const info = TITLE_LIST.find(t => t.id === eqId);
+    return info ? info.name : '見習い棋士';
+}
+
+// 試合終了時に称号の達成条件をチェック
+const _titleHookEndMatch = endMatch;
+endMatch = function(playerWon) {
+    if (playerWon) {
+        unlockTitle('first_win');
+        if (gameMode === 'offline' && window.currentCpuBoss && window.currentCpuBoss.type === 'king2') {
+            unlockTitle('gyoku_slayer');
+        }
+        if (selectedCharKey === 'pawn' && !p.isPromoted) {
+            unlockTitle('unpromoted_pawn');
+        }
+        if (matchElapsedTime > 0 && matchElapsedTime <= 30000) {
+            unlockTitle('speed_star');
+        }
+    }
+    _titleHookEndMatch.apply(this, arguments);
+};
+
+// 試合開始時にネームタグへ称号を付与
+const _titleHookGameStart = executeGameStart;
+executeGameStart = function() {
+    _titleHookGameStart.apply(this, arguments);
+    const pTag = document.getElementById('player-nametag');
+    const titleName = getEquippedTitleName();
+    if (pTag) {
+        pTag.textContent = '【' + titleName + '】' + pTag.textContent;
+    }
+};
+// ==============================================================================
+// 🔒 5. 同一端末（自己対戦）レート不正防止 ＆ 🤝 フレンドオンライン確認機能
+// ==============================================================================
+// 端末固有のブラウザ指紋（同一端末の別タブ・シークレット対策用ハッシュ）を生成
+function getDeviceFingerprint() {
+    const raw = [
+        navigator.userAgent,
+        screen.width + 'x' + screen.height,
+        navigator.hardwareConcurrency || 0,
+        Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+    ].join('|');
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+        hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+        hash |= 0;
+    }
+    return 'dev_' + Math.abs(hash);
+}
+
+// 接続確立時に自分の端末フィンガープリントを交換し、同一端末ならレート変動を無効化
+window.isSameDeviceMatch = false;
+const _antiCheatSetupConn = setupConnection;
+setupConnection = function(conn) {
+    window.isSameDeviceMatch = false;
+    _antiCheatSetupConn.apply(this, arguments);
+
+    conn.on('open', () => {
+        conn.send({
+            type: 'device_check',
+            fingerprint: getDeviceFingerprint(),
+            seqId: formatSeqId(assignedSeqNum)
+        });
+    });
+
+    conn.on('data', (data) => {
+        if (data && data.type === 'device_check') {
+            if (data.fingerprint === getDeviceFingerprint() || data.seqId === formatSeqId(assignedSeqNum)) {
+                window.isSameDeviceMatch = true;
+                alert('⚠️ 同一端末・同一アカウントからの対戦を検出しました。\n公平性のため、この試合ではレートは変動しません。');
+            }
+        }
+    });
+};
+
+// 同一端末対戦の時はレート精算をブロック
+const _antiCheatFinalizeRating = finalizeMatchRating;
+finalizeMatchRating = function(playerWon, enemyRating) {
+    if (window.isSameDeviceMatch) {
+        alert('【レート精算スキップ】同一端末での対戦のため、レート変動は無効です。');
+        return;
+    }
+    _antiCheatFinalizeRating.apply(this, arguments);
+};
+
+// 🤝 フレンドリスト管理＆オンライン状態チェック
+function getFriendList() {
+    try {
+        const raw = localStorage.getItem('smash_shogi_friends');
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+}
+
+function addFriendById(targetId, targetName = 'フレンド') {
+    const cleanId = formatSeqId(parseInt(String(targetId).replace(/[^0-9]/g, ''), 10));
+    if (!cleanId || cleanId === '00NaN' || cleanId === formatSeqId(assignedSeqNum)) {
+        alert('有効な相手のIDを入力してください（自分のIDは登録できません）。');
+        return;
+    }
+    const list = getFriendList();
+    if (!list.some(f => f.id === cleanId)) {
+        list.push({ id: cleanId, name: targetName });
+        localStorage.setItem('smash_shogi_friends', JSON.stringify(list));
+    }
+    renderFriendAndTitleUI();
+}
+
+function removeFriendById(targetId) {
+    const list = getFriendList().filter(f => f.id !== targetId);
+    localStorage.setItem('smash_shogi_friends', JSON.stringify(list));
+    renderFriendAndTitleUI();
+}
+
+// フレンドが現在PeerJSサーバー上でオンラインか確認するプローブ関数
+function checkFriendOnlineStatus(friendId, statusBadgeEl) {
+    if (!peer || peer.disconnected) {
+        statusBadgeEl.textContent = '⚫ 未接続';
+        statusBadgeEl.className = 'status-dot-offline';
+        return;
+    }
+    statusBadgeEl.textContent = '⏳ 確認中...';
+    const probeConn = peer.connect('shogi-seq-' + friendId, { serialization: 'json' });
+    let resolved = false;
+
+    const timer = setTimeout(() => {
+        if (!resolved) {
+            resolved = true;
+            statusBadgeEl.textContent = '⚫ オフライン';
+            statusBadgeEl.className = 'status-dot-offline';
+            try { probeConn.close(); } catch (e) {}
+        }
+    }, 2500);
+
+    probeConn.on('open', () => {
+        if (!resolved) {
+            resolved = true;
+            clearTimeout(timer);
+            statusBadgeEl.textContent = '🟢 オンライン';
+            statusBadgeEl.className = 'status-dot-online';
+            setTimeout(() => { try { probeConn.close(); } catch (e) {} }, 150);
+        }
+    });
+
+    probeConn.on('error', () => {
+        if (!resolved) {
+            resolved = true;
+            clearTimeout(timer);
+            statusBadgeEl.textContent = '⚫ オフライン';
+            statusBadgeEl.className = 'status-dot-offline';
+        }
+    });
+}
+
+// 選択画面に「称号切り替え」と「フレンドリスト（オンライン表示付き）」を描画
+function renderFriendAndTitleUI() {
+    const roomSection = document.getElementById('custom-room-section');
+    if (!roomSection) return;
+
+    let extraBox = document.getElementById('friend-and-title-box');
+    if (!extraBox) {
+        extraBox = document.createElement('div');
+        extraBox.id = 'friend-and-title-box';
+        extraBox.style.cssText = 'margin-top:10px; padding-top:8px; border-top:1px solid #4b6584; text-align:left;';
+        roomSection.appendChild(extraBox);
+    }
+
+    const unlocked = getUnlockedTitles();
+    const equipped = localStorage.getItem('smash_shogi_equipped_title') || 'novice';
+    const optionsHtml = TITLE_LIST.map(t => {
+        const isOpen = unlocked.includes(t.id);
+        return '<option value="' + t.id + '"' + (t.id === equipped ? ' selected' : '') + (isOpen ? '' : ' disabled') + '>' +
+               (isOpen ? '🏅 ' + t.name : '🔒 ???（未解放）') + '</option>';
+    }).join('');
+
+    const friends = getFriendList();
+    let friendsHtml = friends.length === 0
+        ? '<div style="color:#95a5a6; font-size:11px; margin-top:4px;">登録済みのフレンドはいません。</div>'
+        : friends.map(f =>
+            '<div class="friend-row">' +
+                '<span>' + f.name + ' (#' + f.id + ') <span id="f-status-' + f.id + '" class="status-dot-offline">⚫ 確認中</span></span>' +
+                '<div style="display:flex; gap:4px;">' +
+                    '<button type="button" class="btn-toggle active" onclick="document.getElementById(\'input-server-ip\').value=\'' + f.id + '\'; document.getElementById(\'btn-connect-ip\').click();">突撃</button>' +
+                    '<button type="button" class="btn-toggle" style="background:#c0392b;" onclick="removeFriendById(\'' + f.id + '\')">削除</button>' +
+                '</div>' +
+            '</div>'
+        ).join('');
+
+    extraBox.innerHTML =
+        '<div style="margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;">' +
+            '<span style="color:#ffd32a; font-weight:bold; font-size:11px;">🏅 装備中の称号：</span>' +
+            '<select id="select-equip-title" style="background:#222; color:#ffd32a; border:1px solid #ffd32a; border-radius:4px; padding:3px 6px; font-size:11px; font-weight:bold;">' + optionsHtml + '</select>' +
+        '</div>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
+            '<span style="color:#00d2ff; font-weight:bold; font-size:11px;">🤝 フレンド一覧（オンライン確認）</span>' +
+            '<div style="display:flex; gap:4px;">' +
+                '<button type="button" class="btn-toggle" onclick="addFriendById(document.getElementById(\'input-server-ip\').value)">＋入力IDを登録</button>' +
+                '<button type="button" class="btn-toggle" onclick="renderFriendAndTitleUI()">🔄 更新</button>' +
+            '</div>' +
+        '</div>' +
+        friendsHtml;
+
+    const titleSelect = document.getElementById('select-equip-title');
+    if (titleSelect) {
+        titleSelect.onchange = function() {
+            localStorage.setItem('smash_shogi_equipped_title', this.value);
+            playSE('select');
+        };
+    }
+
+    // 各フレンドのオンライン状態を自動チェック
+    setTimeout(() => {
+        friends.forEach(f => {
+            const badge = document.getElementById('f-status-' + f.id);
+            if (badge) checkFriendOnlineStatus(f.id, badge);
+        });
+    }, 600);
+}
+
+// オンラインUI生成後にフレンド＆称号パネルも自動展開
+const _origInjectOnlineUI = injectOnlineRoomUI;
+injectOnlineRoomUI = function() {
+    _origInjectOnlineUI.apply(this, arguments);
+    renderFriendAndTitleUI();
+};
 </script>
+
+
 </body>
 </html>
