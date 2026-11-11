@@ -2559,24 +2559,28 @@ let dataConnection = null;
 
 
 
-// 💡 ページを開いた瞬間に、自分だけのランダムな対戦IDを自動発行して待機します
-let assignedSeqNum = 1;
-let hasSavedSeqId = false;
+let assignedSeqNum = 0;
 
+// 保存済みの固有IDがあれば読み込み、なければ5桁（10000〜99999）を発行して永久保存
 try {
     const savedSeq = localStorage.getItem('smash_shogi_permanent_seq_id');
-    if (savedSeq && !isNaN(parseInt(savedSeq, 10))) {
+    if (savedSeq && !isNaN(parseInt(savedSeq, 10)) && parseInt(savedSeq, 10) >= 1) {
         assignedSeqNum = parseInt(savedSeq, 10);
-        hasSavedSeqId = true;
+    } else {
+        assignedSeqNum = Math.floor(10000 + Math.random() * 90000);
+        localStorage.setItem('smash_shogi_permanent_seq_id', String(assignedSeqNum));
     }
-} catch (err) {}
-
-function formatSeqId(num) {
-    return String(num).padStart(5, '0');
+} catch (err) {
+    assignedSeqNum = Math.floor(10000 + Math.random() * 90000);
 }
 
-function initPeerConnection(seqNum) {
-    if (typeof seqNum === 'number') assignedSeqNum = seqNum;
+// 5桁未満なら0埋め、99999を超えたら6桁・7桁へそのまま限界突破する
+function formatSeqId(num) {
+    const str = String(num);
+    return str.length >= 5 ? str : str.padStart(5, '0');
+}
+
+function initPeerConnection() {
     const statusTxt = document.getElementById('room-status-text');
     const myIpUi = document.getElementById('ui-my-local-ip');
     const formattedId = formatSeqId(assignedSeqNum);
@@ -2594,22 +2598,13 @@ function initPeerConnection(seqNum) {
     });
 
     peer.on('open', () => {
-        if (!hasSavedSeqId) {
-            try {
-                localStorage.setItem('smash_shogi_permanent_seq_id', String(assignedSeqNum));
-                hasSavedSeqId = true;
-            } catch (err) {}
-        }
-
-        const veteranBadge = (assignedSeqNum <= 10) ? ' 👑【古参勢】' : '';
-        if (myIpUi) myIpUi.textContent = formattedId + veteranBadge;
-        if (statusTxt) statusTxt.innerHTML = '🟢 <span style="color:#2ecc71; font-weight:bold;">固定ID認証完了（' + formattedId + '）！</span> 何度抜け直してもあなたの専用IDです！';
+        const limitBreakBadge = (assignedSeqNum > 99999) ? ' 🔥【限界突破】' : '';
+        if (myIpUi) myIpUi.textContent = formattedId + limitBreakBadge;
+        if (statusTxt) statusTxt.innerHTML = '🟢 <span style="color:#2ecc71; font-weight:bold;">永久固定ID認証完了（' + formattedId + '）！</span> 他の人と被らずずっと同じIDが使えます！';
     });
 
-    // 友達からの挑戦を受けたとき（すぐには開始せず、挑戦状を受け取る）
     peer.on('connection', (conn) => {
         if (isMatched) {
-            // すでに対戦中なら自動でお断りする
             conn.on('open', () => {
                 conn.send({ type: 'match_rejected', reason: '対戦中です' });
                 setTimeout(() => { try { conn.close(); } catch(e) {} }, 200);
@@ -2620,25 +2615,22 @@ function initPeerConnection(seqNum) {
         setupConnection(conn);
     });
 
-
-
     peer.on('error', (err) => {
+        // 衝突した場合は99999を超えて6桁・7桁へと桁数を拡張しながら再発行する
         if (err.type === 'unavailable-id') {
-            if (hasSavedSeqId && assignedSeqNum === parseInt(localStorage.getItem('smash_shogi_permanent_seq_id'), 10)) {
-                assignedSeqNum = 1;
+            if (assignedSeqNum <= 99999) {
+                assignedSeqNum = Math.floor(100000 + Math.random() * 900000);
             } else {
-                assignedSeqNum++;
+                assignedSeqNum = assignedSeqNum * 10 + Math.floor(Math.random() * 10);
             }
-            setTimeout(() => initPeerConnection(assignedSeqNum), 100);
+            try { localStorage.setItem('smash_shogi_permanent_seq_id', String(assignedSeqNum)); } catch (e) {}
+            setTimeout(initPeerConnection, 200);
             return;
         }
         console.error(err);
         if (statusTxt) statusTxt.innerHTML = '🔴 <span style="color:#eb2f06; font-weight:bold;">通信エラー。</span> 相手のIDが違うかネット接続を確認してね。';
     });
 }
-
-
-
 
 
 
@@ -2995,16 +2987,14 @@ function injectOnlineRoomUI() {
         '</div>' +
         '<div style="background:rgba(255,255,255,0.1); padding:8px; border-radius:6px; margin-bottom:10px;">' +
             '<div class="section-label" style="margin:0 0 4px 0; color:#fff;">相手の対戦IDを入力して乱闘：</div>' +
-            '<input type="text" id="input-server-ip" inputmode="numeric" maxlength="5" placeholder="例: 00001" style="width:120px; padding:5px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold; font-size:15px; letter-spacing:2px;">' +
+                        '<input type="text" id="input-server-ip" inputmode="numeric" maxlength="12" placeholder="例: 12345" style="width:130px; padding:5px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold; font-size:15px; letter-spacing:2px;">' +
             '<button type="button" class="stage-btn" id="btn-connect-ip" style="background:#3867d6; margin-left:5px; padding:5px 14px; font-size:12px;">相手に突撃（接続）</button>' +
         '</div>' +
-        '<div id="room-status-text" style="color:#ffd32a; font-size:11px; margin-top:4px;">【遊び方】接続した順に「00001」「00002」と永久IDが自動発行されます。相手のIDを入れて「相手に突撃」を押すだけ！</div>';
-
+        '<div id="room-status-text" style="color:#ffd32a; font-size:11px; margin-top:4px;">【遊び方】自動発行された永久固定ID（5桁以上）を友達に伝えるか、相手のIDを入れて「相手に突撃」を押すだけ！</div>';
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) selectScreen.insertBefore(roomSection, startBtn);
 
-    initPeerConnection(1);
-
+    initPeerConnection();
     const nameInput = document.getElementById('input-player-name');
     if (nameInput) {
         nameInput.addEventListener('input', function() {
