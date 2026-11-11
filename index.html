@@ -981,7 +981,16 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                 <div class="section-label">あなたの駒を選択してください：</div>
                 <div class="char-grid" id="char-grid-container"></div>
                 <div id="char-desc">駒の説明がここに表示されます。</div>
+                <div class="section-label">対戦相手（CPU）を選択してください：</div>
+                <div class="stage-select" id="cpu-select-box" style="flex-wrap: wrap;">
+                    <button type="button" class="stage-btn selected" onclick="selectCpuBoss('random', this)">ランダム</button>
+                    <button type="button" class="stage-btn" onclick="selectCpuBoss('king1', this)">王将 (標準)</button>
+                    <button type="button" class="stage-btn" onclick="selectCpuBoss('king3', this)">裏王 (快速)</button>
+                    <button type="button" class="stage-btn" onclick="selectCpuBoss('king2', this)" style="border-color: #ff3f3f; color: #ff9f43;">玉将 🔥上級者向け</button>
+                </div>
                 <div class="section-label">ステージを選択してください：</div>
+
+
                 <div class="stage-select">
                     <button type="button" class="stage-btn selected" onclick="selectStage(1, this)">終点風平原</button>
                     <button type="button" class="stage-btn" onclick="selectStage(2, this)">戦場風浮島</button>
@@ -1388,8 +1397,12 @@ function initSelectScreen() {
     }
 }
 
+let selectedCpuType = 'random';
 function selectCharacter(key, element) { selectedCharKey = key; document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('selected')); element.classList.add('selected'); document.getElementById('char-desc').textContent = CHAR_DATA[selectedCharKey].desc; }
-function selectStage(num, element) { selectedStage = num; document.querySelectorAll('.stage-btn').forEach(b => b.classList.remove('selected')); element.classList.add('selected'); }
+function selectStage(num, element) { selectedStage = num; document.querySelectorAll('#select-screen .stage-select:not(#cpu-select-box) .stage-btn').forEach(b => b.classList.remove('selected')); element.classList.add('selected'); }
+function selectCpuBoss(type, element) { selectedCpuType = type; playSE('select'); document.querySelectorAll('#cpu-select-box .stage-btn').forEach(b => b.classList.remove('selected')); element.classList.add('selected'); }
+
+element.classList.add('selected'); }
 function resetAllKeyStates() { keys.arrowleft = false; keys.arrowright = false; keys[' '] = false; keys.z = false; keys.x = false; keys.shift = false; spaceReleased = true; zReleased = true; xReleased = true; }
 
 
@@ -1820,8 +1833,8 @@ function executeGameStart() {
     const eStatusUi = document.getElementById('ui-e-status'); if (eStatusUi) eStatusUi.textContent = '';
     
     const eF = document.getElementById('enemy-fighter');
-       if (gameMode === 'offline') {
-        let chosenBoss = BOSS_DATA[Math.floor(Math.random() * BOSS_DATA.length)];
+    if (gameMode === 'offline') {
+        let chosenBoss = BOSS_DATA.find(b => b.type === selectedCpuType) || BOSS_DATA[Math.floor(Math.random() * BOSS_DATA.length)];
         window.currentCpuBoss = chosenBoss;
         e.spGauge = 0;
         e.bossType = chosenBoss.type;
