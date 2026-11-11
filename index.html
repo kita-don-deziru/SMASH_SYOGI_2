@@ -1919,8 +1919,15 @@ function updateFrame() {
         }
         if (p.isGrounded) { p.airJumpsLeft = CHAR_DATA[selectedCharKey].maxAirJumps; }
         if (keys[' '] && p.knockbackTimer <= 0 && !p.onLift) {
-            if (p.isGrounded) { p.vy = p.jump; p.isGrounded = false; keys[' '] = false; }
-            else if (p.airJumpsLeft > 0) { p.vy = p.jump * 0.85; p.airJumpsLeft--; keys[' '] = false; spawnHitVisual(p.x + 18, p.y + 40, false); }
+            if (p.isGrounded) {
+                p.vy = p.jump; p.isGrounded = false; keys[' '] = false;
+                playSE('jump');
+            }
+            else if (p.airJumpsLeft > 0) {
+                p.vy = p.jump * 0.85; p.airJumpsLeft--; keys[' '] = false;
+                playSE('jump');
+                spawnHitVisual(p.x + 18, p.y + 40, false, true); // 第4引数 true でヒット音を鳴らさない
+            }
         }
     }
 
@@ -3291,49 +3298,49 @@ function playSE(type) {
         osc.start(now); osc.stop(now + 0.15);
     }
     else if (type === 'swing') {
-        // ⚔️ 鋭い刀剣の風切り＋金属の鳴り音（シャキン！）
+        // ⚔️ 超高音の刀剣風切り音（シュキィン！）
         const osc1 = audioCtx.createOscillator();
         const osc2 = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc1.type = 'triangle';
-        osc2.type = 'sine';
-        osc1.frequency.setValueAtTime(2600, now);
-        osc1.frequency.exponentialRampToValueAtTime(950, now + 0.11);
-        osc2.frequency.setValueAtTime(4150, now);
-        osc2.frequency.exponentialRampToValueAtTime(1600, now + 0.11);
+        osc1.type = 'sine';
+        osc2.type = 'triangle';
+        osc1.frequency.setValueAtTime(4800, now);
+        osc1.frequency.exponentialRampToValueAtTime(2100, now + 0.11);
+        osc2.frequency.setValueAtTime(7200, now);
+        osc2.frequency.exponentialRampToValueAtTime(3400, now + 0.11);
 
-        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.setValueAtTime(0.24, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
         osc1.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
         osc1.start(now); osc2.start(now);
         osc1.stop(now + 0.12); osc2.stop(now + 0.12);
     }
     else if (type === 'hit') {
-        // ⚔️ 重厚な打撃＋高周波の金属共鳴（ガキンッ！）
+        // ⚔️ 高音で澄んだ鋼鉄の衝突音（キィィンッ！）
         const subOsc = audioCtx.createOscillator();
         const subGain = audioCtx.createGain();
         subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(150, now);
-        subOsc.frequency.exponentialRampToValueAtTime(38, now + 0.13);
-        subGain.gain.setValueAtTime(0.45, now);
-        subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+        subOsc.frequency.setValueAtTime(140, now);
+        subOsc.frequency.exponentialRampToValueAtTime(40, now + 0.11);
+        subGain.gain.setValueAtTime(0.35, now);
+        subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
         subOsc.connect(subGain); subGain.connect(audioCtx.destination);
-        subOsc.start(now); subOsc.stop(now + 0.14);
+        subOsc.start(now); subOsc.stop(now + 0.12);
 
-        // 金属の倍音（非整数倍の周波数を重ねて鋼鉄の響きを作る）
-        [1850, 2790, 4120].forEach((freq, idx) => {
+        // 超高周波の金属共鳴（4200Hz〜8450Hzの非整数倍音で甲高いキーン音を作る）
+        const metalFreqs =;
+        metalFreqs.forEach((freq, idx) => {
             const mOsc = audioCtx.createOscillator();
             const mGain = audioCtx.createGain();
-            mOsc.type = idx === 0 ? 'sawtooth' : 'sine';
+            mOsc.type = 'sine';
             mOsc.frequency.setValueAtTime(freq, now);
-            mOsc.frequency.exponentialRampToValueAtTime(freq * 0.88, now + 0.18);
-            mGain.gain.setValueAtTime(idx === 0 ? 0.22 : 0.16, now);
-            mGain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+            mOsc.frequency.exponentialRampToValueAtTime(freq * 0.96, now + 0.24);
+            mGain.gain.setValueAtTime(0.18 - idx * 0.02, now);
+            mGain.gain.exponentialRampToValueAtTime(0.0005, now + 0.25);
             mOsc.connect(mGain); mGain.connect(audioCtx.destination);
-            mOsc.start(now); mOsc.stop(now + 0.19);
+            mOsc.start(now); mOsc.stop(now + 0.25);
         });
     }
-
 
     else if (type === 'critical') {
         const boomOsc = audioCtx.createOscillator();
@@ -3573,8 +3580,10 @@ triggerCutIn = function(txt) {
 
 
 const _origSpawnHit = spawnHitVisual;
-spawnHitVisual = function(x, y, isSuper) {
-    playSE(isSuper ? 'critical' : 'hit');
+spawnHitVisual = function(x, y, isSuper, silent = false) {
+    if (!silent) {
+        playSE(isSuper ? 'critical' : 'hit');
+    }
     _origSpawnHit.apply(this, arguments);
 };
 
@@ -3583,18 +3592,6 @@ spawnKoBeam = function(x, dir) {
     playSE('burst');
     _origSpawnKoBeam.apply(this, arguments);
 };
-
-window.addEventListener('keydown', (ev) => {
-    if ((ev.key === ' ' || ev.key.toLowerCase() === 'arrowup') && p && !p.onLift && (p.isGrounded || p.airJumpsLeft > 0)) {
-        playSE('jump');
-    }
-});
-['btn-up', 'btn-jump-action'].forEach(id => {
-    const b = document.getElementById(id);
-    if (b) b.addEventListener('touchstart', () => {
-        if (p && !p.onLift && (p.isGrounded || p.airJumpsLeft > 0)) playSE('jump');
-    });
-});
 
 // ==============================================================================
 // 🎵 キャラ選択画面 BGMループ再生システム（バックグラウンド自動停止対応）
