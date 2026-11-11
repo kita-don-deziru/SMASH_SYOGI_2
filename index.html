@@ -27,23 +27,13 @@
 
 
 
-
         #select-screen {
-            padding: 15px; background: linear-gradient(135deg, #1e272e, #485460);
-            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding: 15px 15px 50px 15px;
+            background: linear-gradient(135deg, #1e272e, #485460);
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
         }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4377,6 +4367,13 @@ function checkFriendOnlineStatus(friendId, statusBadgeEl) {
     });
 }
 
+// 🏅 称号をタップしたときに装備を切り替えて画面を再描画する関数
+function equipTitleById(titleId) {
+    localStorage.setItem('smash_shogi_equipped_title', titleId);
+    if (typeof playSE === 'function') playSE('select');
+    renderFriendAndTitleUI();
+}
+
 // 選択画面に「称号切り替え」と「フレンドリスト（オンライン表示付き）」を描画
 function renderFriendAndTitleUI() {
     const roomSection = document.getElementById('custom-room-section');
@@ -4392,11 +4389,17 @@ function renderFriendAndTitleUI() {
 
     const unlocked = getUnlockedTitles();
     const equipped = localStorage.getItem('smash_shogi_equipped_title') || 'novice';
-    const optionsHtml = TITLE_LIST.map(t => {
+    const titleButtonsHtml = TITLE_LIST.map(t => {
         const isOpen = unlocked.includes(t.id);
-        return '<option value="' + t.id + '"' + (t.id === equipped ? ' selected' : '') + (isOpen ? '' : ' disabled') + '>' +
-               (isOpen ? '🏅 ' + t.name : '🔒 ???（未解放）') + '</option>';
+        const isEquipped = (t.id === equipped);
+        if (!isOpen) {
+            return '<div style="padding:4px 8px; margin:2px 0; background:rgba(0,0,0,0.4); color:#7f8c8d; border-radius:4px; font-size:11px;">🔒 ???（未解放）</div>';
+        }
+        return '<button type="button" onclick="equipTitleById(\'' + t.id + '\')" style="display:block; width:100%; text-align:left; padding:5px 8px; margin:2px 0; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer; ' +
+               (isEquipped ? 'background:#ffd32a; color:#000; border:1px solid #fff;' : 'background:#2f3640; color:#fff; border:1px solid #555;') + '">' +
+               (isEquipped ? '✅ 装備中：' : '🏅 ') + t.name + '</button>';
     }).join('');
+
 
     const friends = getFriendList();
     let friendsHtml = friends.length === 0
@@ -4412,9 +4415,11 @@ function renderFriendAndTitleUI() {
         ).join('');
 
     extraBox.innerHTML =
-        '<div style="margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;">' +
-            '<span style="color:#ffd32a; font-weight:bold; font-size:11px;">🏅 装備中の称号：</span>' +
-            '<select id="select-equip-title" style="background:#222; color:#ffd32a; border:1px solid #ffd32a; border-radius:4px; padding:3px 6px; font-size:11px; font-weight:bold;">' + optionsHtml + '</select>' +
+        '<div style="margin-bottom:8px;">' +
+            '<div style="color:#ffd32a; font-weight:bold; font-size:11px; margin-bottom:4px;">🏅 称号一覧（タップで装備・スクロール可）：</div>' +
+            '<div style="max-height:85px; overflow-y:auto; background:rgba(0,0,0,0.35); padding:4px; border-radius:6px; border:1px solid #555;">' +
+                titleButtonsHtml +
+            '</div>' +
         '</div>' +
         '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
             '<span style="color:#00d2ff; font-weight:bold; font-size:11px;">🤝 フレンド一覧（オンライン確認）</span>' +
@@ -4425,13 +4430,6 @@ function renderFriendAndTitleUI() {
         '</div>' +
         friendsHtml;
 
-    const titleSelect = document.getElementById('select-equip-title');
-    if (titleSelect) {
-        titleSelect.onchange = function() {
-            localStorage.setItem('smash_shogi_equipped_title', this.value);
-            playSE('select');
-        };
-    }
 
     // 各フレンドのオンライン状態を自動チェック
     setTimeout(() => {
