@@ -736,6 +736,45 @@
             background: #eb2f06;
             border-color: #ff6b4a;
         }
+        /* 桂SP：大爆発アニメーション用スタイル */
+        .keima-explosion-core {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ffffff 10%, #00d2ff 45%, #ff3f3f 80%, rgba(255,63,63,0) 100%);
+            box-shadow: 0 0 40px #00d2ff, 0 0 80px #ff3f3f;
+            transform: translate(-50%, -50%) scale(0);
+            pointer-events: none;
+            z-index: 45;
+            animation: keimaBoomCore 0.55s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+        }
+        .keima-explosion-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 6px solid #ffffff;
+            box-shadow: 0 0 25px #00d2ff, inset 0 0 20px #00d2ff;
+            transform: translate(-50%, -50%) scale(0);
+            pointer-events: none;
+            z-index: 44;
+            animation: keimaBoomRing 0.6s ease-out forwards;
+        }
+        @keyframes keimaBoomCore {
+            0%   { transform: translate(-50%, -50%) scale(0.1); opacity: 1; }
+            40%  { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+        }
+        @keyframes keimaBoomRing {
+            0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 1; border-width: 10px; }
+            100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; border-width: 1px; }
+        }
+        @keyframes electricFlicker {
+            0%   { opacity: 0.65; filter: drop-shadow(0 0 6px #fff); }
+            25%  { opacity: 1.0;  filter: drop-shadow(0 0 14px #fff); }
+            50%  { opacity: 0.5;  filter: drop-shadow(0 0 4px #fff); }
+            75%  { opacity: 0.95; filter: drop-shadow(0 0 12px #fff); }
+            100% { opacity: 0.7;  filter: drop-shadow(0 0 8px #fff); }
+        }
+
+
 
 
     </style>
@@ -1144,15 +1183,17 @@ function spawnKoBeam(x, dir) {
 
 
 const CHAR_DATA = {
-    pawn: { name: '歩', speed: 3.6, jump: -10.5, weight: 1.0, power: 1.1, range: 42, maxAirJumps: 1, desc: '【大器晩成型】空中ジャンプ1回。5回殴ると『と金』に進化。進化した時1回のみ【X】で金の大爆撃！' },
-    lance: { name: '香', speed: 5.6, jump: -9.5, weight: 0.9, power: 1.2, range: 45, maxAirJumps: 0, desc: '【猪突猛進型】前進特化で空中ジャンプ不可。必殺技【X】で睡眠香霧を放ち王将を完全睡眠へ誘う。' },
-    knight: { name: '桂', speed: 3.4, jump: -14.5, weight: 0.8, power: 1.1, range: 40, maxAirJumps: 1, desc: '【超高跳型】圧倒的跳躍力＋空中ジャンプ1回。必殺技【X】で上空から回避不能の確定スタンビーム！' },
-    silver: { name: '銀', speed: 4.0, jump: -11.5, weight: 1.1, power: 1.2, range: 44, maxAirJumps: 2, desc: '【空中変速型】機動派で空中ジャンプ2回！必殺技【X】で攻撃機動が最強化するが、被ダメが2倍に！' },
-    gold: { name: '金', speed: 2.6, jump: -9.0, weight: 1.6, power: 1.4, range: 43, maxAirJumps: 1, desc: '【重量鉄壁型】重量級＋空中ジャンプ1回。必殺技【X】で全身に結界を張り、受けるダメージを永続半減。' },
-    bishop: { name: '角', speed: 4.4, jump: -12.0, weight: 0.85, power: 1.2, range: 50, maxAirJumps: 3, desc: '【広角鋭利型】斜め移動の王様！破格の空中ジャンプ3回！必殺技【X】で周囲360度を巨大斬撃波で3連回転調理！' },
-    rook: { name: '飛', speed: 3.2, jump: -10.0, weight: 1.3, power: 1.6, range: 56, maxAirJumps: 3, desc: '【超豪腕型】最高火力＋大空を飛ぶ空中ジャンプ3回！必殺技【X】で10秒間攻撃リーチを超大幅延長！' },
-    bow: { name: '弓', speed: 3.8, jump: -11.0, weight: 0.9, power: 0.9, range: 250, maxAirJumps: 1, desc: '【完全遠距離型】空中ジャンプ1回。Zで高速矢を連射、SP満タンの【X】でステージ端まで貫通する特大矢！' }
+    pawn: { name: '歩', speed: 3.6, jump: -10.5, weight: 1.0, power: 1.1, range: 42, maxAirJumps: 1, spGain: 25, cutinColor: '#ffd700', desc: '【大器晩成型】空中ジャンプ1回。5回殴ると『と金』に進化。進化した時1回のみ【X】で金の大爆撃！' },
+    lance: { name: '香', speed: 5.6, jump: -9.5, weight: 0.9, power: 1.2, range: 45, maxAirJumps: 0, spGain: 22, cutinColor: '#a29bfe', desc: '【猪突猛進型】前進特化で空中ジャンプ不可。必殺技【X】で睡眠香霧を放ち王将を完全睡眠へ誘う。' },
+    knight: { name: '桂', speed: 3.4, jump: -14.5, weight: 0.8, power: 1.1, range: 40, maxAirJumps: 1, spGain: 20, cutinColor: '#00d2ff', desc: '【超高跳型】圧倒的跳躍力＋空中ジャンプ1回。必殺技【X】で上空から回避不能の確定スタンビーム！' },
+    bishop: { name: '角', speed: 4.4, jump: -12.0, weight: 0.85, power: 1.2, range: 50, maxAirJumps: 3, spGain: 16, cutinColor: '#1dd1a1', desc: '【広角鋭利型】斜め移動の王様！破格の空中ジャンプ3回！必殺技【X】で周囲360度を巨大斬撃波で3連回転調理！' },
+    bow: { name: '弓', speed: 3.8, jump: -11.0, weight: 0.9, power: 0.9, range: 250, maxAirJumps: 1, spGain: 15, cutinColor: '#ff9f43', desc: '【完全遠距離型】空中ジャンプ1回。Zで高速矢を連射、SP満タンの【X】でステージ端まで貫通する特大矢！' },
+    rook: { name: '飛', speed: 3.2, jump: -10.0, weight: 1.3, power: 1.6, range: 56, maxAirJumps: 3, spGain: 12.5, cutinColor: '#ff3f3f', desc: '【超豪腕型】最高火力＋大空を飛ぶ空中ジャンプ3回！必殺技【X】で10秒間攻撃リーチを超大幅延長！' },
+    silver: { name: '銀', speed: 4.0, jump: -11.5, weight: 1.1, power: 1.2, range: 44, maxAirJumps: 2, spGain: 11, cutinColor: '#ff6b81', desc: '【空中変速型】機動派で空中ジャンプ2回！必殺技【X】で攻撃機動が最強化するが、被ダメが2倍に！' },
+    gold: { name: '金', speed: 2.6, jump: -9.0, weight: 1.6, power: 1.4, range: 43, maxAirJumps: 1, spGain: 10, cutinColor: '#feca57', desc: '【重量鉄壁型】重量級＋空中ジャンプ1回。必殺技【X】で全身に結界を張り、受けるダメージを永続半減。' }
 };
+
+
 
 
 
@@ -1617,7 +1658,8 @@ function triggerPlayerAttack() {
                 e.knockbackTimer = Math.min(50, Math.floor(12 + e.dmg * 0.15));
                 
                 if (enemySleepTimer <= 0 && enemyStunTimer <= 0) e.dir = -p.dir;
-                if (p.spGauge < 100) { p.spGauge = Math.min(100, p.spGauge + 14.3); updateSPBar(); }
+                if (p.spGauge < 100) { p.spGauge = Math.min(100, p.spGauge + (CHAR_DATA[selectedCharKey].spGain || 14.3)); updateSPBar(); }
+
                 spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, e.dmg > 80);
 
 
@@ -1658,9 +1700,18 @@ function triggerPlayerAttack() {
 
 function triggerPlayerSpecial() {
     if (p.spGauge < 100 || p.onLift || !xReleased) return;
+    if (selectedCharKey === 'pawn' && !p.isPromoted) {
+        triggerCutIn('5回攻撃して「と金」に進化せよ！');
+        return;
+    }
+    if (selectedCharKey === 'pawn' && p.usedPawnSuper) {
+        triggerCutIn('と金奥義は1ストック1回まで！');
+        return;
+    }
     xReleased = false;
     if (selectedCharKey === 'pawn' && p.isPromoted && !p.usedPawnSuper) {
         p.usedPawnSuper = true; p.spGauge = 0; updateSPBar(); triggerCutIn('秘技・金駒大散布爆撃！');
+
         if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '秘技・金駒大散布爆撃！', effect: 'none' });
         for (let i=0; i<8; i++) {
             setTimeout(() => { spawnProjectile('coin-bomb', p.x + 18, p.y, p.dir, p.dir * (3 + Math.random()*5), -4 - Math.random()*5); }, i * 80);
@@ -1681,16 +1732,58 @@ function triggerPlayerSpecial() {
         }
     }
     else if (selectedCharKey === 'knight') {
-        p.spGauge = 0; updateSPBar(); triggerCutIn('成桂：極太天罰レーザー！');
-        if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '成桂：極太天罰レーザー！', effect: 'laser' });
-        const laser = document.getElementById('keima-laser'); laser.style.left = (e.x - 2) + 'px'; laser.style.display = 'block'; laser.style.opacity = '1';
-        setTimeout(() => { laser.style.opacity = '0'; setTimeout(() => { laser.style.display = 'none'; }, 100); }, 300);
-        if(e.invulnTimer <= 0 && !e.onLift){
-            e.dmg += 18.5; document.getElementById('ui-e-dmg').textContent = e.dmg + '%'; enemyStunTimer = 180; enemySleepTimer = 0; e.vx = 0; e.vy = 0;
-            const bubble = document.getElementById('e-status-bubble'); bubble.textContent = '⚡スタン⚡'; bubble.style.display = 'block'; spawnHitVisual(e.x + 20, e.y + 20, true);
-            if (typeof sendActionToEnemy === 'function') sendActionToEnemy('status', { statusType: 'stun', duration: 180, dmg: 18.5 });
+        p.spGauge = 0; updateSPBar();
+        triggerCutIn('成桂：天罰雷光レーザー＆大爆発！');
+
+        // ターゲット座標（相手がステージ内にいれば相手の位置、外なら自分の前方の地面）
+        let targetX = (e.x >= 50 && e.x <= 550) ? (e.x + 20) : (p.x + 18 + p.dir * 90);
+        let targetY = (e.x >= 50 && e.x <= 550 && Math.abs(e.y - 208) < 120) ? (e.y + 23) : 245;
+
+        if (typeof sendActionToEnemy === 'function') {
+            sendActionToEnemy('cutin', { text: '成桂：天罰雷光レーザー＆大爆発！', effect: 'laser_boom', tx: targetX, ty: targetY });
         }
+
+        // 1. 極太レーザー照射
+        const laser = document.getElementById('keima-laser');
+        if (laser) {
+            laser.style.left = (targetX - 22) + 'px';
+            laser.style.height = targetY + 'px';
+            laser.style.display = 'block';
+            laser.style.opacity = '1';
+            setTimeout(() => {
+                laser.style.opacity = '0';
+                setTimeout(() => { laser.style.display = 'none'; laser.style.height = '380px'; }, 120);
+            }, 320);
+        }
+
+        // 2. 着弾（0.18秒後）で地面or駒に大爆発発生！
+        setTimeout(() => {
+            if (typeof spawnKeimaExplosion === 'function') spawnKeimaExplosion(targetX, targetY);
+
+            // 爆発範囲（半径115px以内）に相手がいればレーザー＋爆発の特大ダメージ＆吹っ飛び
+            let distToBoom = Math.hypot((e.x + 20) - targetX, (e.y + 23) - targetY);
+            if (e.invulnTimer <= 0 && !e.onLift && distToBoom < 115) {
+                let totalDmg = 28; // レーザー(14) + 爆発(14) の合計ダメージ
+                e.dmg += totalDmg;
+                document.getElementById('ui-e-dmg').textContent = e.dmg + '%';
+                enemyStunTimer = 150;
+                enemySleepTimer = 0;
+                let boomDir = (e.x + 20 >= targetX) ? 1 : -1;
+                let kbScale = (6.5 + (e.dmg * 0.16)) / e.weight;
+                e.vx = boomDir * kbScale;
+                e.vy = -(5.5 + (e.dmg * 0.1)) / e.weight;
+                e.knockbackTimer = 28;
+
+                const bubble = document.getElementById('e-status-bubble');
+                if (bubble) { bubble.textContent = '⚡爆砕スタン⚡'; bubble.style.display = 'block'; }
+                spawnHitVisual(e.x + 20, e.y + 20, true);
+
+                if (typeof sendHitToEnemy === 'function') sendHitToEnemy(totalDmg, e.vx, e.vy, 28);
+                if (typeof sendActionToEnemy === 'function') sendActionToEnemy('status', { statusType: 'stun', duration: 150, dmg: 0 });
+            }
+        }, 180);
     }
+
 
     else if (selectedCharKey === 'silver') {
         p.spGauge = 0; updateSPBar(); p.silverMode = true; triggerCutIn('成銀：修羅修羅の境地！');
@@ -1703,29 +1796,48 @@ function triggerPlayerSpecial() {
         if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '金剛鉄壁：八方結界陣！', effect: 'none' });
         document.getElementById('p-shield').style.display = 'block'; document.getElementById('ui-p-status').textContent = '【鉄壁: 攻撃1.5倍・被ダメ永続半減】';
         p.power = 1.8;
-    }
-    else if (selectedCharKey === 'bishop') {
+    }    
+else if (selectedCharKey === 'bishop') {
         p.spGauge = 0; updateSPBar(); triggerCutIn('竜馬：三連真・円月斬！');
         if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '竜馬：三連真・円月斬！', effect: 'wave' });
         let waves = [document.getElementById('s-wave-1'), document.getElementById('s-wave-2'), document.getElementById('s-wave-3')];
         waves.forEach((w, idx) => {
             setTimeout(() => {
-                w.style.left = (p.x + 18) + 'px'; w.style.top = (p.y + 21) + 'px'; w.style.display = 'block'; w.style.opacity = '1'; w.style.transform = 'translate(-50%, -50%) scale(2.2)'; w.style.transition = 'transform 0.25s, opacity 0.25s';
-                setTimeout(() => { w.style.opacity = '0'; w.style.transform = 'translate(-50%, -50%) scale(0)'; }, 250);
-if(e.invulnTimer<=0 && !e.onLift && Math.hypot((p.x + 18) - (e.x + 20), (p.y + 21) - (e.y + 23)) < 110) {
-    let dmgDeal = 20.5;
-    e.dmg += dmgDeal; 
-    document.getElementById('ui-e-dmg').textContent = e.dmg + '%'; 
-    e.vx = (e.x > p.x ? 1 : -1) * 6; 
-    e.vy = -4; 
-    spawnHitVisual(e.x + 20, e.y + 23, true);
-    // ✅ これを追加して相手側にも吹っ飛びとダメージを伝える
-    if (typeof sendHitToEnemy === 'function') sendHitToEnemy(dmgDeal, e.vx, e.vy, 20);
-}
+                if (!w) return;
+                w.style.transition = 'none';
+                w.style.left = (p.x + 18) + 'px';
+                w.style.top = (p.y + 21) + 'px';
+                w.style.width = '80px';
+                w.style.height = '80px';
+                w.style.transform = 'translate(-50%, -50%) scale(0)';
+                w.style.opacity = '1';
+                w.style.display = 'block';
 
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        w.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
+                        w.style.transform = 'translate(-50%, -50%) scale(2.2)';
+                        setTimeout(() => {
+                            w.style.opacity = '0';
+                            setTimeout(() => { w.style.display = 'none'; }, 250);
+                        }, 150);
+                    });
+                });
+
+                if (e.invulnTimer <= 0 && !e.onLift && Math.hypot((p.x + 18) - (e.x + 20), (p.y + 21) - (e.y + 23)) < 110) {
+                    let dmgDeal = 20.5;
+                    e.dmg += dmgDeal;
+                    document.getElementById('ui-e-dmg').textContent = e.dmg + '%';
+                    e.vx = (e.x > p.x ? 1 : -1) * 6;
+                    e.vy = -4;
+                    spawnHitVisual(e.x + 20, e.y + 23, true);
+                    if (typeof sendHitToEnemy === 'function') sendHitToEnemy(dmgDeal, e.vx, e.vy, 20);
+                }
             }, idx * 180);
         });
     }
+
+
     else if (selectedCharKey === 'rook') {
         p.spGauge = 0; updateSPBar(); flySpecialActive = true; flySpecialTimer = 600; triggerCutIn('竜王：十秒間・神滅大伸刀！');
         if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '竜王：十秒間・神滅大伸刀！', effect: 'none' });
@@ -1792,10 +1904,10 @@ function executeGameStart() {
 
 
 
-    // プレイヤーの初期設定（hitCountの重複や最初からと金になっていた重大バグを完全修復）
-    p = {
-        x: startLeft ? 150 : 410, y: 212, vx: 0, vy: 0, dmg: 0, isGrounded: true, dir: startLeft ? 1 : -1, stocks: 3, spGauge: 0,
-        isPromoted: false, hitCount: 0, speed: c.speed, jump: c.jump, weight: c.weight, power: c.power, range: c.range,
+       p = {
+        x: startLeft ? 150 : 410, y: 211, vx: 0, vy: 0, dmg: 0, isGrounded: true, dir: startLeft ? 1 : -1, stocks: 3, spGauge: 0,
+        isPromoted: false, usedPawnSuper: false, silverMode: false, goldMode: false, hitCount: 0,
+        speed: c.speed, jump: c.jump, weight: c.weight, power: c.power, range: c.range,
         passThroughTimer: 0, invulnTimer: 0, onLift: false, liftTimer: 0, attacking: 0
     };
     e = {
@@ -1803,136 +1915,69 @@ function executeGameStart() {
         cooldown: 0, speed: 2.3, jump: -9.5, weight: 1.4, power: 1.3, range: 45, invulnTimer: 0, onLift: false, liftTimer: 0, attacking: 0
     };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    flySpecialActive = false; flySpecialTimer = 0; projectiles = []; enemyWasAirAttacking = false; enemyAirAttackFrameCount = 0;
+    // 前試合の状態異常・バフ・飛び道具をすべてリセット
+    enemySleepTimer = 0; enemyStunTimer = 0; myStatusTimer = 0;
+    flySpecialActive = false; flySpecialTimer = 0;
+    document.querySelectorAll('.projectile').forEach(el => el.remove());
+    projectiles = [];
+    enemyWasAirAttacking = false; enemyAirAttackFrameCount = 0;
     matchStartTime = Date.now(); matchElapsedTime = 0;
 
+    // 自分と相手の見た目・武器サイズ・オーラを初期状態に戻す
+    const pEl = document.getElementById('player-fighter');
+    if (pEl) { pEl.style.background = '#ffebc2'; pEl.style.color = '#000'; pEl.style.boxShadow = 'inset 0 0 0 1px #000'; }
+    const pWp = document.getElementById('player-weapon');
+    if (pWp) { pWp.style.background = '#e0e0e0'; pWp.style.boxShadow = 'none'; pWp.style.width = '22px'; pWp.style.transform = 'rotate(0deg)'; }
+    const eWp = document.getElementById('enemy-weapon');
+    if (eWp) { eWp.style.background = '#e74c3c'; eWp.style.boxShadow = 'none'; eWp.style.width = '22px'; eWp.style.transform = 'rotate(0deg)'; }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    const pEl = document.getElementById('player-fighter'); if (pEl) { pEl.style.background = '#ffebc2'; pEl.style.color = '#000'; pEl.style.boxShadow = 'inset 0 0 0 1px #000'; }
-    document.getElementById('p-aura').style.display = 'none'; document.getElementById('p-shield').style.display = 'none'; document.getElementById('e-status-bubble').style.display = 'none';
+    document.getElementById('p-aura').style.display = 'none';
+    document.getElementById('p-shield').style.display = 'none';
+    const eAura = document.getElementById('e-aura'); if (eAura) eAura.style.display = 'none';
+    const eShield = document.getElementById('e-shield'); if (eShield) eShield.style.display = 'none';
+    document.getElementById('p-status-bubble').style.display = 'none';
+    document.getElementById('e-status-bubble').style.display = 'none';
     document.getElementById('ui-p-status').textContent = '';
+    const eStatusUi = document.getElementById('ui-e-status'); if (eStatusUi) eStatusUi.textContent = '';
     
-    // ✨ こう書き換えてください（コピペOK）
+    const eF = document.getElementById('enemy-fighter');
     if (gameMode === 'offline') {
-        // オフライン（VS CPU）のときだけBOTを1人生成します
         let chosenBoss = BOSS_DATA[Math.floor(Math.random() * BOSS_DATA.length)];
         document.getElementById('ui-e-name').textContent = chosenBoss.name; 
         document.getElementById('e-text').textContent = chosenBoss.text;
-        const eF = document.getElementById('enemy-fighter'); 
-        if (eF) eF.style.background = chosenBoss.color;
+        if (eF) {
+            eF.style.width = '40px'; eF.style.height = '46px'; eF.style.fontSize = '18px';
+            eF.style.background = chosenBoss.color; eF.style.color = '#b32727';
+            eF.style.boxShadow = 'inset 0 0 0 1px #b32727';
+        }
         e.speed = chosenBoss.speed; e.jump = chosenBoss.jump; e.weight = chosenBoss.weight; e.power = chosenBoss.power; e.range = chosenBoss.range;
-      } else {
+    } else {
+        // オンライン時は相手もプレイヤーと同じ駒サイズ・デザインに統一
         document.getElementById('ui-e-name').textContent = "対戦相手"; 
         document.getElementById('e-text').textContent = "敵";
-        const eF = document.getElementById('enemy-fighter');
-        if (eF) eF.style.background = '#ffd27f';
+        if (eF) {
+            eF.style.width = '36px'; eF.style.height = '42px'; eF.style.fontSize = '16px';
+            eF.style.background = '#ffd27f'; eF.style.color = '#000';
+            eF.style.boxShadow = 'inset 0 0 0 1px #000';
+        }
     }
 
-
-
-
-
-
-
-
-
-       updateUI(); setupTouchControls();
+    resetAllKeyStates();
+    updateUI();
+    setupTouchControls();
     const overlay = document.getElementById('touch-pad-overlay'); if (overlay) overlay.style.display = 'block';
-    window.addEventListener('keydown', handleKeyDown); window.addEventListener('keyup', handleKeyUp);
     
-    // 💡【大熱戦の演出復活】：バトルが始まった瞬間に「乱闘開始！」と大きく表示させます！
+    // 多重登録防止のため一度削除してから登録
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
     if (typeof triggerCutIn === 'function') triggerCutIn('乱闘開始！！');
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (gameTimer) clearInterval(gameTimer); gameTimer = setInterval(updateFrame, 1000 / 60);
+    if (gameTimer) clearInterval(gameTimer);
+    gameTimer = setInterval(updateFrame, 1000 / 60);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2118,32 +2163,39 @@ function updateFrame() {
 
         let hit = false;
         if (!proj.isEnemy) {
-            // 自分の弾が相手に当たった場合
+            // 自分の弾が相手に当たった場合（撃った側がダメージと吹っ飛びを確定）
             if (e.invulnTimer <= 0 && !e.onLift && Math.abs(proj.x - (e.x + 20)) < 25 && Math.abs(proj.y - (e.y + 20)) < 30) {
-                let dmg = (proj.type === 'hyper-arrow') ? 22 : ((proj.type === 'coin-bomb') ? 12 : 5);
-                e.dmg += Math.floor(dmg * p.power);
+                let baseDmg = (proj.type === 'hyper-arrow') ? 22 : ((proj.type === 'coin-bomb') ? 12 : 5);
+                let dmgDeal = Math.floor(baseDmg * p.power);
+                e.dmg += dmgDeal;
                 let kb = (proj.type === 'hyper-arrow') ? 8 : ((proj.type === 'coin-bomb') ? 5 : 2);
-                e.vx = proj.dir * (kb + e.dmg * 0.1) / e.weight; e.vy = -3 / e.weight; e.knockbackTimer = 20;
-                
-                // 通常矢やコイン爆弾のヒット時にSPゲージを少し溜める
+                e.vx = proj.dir * (kb + e.dmg * 0.1) / e.weight;
+                e.vy = -3 / e.weight;
+                e.knockbackTimer = 20;
+
+                // オンライン対戦時は相手にダメージと吹っ飛びを送信
+                if (gameMode === 'online' && isMatched && typeof sendHitToEnemy === 'function') {
+                    sendHitToEnemy(dmgDeal, e.vx, e.vy, 20);
+                }
+
+                // 通常矢やコイン爆弾のヒット時にSPゲージを溜める
                 if (proj.type !== 'hyper-arrow' && p.spGauge < 100) {
-                    p.spGauge = Math.min(100, p.spGauge + 10);
+                    p.spGauge = Math.min(100, p.spGauge + (CHAR_DATA[selectedCharKey].spGain || 12));
                     updateSPBar();
                 }
-                
-                spawnHitVisual(proj.x, proj.y, proj.type !== 'arrow'); hit = true;
+
+                updateUI();
+                spawnHitVisual(proj.x, proj.y, proj.type !== 'arrow');
+                hit = true;
             }
         } else {
-            // 相手の弾が自分に当たった場合
+            // 相手の弾（見た目用）が自分に重なったら画面から消す（ダメージは相手の hit パケットで同期）
             if (p.invulnTimer <= 0 && !p.onLift && Math.abs(proj.x - (p.x + 18)) < 25 && Math.abs(proj.y - (p.y + 20)) < 30) {
-                let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
-                let dmg = (proj.type === 'hyper-arrow') ? 22 : ((proj.type === 'coin-bomb') ? 12 : 5);
-                p.dmg += Math.floor(dmg * dmgFactor);
-                let kb = (proj.type === 'hyper-arrow') ? 8 : ((proj.type === 'coin-bomb') ? 5 : 2);
-                p.vx = proj.dir * (kb + p.dmg * 0.1) / p.weight; p.vy = -3 / p.weight; p.knockbackTimer = 20;
-                spawnHitVisual(proj.x, proj.y, proj.type !== 'arrow'); updateUI(); hit = true;
+                hit = true;
             }
         }
+
+
 
         if (proj.x < -100 || proj.x > 700 || proj.y > 500 || hit) { proj.el.remove(); projectiles.splice(i, 1); }
     }
@@ -2156,8 +2208,11 @@ function updateFrame() {
         p.stocks--;
         
         if (gameMode === 'online' && isMatched && typeof broadcastMultiplayerData === 'function') {
+            netSendCounter = 1; // 間引きをスキップして即座に残機減少を送信
             broadcastMultiplayerData();
         }
+
+
                 if (p.stocks <= 0) { 
             if (gameMode === 'online' && isMatched && dataConnection && dataConnection.open) {
                 dataConnection.send({ type: 'gameover' });
@@ -2171,7 +2226,7 @@ function updateFrame() {
         }
     }
 
-    if (e.y > 410 || e.x < -40 || e.x > 620) {
+    if (gameMode === 'offline' && (e.y > 410 || e.x < -40 || e.x > 620)) {
         let eDir = e.x < 200 ? -1 : 1;
         spawnKoBeam(Math.max(30, Math.min(570, e.x)), eDir);
         spawnHitVisual(Math.max(10, Math.min(590, e.x)), Math.max(10, Math.min(370, e.y)), true);
@@ -2187,13 +2242,34 @@ function updateFrame() {
     }
 
     // 8. 最終的なHTML要素への座標反映
-     const pEl = document.getElementById('player-fighter');
+    const pEl = document.getElementById('player-fighter');
     if (pEl) { pEl.style.left = p.x + 'px'; pEl.style.top = p.y + 'px'; pEl.style.opacity = (p.invulnTimer % 6 > 3) ? '0.4' : '1'; }
+    const pWp = document.getElementById('player-weapon');
+    if (pWp) {
+        let wpW = parseFloat(pWp.style.width) || 22;
+        if (p.dir === 1) {
+            pWp.style.left = 'auto'; pWp.style.right = (-wpW) + 'px'; pWp.style.transformOrigin = 'left center';
+        } else {
+            pWp.style.right = 'auto'; pWp.style.left = (-wpW) + 'px'; pWp.style.transformOrigin = 'right center';
+        }
+    }
+
     const eEl = document.getElementById('enemy-fighter');
     if (eEl) {
         eEl.style.left = e.x + 'px'; eEl.style.top = e.y + 'px'; eEl.style.opacity = (e.invulnTimer % 6 > 3) ? '0.4' : '1';
         if (gameMode === 'online' && Math.abs(e.vx) > 0.1) { e.dir = e.vx > 0 ? 1 : -1; }
     }
+    const eWp = document.getElementById('enemy-weapon');
+    if (eWp) {
+        let eWpW = parseFloat(eWp.style.width) || 22;
+        if (e.dir === 1) {
+            eWp.style.left = 'auto'; eWp.style.right = (-eWpW) + 'px'; eWp.style.transformOrigin = 'left center';
+        } else {
+            eWp.style.right = 'auto'; eWp.style.left = (-eWpW) + 'px'; eWp.style.transformOrigin = 'right center';
+        }
+    }
+
+
     const pLift = document.getElementById('player-lift'); if (pLift && p.onLift) pLift.style.left = (p.x - 7) + 'px';
     const eLift = document.getElementById('enemy-lift'); if (eLift && e.onLift) eLift.style.left = (e.x - 5) + 'px';
 
@@ -2285,9 +2361,14 @@ function setupRespawn(char, isPlayer) {
         liftEl.style.display = 'block';
     }
     
+    if (isPlayer) {
+        char.usedPawnSuper = false;
+    }
     char.hasAirJumped = false;
     char.airJumpsLeft = CHAR_DATA[selectedCharKey].maxAirJumps;
     updateUI();
+
+
 }
 
 
@@ -2610,8 +2691,9 @@ function setupConnection(conn) {
                 for(let i=0; i<data.stocks; i++) st += '●';
                 uiStocks.textContent = st;
             }
-        } else if (data.type === 'hit') {
-            p.dmg += data.dmgDeal;
+         } else if (data.type === 'hit') {
+            let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
+            p.dmg += Math.floor(data.dmgDeal * dmgFactor);
             p.vx = data.vx;
             p.vy = data.vy;
             p.knockbackTimer = data.knockbackTimer;
@@ -2619,6 +2701,8 @@ function setupConnection(conn) {
             spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, p.dmg > 80);
             updateUI();
         } else if (data.type === 'action') {
+
+
             if (data.actionType === 'projectile') {
                 spawnEnemyProjectile(data.payload.pType, data.payload.x, data.payload.y, data.payload.dir, data.payload.vx, data.payload.vy);
             } else if (data.actionType === 'cutin') {
@@ -2634,16 +2718,35 @@ function setupConnection(conn) {
                     waves.forEach((w, idx) => {
                         setTimeout(() => {
                             if (!w) return;
-                            w.style.left = (e.x + 18) + 'px'; w.style.top = (e.y + 21) + 'px'; w.style.display = 'block'; w.style.opacity = '1'; w.style.transform = 'translate(-50%, -50%) scale(2.2)';
-                            setTimeout(() => { w.style.opacity = '0'; w.style.transform = 'translate(-50%, -50%) scale(0)'; }, 250);
+                            w.style.transition = 'none';
+                            w.style.left = (e.x + 18) + 'px';
+                            w.style.top = (e.y + 21) + 'px';
+                            w.style.width = '80px';
+                            w.style.height = '80px';
+                            w.style.transform = 'translate(-50%, -50%) scale(0)';
+                            w.style.opacity = '1';
+                            w.style.display = 'block';
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
+                                    w.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
+                                    w.style.transform = 'translate(-50%, -50%) scale(2.2)';
+                                    setTimeout(() => {
+                                        w.style.opacity = '0';
+                                        setTimeout(() => { w.style.display = 'none'; }, 250);
+                                    }, 150);
+                                });
+                            });
                         }, idx * 180);
                     });
                 }
+
+
             } else if (data.actionType === 'status') {
                 myStatusTimer = data.payload.duration;
                 p.vx = 0; p.vy = 0;
                 if (data.payload.dmg > 0) {
-                    p.dmg += data.payload.dmg;
+                    let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
+                    p.dmg += Math.floor(data.payload.dmg * dmgFactor);
                     spawnHitVisual(p.x + 18, p.y + 20, true);
                     updateUI();
                 }
@@ -2775,7 +2878,7 @@ function injectOnlineRoomUI() {
         if (!targetPeerId) { alert("相手の対戦IDを入力してください！"); return; }
         
         const statusTxt = document.getElementById('room-status-text');
-        if (statusTxt) statusTxt.textContent = "相手（" + targetPeerId + "）のパソコンに直接電波を繋いでしています...";
+        if (statusTxt) statusTxt.textContent = "相手（" + targetPeerId + "）の端末に直接電波を繋いでいます...";
         
         myRole = 'guest';
         gameMode = 'online';
@@ -2889,7 +2992,12 @@ setTimeout(() => {
         if (!btn) return;
         const startAction = (e) => { 
             e.preventDefault(); 
-            keys[targetKey] = true; 
+            if (targetKey === ' ') {
+                spaceReleased = true;
+                keys[' '] = true;
+            } else {
+                keys[targetKey] = true;
+            }
             if (targetKey === 'z') { zReleased = true; triggerPlayerAttack(); }
             if (targetKey === 'x') { xReleased = true; triggerPlayerSpecial(); }
         };
@@ -2900,6 +3008,9 @@ setTimeout(() => {
             if (targetKey === 'z') zReleased = true; 
             if (targetKey === 'x') xReleased = true; 
         };
+
+
+
         btn.addEventListener('touchstart', startAction, { passive: false }); btn.addEventListener('touchend', endAction, { passive: false });
         btn.addEventListener('mousedown', startAction); btn.addEventListener('mouseup', endAction); btn.addEventListener('mouseleave', endAction);
     };
@@ -2927,7 +3038,71 @@ setTimeout(() => {
     if (typeof checkOrientation === 'function') checkOrientation();
 }, 200);
 // ==============================================================================
-// 🔊 Web Audio API 効果音（SE）システム==============================================================================
+// 💥 桂SP：大爆発アニメーション生成関数
+// ==============================================================================
+function spawnKeimaExplosion(x, y) {
+    const stage = document.getElementById('battle-stage');
+    if (!stage) return;
+
+    if (typeof playSE === 'function') playSE('burst');
+    if (typeof triggerCameraShake === 'function') triggerCameraShake();
+
+    const core = document.createElement('div');
+    core.className = 'keima-explosion-core';
+    core.style.left = x + 'px';
+    core.style.top = y + 'px';
+    core.style.width = '140px';
+    core.style.height = '140px';
+    stage.appendChild(core);
+
+    for (let r = 0; r < 2; r++) {
+        setTimeout(() => {
+            const ring = document.createElement('div');
+            ring.className = 'keima-explosion-ring';
+            ring.style.left = x + 'px';
+            ring.style.top = y + 'px';
+            ring.style.width = '110px';
+            ring.style.height = '110px';
+            stage.appendChild(ring);
+            setTimeout(() => ring.remove(), 650);
+        }, r * 90);
+    }
+
+    const colors = ['#ffffff', '#00d2ff', '#ffd32a', '#ff3f3f'];
+    for (let i = 0; i < 30; i++) {
+        const spark = document.createElement('div');
+        spark.className = 'particle';
+        let sz = Math.random() * 8 + 4;
+        spark.style.width = sz + 'px';
+        spark.style.height = sz + 'px';
+        spark.style.background = colors[i % colors.length];
+        spark.style.boxShadow = '0 0 8px ' + colors[i % colors.length];
+        spark.style.left = x + 'px';
+        spark.style.top = y + 'px';
+        stage.appendChild(spark);
+
+        let ang = Math.random() * Math.PI * 2;
+        let spd = Math.random() * 11 + 4;
+        let vx = Math.cos(ang) * spd;
+        let vy = Math.sin(ang) * spd - 2;
+        let op = 1.0;
+
+        let t = setInterval(() => {
+            spark.style.left = (parseFloat(spark.style.left) + vx) + 'px';
+            spark.style.top = (parseFloat(spark.style.top) + vy) + 'px';
+            vx *= 0.94;
+            vy += 0.25;
+            op -= 0.045;
+            spark.style.opacity = op;
+            if (op <= 0) { clearInterval(t); spark.remove(); }
+        }, 1000 / 60);
+    }
+
+    setTimeout(() => core.remove(), 600);
+}
+// ==============================================================================
+// 🔊 Web Audio API 効果音（キュイーン⤴ 0.7秒 ＋ 電流ジジジ 2.0秒対応）
+// ==============================================================================
 let audioCtx = null;
 
 function initAudio() {
@@ -2946,12 +3121,10 @@ function playSE(type) {
     const now = audioCtx.currentTime;
 
     if (type === 'title_start') {
-        // タイトル画面決定音（鋭い高音スイープ＋金属的なシャキーン音）
         const osc1 = audioCtx.createOscillator();
         const osc2 = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc1.type = 'sawtooth';
-        osc2.type = 'sine';
+        osc1.type = 'sawtooth'; osc2.type = 'sine';
         osc1.frequency.setValueAtTime(1200, now);
         osc1.frequency.exponentialRampToValueAtTime(2800, now + 0.08);
         osc1.frequency.exponentialRampToValueAtTime(1800, now + 0.35);
@@ -2986,38 +3159,108 @@ function playSE(type) {
         osc.start(now); osc.stop(now + 0.15);
     }
     else if (type === 'swing') {
-        const osc = audioCtx.createOscillator();
+        const bufferSize = Math.floor(audioCtx.sampleRate * 0.12);
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass'; filter.Q.value = 2.5;
+        filter.frequency.setValueAtTime(1800, now);
+        filter.frequency.exponentialRampToValueAtTime(450, now + 0.11);
         const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(300, now);
-        osc.frequency.exponentialRampToValueAtTime(90, now + 0.08);
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.09);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+        noise.start(now); noise.stop(now + 0.12);
     }
-    else if (type === 'hit' || type === 'critical') {
-        const isCrit = (type === 'critical');
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = isCrit ? 'sawtooth' : 'square';
-        osc.frequency.setValueAtTime(isCrit ? 180 : 240, now);
-        osc.frequency.exponentialRampToValueAtTime(isCrit ? 35 : 60, now + (isCrit ? 0.28 : 0.12));
-        gain.gain.setValueAtTime(isCrit ? 0.45 : 0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + (isCrit ? 0.3 : 0.13));
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + (isCrit ? 0.3 : 0.13));
+    else if (type === 'hit') {
+        const subOsc = audioCtx.createOscillator();
+        const subGain = audioCtx.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(160, now);
+        subOsc.frequency.exponentialRampToValueAtTime(42, now + 0.14);
+        subGain.gain.setValueAtTime(0.5, now);
+        subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        subOsc.connect(subGain); subGain.connect(audioCtx.destination);
+        subOsc.start(now); subOsc.stop(now + 0.15);
+
+        const slashOsc = audioCtx.createOscillator();
+        const slashGain = audioCtx.createGain();
+        slashOsc.type = 'sawtooth';
+        slashOsc.frequency.setValueAtTime(980, now);
+        slashOsc.frequency.exponentialRampToValueAtTime(180, now + 0.1);
+        slashGain.gain.setValueAtTime(0.28, now);
+        slashGain.gain.exponentialRampToValueAtTime(0.01, now + 0.11);
+        slashOsc.connect(slashGain); slashGain.connect(audioCtx.destination);
+        slashOsc.start(now); slashOsc.stop(now + 0.11);
     }
-    else if (type === 'special') {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(950, now + 0.35);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.4);
+    else if (type === 'critical') {
+        const boomOsc = audioCtx.createOscillator();
+        const boomGain = audioCtx.createGain();
+        boomOsc.type = 'triangle';
+        boomOsc.frequency.setValueAtTime(130, now);
+        boomOsc.frequency.exponentialRampToValueAtTime(24, now + 0.38);
+        boomGain.gain.setValueAtTime(0.7, now);
+        boomGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        boomOsc.connect(boomGain); boomGain.connect(audioCtx.destination);
+        boomOsc.start(now); boomOsc.stop(now + 0.4);
+
+        const ringOsc = audioCtx.createOscillator();
+        const ringGain = audioCtx.createGain();
+        ringOsc.type = 'sine';
+        ringOsc.frequency.setValueAtTime(2200, now);
+        ringOsc.frequency.exponentialRampToValueAtTime(3400, now + 0.08);
+        ringOsc.frequency.exponentialRampToValueAtTime(1600, now + 0.35);
+        ringGain.gain.setValueAtTime(0.3, now);
+        ringGain.gain.exponentialRampToValueAtTime(0.01, now + 0.36);
+        ringOsc.connect(ringGain); ringGain.connect(audioCtx.destination);
+        ringOsc.start(now); ringOsc.stop(now + 0.36);
+    }
+    else if (type === 'special_cutin') {
+        const kyuOsc = audioCtx.createOscillator();
+        const kyuOsc2 = audioCtx.createOscillator();
+        const kyuGain = audioCtx.createGain();
+        kyuOsc.type = 'sine';
+        kyuOsc2.type = 'triangle';
+        kyuOsc.frequency.setValueAtTime(380, now);
+        kyuOsc.frequency.exponentialRampToValueAtTime(3200, now + 0.65);
+        kyuOsc2.frequency.setValueAtTime(570, now);
+        kyuOsc2.frequency.exponentialRampToValueAtTime(4800, now + 0.65);
+        kyuGain.gain.setValueAtTime(0.05, now);
+        kyuGain.gain.linearRampToValueAtTime(0.38, now + 0.25);
+        kyuGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+        kyuOsc.connect(kyuGain); kyuOsc2.connect(kyuGain); kyuGain.connect(audioCtx.destination);
+        kyuOsc.start(now); kyuOsc2.start(now);
+        kyuOsc.stop(now + 0.7); kyuOsc2.stop(now + 0.7);
+
+        const elecDuration = 2.0;
+        const bufLen = Math.floor(audioCtx.sampleRate * elecDuration);
+        const elecBuf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+        const chData = elecBuf.getChannelData(0);
+        for (let i = 0; i < bufLen; i++) {
+            let pulse = (i % 420 < 90) ? 1.0 : 0.25;
+            chData[i] = (Math.random() * 2 - 1) * pulse;
+        }
+        const elecSrc = audioCtx.createBufferSource();
+        elecSrc.buffer = elecBuf;
+
+        const bpFilter = audioCtx.createBiquadFilter();
+        bpFilter.type = 'bandpass';
+        bpFilter.frequency.setValueAtTime(2400, now);
+        bpFilter.Q.value = 3.0;
+
+        const elecGain = audioCtx.createGain();
+        elecGain.gain.setValueAtTime(0.22, now);
+        elecGain.gain.setValueAtTime(0.22, now + 1.92);
+        elecGain.gain.linearRampToValueAtTime(0.0, now + elecDuration);
+
+        elecSrc.connect(bpFilter);
+        bpFilter.connect(elecGain);
+        elecGain.connect(audioCtx.destination);
+        elecSrc.start(now);
+        elecSrc.stop(now + elecDuration);
     }
     else if (type === 'burst') {
         const bufferSize = audioCtx.sampleRate * 0.5;
@@ -3038,70 +3281,197 @@ function playSE(type) {
     }
 }
 
-// --- 既存関数に効果音とバグ修正を自動フック ---
+// ==============================================================================
+// ⚡ 参考画像デザイン完全再現・斜め集中線カットイン演出（2.0秒・カメラズーム対応）
+// ==============================================================================
+function showSpecialCharacterCutIn(charKey, skillTitle, isEnemy = false) {
+    const container = document.getElementById('game-container');
+    const stage = document.getElementById('battle-stage');
+    if (!container || !stage) return;
+
+    playSE('special_cutin');
+
+    const oldOverlay = document.getElementById('sp-diagonal-cutin');
+    if (oldOverlay) oldOverlay.remove();
+
+    const charInfo = CHAR_DATA[charKey] || { name: '将', cutinColor: '#0044ff' };
+    const themeColor = charInfo.cutinColor || '#0044ff';
+    const pieceKanji = (charKey === 'pawn' && !isEnemy && p && p.isPromoted) ? 'と' : charInfo.name;
+
+    const actor = isEnemy ? e : p;
+    const focusX = actor ? Math.max(120, Math.min(480, actor.x + 18)) : 300;
+    const focusY = actor ? Math.max(80, Math.min(300, actor.y + 21)) : 190;
+    const offsetX = (300 - focusX) * 0.16;
+    const offsetY = (190 - focusY) * 0.16;
+
+    stage.style.transition = 'transform 0.25s cubic-bezier(0.15, 0.85, 0.35, 1)';
+    stage.style.transformOrigin = 'center center';
+    stage.style.transform = 'translate(' + offsetX + 'px, ' + offsetY + 'px) scale(1.14)';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sp-diagonal-cutin';
+    overlay.style.cssText =
+        'position:absolute; top:0; left:0; width:600px; height:380px; ' +
+        'pointer-events:none; z-index:95; overflow:hidden; ' +
+        'opacity:0; transition:opacity 0.12s ease-out;';
+
+    const svgHtml =
+        '<svg viewBox="0 0 600 380" width="600" height="380" style="position:absolute; top:0; left:0;">' +
+            '<defs>' +
+                '<filter id="elec-glow" x="-20%" y="-20%" width="140%" height="140%">' +
+                    '<feGaussianBlur stdDeviation="3" result="blur" />' +
+                    '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>' +
+                '</filter>' +
+            '</defs>' +
+            '<polygon points="270,0 600,0 600,265" fill="' + themeColor + '" fill-opacity="0.88" />' +
+            '<polygon points="0,235 0,380 390,380" fill="' + themeColor + '" fill-opacity="0.88" />' +
+            '<g filter="url(#elec-glow)" style="animation: electricFlicker 0.14s infinite;">' +
+                '<line x1="255" y1="0" x2="600" y2="278" stroke="#ffffff" stroke-width="5" />' +
+                '<line x1="265" y1="0" x2="600" y2="269" stroke="' + themeColor + '" stroke-width="3" />' +
+                '<line x1="274" y1="0" x2="600" y2="261" stroke="#ffffff" stroke-width="2.5" />' +
+                '<polyline points="260,4 330,52 325,62 415,122 410,132 510,202 505,212 600,274" fill="none" stroke="#ffffff" stroke-width="2.5" />' +
+                '<line x1="0" y1="218" x2="425" y2="380" stroke="#ffffff" stroke-width="6" />' +
+                '<line x1="0" y1="229" x2="398" y2="380" stroke="' + themeColor + '" stroke-width="3.5" />' +
+                '<line x1="0" y1="239" x2="372" y2="380" stroke="#ffffff" stroke-width="2.5" />' +
+                '<polyline points="0,224 95,254 90,264 205,296 200,306 320,342 315,352 412,380" fill="none" stroke="#ffffff" stroke-width="2.5" />' +
+            '</g>' +
+        '</svg>';
+
+    overlay.innerHTML = svgHtml;
+
+    const bigPiece = document.createElement('div');
+    bigPiece.textContent = pieceKanji;
+    bigPiece.style.cssText =
+        'position:absolute; left:36px; top:38px; width:108px; height:126px; ' +
+        'background:' + (isEnemy ? '#ffd27f' : '#ffebc2') + '; ' +
+        'color:' + (isEnemy ? '#b32727' : '#000') + '; ' +
+        'font-size:52px; font-weight:bold; ' +
+        'display:flex; justify-content:center; align-items:center; ' +
+        'clip-path:polygon(50% 0%, 100% 24%, 86% 100%, 14% 100%, 0% 24%); ' +
+        'filter:drop-shadow(0 0 14px ' + themeColor + ') drop-shadow(0 4px 8px rgba(0,0,0,0.8)); ' +
+        'transform:translateX(-40px) scale(0.85); transition:transform 0.25s cubic-bezier(0.15, 0.9, 0.3, 1); z-index:3;';
+
+    const titleBox = document.createElement('div');
+    titleBox.style.cssText =
+        'position:absolute; right:22px; bottom:24px; text-align:right; z-index:4; ' +
+        'transform:translateX(30px); transition:transform 0.25s ease-out;';
+
+    const badge = document.createElement('div');
+    badge.textContent = isEnemy ? 'ENEMY SPECIAL' : 'SPECIAL ART';
+    badge.style.cssText =
+        'display:inline-block; background:#000; color:' + themeColor + '; ' +
+        'border:1px solid #fff; padding:2px 8px; font-size:10px; font-weight:bold; ' +
+        'letter-spacing:2px; margin-bottom:4px;';
+
+    const skillNameEl = document.createElement('div');
+    skillNameEl.textContent = skillTitle;
+    skillNameEl.style.cssText =
+        'font-size:23px; font-weight:bold; color:#ffffff; ' +
+        'text-shadow:0 0 10px ' + themeColor + ', 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;';
+
+    titleBox.appendChild(badge);
+    titleBox.appendChild(skillNameEl);
+    overlay.appendChild(bigPiece);
+    overlay.appendChild(titleBox);
+    container.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        bigPiece.style.transform = 'translateX(0px) scale(1)';
+        titleBox.style.transform = 'translateX(0px)';
+    });
+
+    setTimeout(() => {
+        overlay.style.opacity = '0';
+        stage.style.transform = 'translate(0px, 0px) scale(1)';
+        setTimeout(() => {
+            if (overlay.parentNode) overlay.remove();
+            stage.style.transition = '';
+        }, 200);
+    }, 2000);
+}
+
+// --- 既存関数へのフック処理 ---
 if (typeof isMatched === 'undefined') window.isMatched = false;
 if (typeof myRole === 'undefined') window.myRole = 'offline';
 
-// 1. タイトル画面クリック時の決定音
 const _origGoToSelect = goToSelectScreen;
 goToSelectScreen = function() {
     const titleEl = document.getElementById('title-screen');
-    if (titleEl && titleEl.style.display !== 'none') {
-        playSE('title_start');
-    } else {
-        playSE('select');
-    }
+    if (titleEl && titleEl.style.display !== 'none') playSE('title_start');
+    else playSE('select');
     _origGoToSelect.apply(this, arguments);
 };
 
-// 2. キャラ・ステージ選択音
 const _origSelectChar = selectCharacter;
 selectCharacter = function() { playSE('select'); _origSelectChar.apply(this, arguments); };
 
 const _origSelectStage = selectStage;
 selectStage = function() { playSE('select'); _origSelectStage.apply(this, arguments); };
 
-// 3. 攻撃素振り音
 const _origTriggerAttack = triggerPlayerAttack;
 triggerPlayerAttack = function() {
     if (p && !p.onLift && p.attacking === 0 && zReleased) playSE('swing');
     _origTriggerAttack.apply(this, arguments);
 };
 
-// 4. 必殺技・カットイン音
 const _origTriggerCutIn = triggerCutIn;
 triggerCutIn = function(txt) {
-    playSE('special');
-    const ci = document.getElementById('cutin-text');
-    if (ci) {
-        ci.style.position = 'absolute';
-        ci.style.top = '45%';
-        ci.style.left = '50%';
-        ci.style.fontSize = '26px';
-        ci.style.fontWeight = 'bold';
-        ci.style.color = '#ffd32a';
-        ci.style.textShadow = '0 0 10px #eb2f06, 2px 2px 0 #000';
-        ci.style.zIndex = '50';
-        ci.style.whiteSpace = 'nowrap';
+    if (txt && txt.startsWith('相手：')) {
+        const cleanTxt = txt.replace('相手：', '');
+        showSpecialCharacterCutIn(window.enemyCharKey || 'rook', cleanTxt, true);
+        return;
     }
+    if (txt && txt !== '乱闘開始！！' && txt !== 'ジャストカウンター！！' && txt !== 'と金へ成金進化！' && txt !== 'P2P直結乱闘 開始！！') {
+        showSpecialCharacterCutIn(selectedCharKey, txt, false);
+        return;
+    }
+    playSE('select');
     _origTriggerCutIn.apply(this, arguments);
 };
 
-// 5. ヒット音（通常＆強吹っ飛び）
+// 相手の選択キャラキー記憶 ＋ 桂SPのレーザー＆大爆発受信処理
+const _origSetupConn = setupConnection;
+setupConnection = function(conn) {
+    _origSetupConn.apply(this, arguments);
+    conn.on('data', (data) => {
+        if (!data) return;
+        if (data.type === 'init' && data.charKey) {
+            window.enemyCharKey = data.charKey;
+        }
+        if (data.type === 'action' && data.actionType === 'cutin' && data.payload && data.payload.effect === 'laser_boom') {
+            const tx = data.payload.tx || (p.x + 18);
+            const ty = data.payload.ty || 245;
+            const laser = document.getElementById('keima-laser');
+            if (laser) {
+                laser.style.left = (tx - 22) + 'px';
+                laser.style.height = ty + 'px';
+                laser.style.display = 'block';
+                laser.style.opacity = '1';
+                setTimeout(() => {
+                    laser.style.opacity = '0';
+                    setTimeout(() => { laser.style.display = 'none'; laser.style.height = '380px'; }, 120);
+                }, 320);
+            }
+            setTimeout(() => {
+                spawnKeimaExplosion(tx, ty);
+            }, 180);
+        }
+    });
+};
+
 const _origSpawnHit = spawnHitVisual;
 spawnHitVisual = function(x, y, isSuper) {
     playSE(isSuper ? 'critical' : 'hit');
     _origSpawnHit.apply(this, arguments);
 };
 
-// 6. バースト撃墜音
 const _origSpawnKoBeam = spawnKoBeam;
 spawnKoBeam = function(x, dir) {
     playSE('burst');
     _origSpawnKoBeam.apply(this, arguments);
 };
 
-// 7. ジャンプ音（キー・ボタン押下時）
 window.addEventListener('keydown', (ev) => {
     if ((ev.key === ' ' || ev.key.toLowerCase() === 'arrowup') && p && !p.onLift && (p.isGrounded || p.airJumpsLeft > 0)) {
         playSE('jump');
@@ -3113,52 +3483,45 @@ window.addEventListener('keydown', (ev) => {
         if (p && !p.onLift && (p.isGrounded || p.airJumpsLeft > 0)) playSE('jump');
     });
 });
-// // ==============================================================================
+
+// ==============================================================================
 // 🎵 キャラ選択画面 BGMループ再生システム（バックグラウンド自動停止対応）
 // ==============================================================================
-const selectBGM = new Audio('蒼晶のトレイル.mp3'); // 👈 ここに実際のMP3ファイル名を入れる
-selectBGM.loop = true;   // ループ再生を有効化
-selectBGM.volume = 0.4;  // 音量（0.0 〜 1.0 で調整可能）
+const selectBGM = new Audio('蒼晶のトレイル.mp3');
+selectBGM.loop = true;
+selectBGM.volume = 0.4;
 
 function playSelectBGM() {
-    selectBGM.play().catch((err) => {
-        console.log('BGM自動再生待機中:', err);
-    });
+    selectBGM.play().catch((err) => { console.log('BGM自動再生待機中:', err); });
 }
 
 function stopSelectBGM() {
     selectBGM.pause();
-    selectBGM.currentTime = 0; // 次回再生時に最初から流す
+    selectBGM.currentTime = 0;
 }
 
-// 1. キャラ選択画面に移動したときにBGMを再生
 const _bgmHookGoToSelect = goToSelectScreen;
 goToSelectScreen = function() {
     _bgmHookGoToSelect.apply(this, arguments);
     playSelectBGM();
 };
 
-// 2. バトルが始まったらBGMを停止
 const _bgmHookGameStart = executeGameStart;
 executeGameStart = function() {
     stopSelectBGM();
     _bgmHookGameStart.apply(this, arguments);
 };
 
-// 3. スマホの別アプリやPCの別タブへ切り替えたときの自動停止・再開
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-        // 画面が隠れたらBGMを一時停止
         selectBGM.pause();
     } else {
-        // 画面に戻ったとき、現在「キャラ選択画面」が表示中であればBGMを再開
         const selectScr = document.getElementById('select-screen');
         if (selectScr && selectScr.style.display !== 'none') {
             playSelectBGM();
         }
     }
 });
-
 
 </script>
 </body>
