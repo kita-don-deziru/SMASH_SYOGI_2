@@ -1035,9 +1035,12 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
             <div id="game-view" class="screen" style="display: none;">
                 <div id="battle-stage">
                     <div id="main-platform"></div>
-                    <div id="plat-left" class="sub-plat" style="bottom:185px; left:140px; width:100px; display:none;"></div>
-                    <div id="plat-right" class="sub-plat" style="bottom:185px; left:360px; width:100px; display:none;"></div>
-                    <div id="plat-top" class="sub-plat" style="bottom:250px; left:250px; width:100px; display:none;"></div>
+                    <div id="plat-left" class="sub-plat" style="bottom:185px; left:112px; width:76px; display:none;"></div>
+                    <div id="plat-right" class="sub-plat" style="bottom:185px; left:412px; width:76px; display:none;"></div>
+                    <div id="plat-top" class="sub-plat" style="bottom:255px; left:262px; width:76px; display:none;"></div>
+
+
+
                     <div id="player-fighter" class="piece">
                         <div id="player-nametag" class="fighter-nametag">あなた #00001</div>
                         <span id="p-text">歩</span>
@@ -2062,12 +2065,12 @@ function updateFrame() {
             }
         }
 
-        // 戦場風浮島（ステージ2）のすり抜け床
+        // 戦場風浮島（ステージ2）のすり抜け床（コンパクト＆広間隔版）
         if (selectedStage === 2 && !isSteeringDown) {
             let plats = [
-                { l: 110, r: 230, top: (char === p) ? 137 : 133 }, 
-                { l: 330, r: 450, top: (char === p) ? 137 : 133 }, 
-                { l: 220, r: 340, top: (char === p) ? 92 : 88 }    
+                { l: 84, r: 182, top: (char === p) ? 137 : 133 }, 
+                { l: 384, r: 482, top: (char === p) ? 137 : 133 }, 
+                { l: 234, r: 332, top: (char === p) ? 87 : 83 }    
             ];
             for (let pl of plats) {
                 if (char.x >= pl.l && char.x <= pl.r) {
@@ -2193,6 +2196,14 @@ function updateFrame() {
             e.y = 10; 
             updateUI(); 
         }
+    }
+
+    // 💨 吹っ飛び中の白い煙（スモーク軌跡）エフェクト
+    if (p.knockbackTimer > 0 && Math.hypot(p.vx, p.vy) > 3.5 && p.knockbackTimer % 2 === 0) {
+        spawnKnockbackSmoke(p.x + 18, p.y + 21, p.dmg > 90);
+    }
+    if (e.knockbackTimer > 0 && Math.hypot(e.vx, e.vy) > 3.5 && e.knockbackTimer % 2 === 0) {
+        spawnKnockbackSmoke(e.x + 20, e.y + 23, e.dmg > 90);
     }
 
     // 8. 最終的なHTML要素への座標反映
