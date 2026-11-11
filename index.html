@@ -455,23 +455,29 @@
             z-index: -1;
         }
 
-        /* ステージ下部の分厚い逆台形・浮遊岩盤ブロック（スマブラの終点・戦場風の重厚な底部） */
+        /* ステージ下部のリアルな3D多面体ロック（光と影のファセット岩盤） */
         #main-platform::after {
             content: '';
             position: absolute;
             top: 18px;
-            left: 16px;
-            width: 364px;
-            height: 68px;
+            left: 14px;
+            width: 368px;
+            height: 76px;
             background:
-                linear-gradient(90deg, rgba(0,0,0,0.45) 0%, rgba(255,255,255,0.08) 35%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.6) 100%),
-                repeating-linear-gradient(135deg, #2c3545 0px, #2c3545 14px, #1e2430 14px, #1e2430 28px);
-            clip-path: polygon(0% 0%, 100% 0%, 82% 65%, 50% 100%, 18% 65%);
-            border-top: 2px solid #ff9f43;
-            filter: drop-shadow(0 12px 15px rgba(0, 210, 255, 0.35));
+                /* 中央の鋭い稜線（左面は明るく、右面は暗い影で立体的な角を作る） */
+                linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 49.5%, rgba(0, 0, 0, 0.55) 50.5%, rgba(0, 0, 0, 0.75) 100%),
+                /* 斜めに走る岩の亀裂と光の反射面 */
+                linear-gradient(125deg, #4b5563 0%, #374151 35%, #1f2937 65%, #111827 100%),
+                radial-gradient(circle at 35% 25%, #6b7280 0%, #1f2937 70%);
+            /* ゴツゴツした天然の岩盤シルエット */
+            clip-path: polygon(0% 0%, 100% 0%, 92% 38%, 76% 72%, 50% 100%, 24% 74%, 8% 36%);
+            border-top: 2px solid #d97706;
+            filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.95)) drop-shadow(0 6px 12px rgba(0, 210, 255, 0.25));
             pointer-events: none;
             z-index: -2;
         }
+
+
 
         /* 戦場風浮島（すり抜け床：奥行きのある3Dクリスタル浮遊台座） */
         .sub-plat {
@@ -571,56 +577,46 @@
 
 
 
+        /* ♟️ プレイヤー駒（厚みのある3D木製将棋駒＋彫り込み文字風シャドウ） */
         #player-fighter {
-            width: 36px;
-            height: 42px;
-            background: #ffebc2;
-            box-shadow: inset 0 0 0 1px #000;
-            clip-path: polygon(50% 0%, 100% 25%, 85% 100%, 15% 100%, 0% 25%);
-            color: #000;
-            font-size: 16px;
+            width: 38px;
+            height: 44px;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 45%, rgba(139, 90, 43, 0.35) 100%),
+                repeating-linear-gradient(90deg, rgba(160, 110, 50, 0.08) 0px, rgba(160, 110, 50, 0.08) 2px, transparent 2px, transparent 5px),
+                linear-gradient(180deg, #fff3d1 0%, #f3c677 65%, #c88a36 100%);
+            clip-path: polygon(50% 0%, 100% 24%, 86% 100%, 14% 100%, 0% 24%);
+            color: #1a1105;
+            font-size: 17px;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8), 0 -1px 1px rgba(0, 0, 0, 0.35);
+            /* 多層のdrop-shadowで駒の分厚い3D側面（立体的な厚み）と地面の影を表現 */
+            filter:
+                drop-shadow(0 1px 0 #b87a28)
+                drop-shadow(0 2px 0 #8f5814)
+                drop-shadow(0 3px 0 #5e3608)
+                drop-shadow(0 6px 6px rgba(0, 0, 0, 0.75));
             z-index: 20;
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        /* 👑 敵・ボス駒（重厚な黄金〜紅蓮の3D将棋駒） */
         #enemy-fighter {
-            width: 40px;
-            height: 46px;
-            background: #ffd27f;
-            box-shadow: inset 0 0 0 1px #b32727;
+            width: 42px;
+            height: 48px;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 45%, rgba(120, 20, 20, 0.35) 100%),
+                repeating-linear-gradient(90deg, rgba(140, 60, 20, 0.08) 0px, rgba(140, 60, 20, 0.08) 2px, transparent 2px, transparent 5px),
+                linear-gradient(180deg, #ffe299 0%, #f5a642 65%, #b85d19 100%);
             clip-path: polygon(50% 0%, 100% 23%, 86% 100%, 14% 100%, 0% 23%);
-            color: #b32727;
-            font-size: 18px;
+            color: #8f1111;
+            font-size: 19px;
+            text-shadow: 0 1px 0 rgba(255, 240, 200, 0.85), 0 -1px 1px rgba(60, 0, 0, 0.45);
+            filter:
+                drop-shadow(0 1px 0 #a84e10)
+                drop-shadow(0 2px 0 #7a3306)
+                drop-shadow(0 4px 0 #4a1c02)
+                drop-shadow(0 7px 8px rgba(0, 0, 0, 0.8));
             z-index: 20;
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
         .respawn-lift {
