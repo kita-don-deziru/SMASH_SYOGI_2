@@ -2285,8 +2285,45 @@ function spawnHitVisual(x, y, isSuper = false) {
         let pTimer = setInterval(() => { pEl.style.left = (parseFloat(pEl.style.left) + vx) + 'px'; pEl.style.top = (parseFloat(pEl.style.top) + vy) + 'px'; vy += 0.15; opacity -= 0.04; pEl.style.opacity = opacity; if (opacity <= 0) { clearInterval(pTimer); pEl.remove(); } }, 1000 / 60);
     }
 }
+// 💨 スマブラ風・吹っ飛び時の煙エフェクト生成関数
+function spawnKnockbackSmoke(x, y, isHeavy = false) {
+    const stage = document.getElementById('battle-stage');
+    if (!stage) return;
+    const smoke = document.createElement('div');
+    smoke.className = 'particle';
+    const size = Math.random() * (isHeavy ? 14 : 10) + 8;
+    smoke.style.width = size + 'px';
+    smoke.style.height = size + 'px';
+    // 高ダメージ時は少し赤みがかった激しい煙、通常は白い煙
+    smoke.style.background = isHeavy ? 'rgba(255, 220, 210, 0.85)' : 'rgba(255, 255, 255, 0.8)';
+    smoke.style.boxShadow = isHeavy ? '0 0 8px rgba(255, 100, 50, 0.6)' : '0 0 6px rgba(255, 255, 255, 0.5)';
+    smoke.style.left = (x - size / 2 + (Math.random() - 0.5) * 10) + 'px';
+    smoke.style.top = (y - size / 2 + (Math.random() - 0.5) * 10) + 'px';
+    smoke.style.zIndex = '19';
+    stage.appendChild(smoke);
+
+    let op = 0.85;
+    let scale = 1.0;
+    const vx = (Math.random() - 0.5) * 1.2;
+    const vy = -0.5 - Math.random() * 0.8;
+
+    const sTimer = setInterval(() => {
+        op -= 0.05;
+        scale += 0.06;
+        smoke.style.left = (parseFloat(smoke.style.left) + vx) + 'px';
+        smoke.style.top = (parseFloat(smoke.style.top) + vy) + 'px';
+        smoke.style.transform = 'scale(' + scale + ')';
+        smoke.style.opacity = op;
+        if (op <= 0) {
+            clearInterval(sTimer);
+            smoke.remove();
+        }
+    }, 1000 / 60);
+}
 
 function spawnProjectile(type, x, y, dir, vx, vy) {
+
+
     const stage = document.getElementById('battle-stage'); if (!stage) return;
     const el = document.createElement('div'); el.className = 'projectile ' + type; el.style.left = x + 'px'; el.style.top = y + 'px'; if (type === 'coin-bomb') el.textContent = '金';
     stage.appendChild(el); projectiles.push({ el: el, type: type, x: x, y: y, dir: dir, vx: vx, vy: vy, isEnemy: false });
