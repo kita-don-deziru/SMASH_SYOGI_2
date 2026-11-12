@@ -1025,6 +1025,138 @@
             transform: translateX(-50%);
             display: none;
         }
+
+        /* 🌪️ ステージ4（キチガイ風車・監視の回廊） */
+        #game-view.stage-4-bg {
+            background: radial-gradient(circle at 50% 35%, #1e1b2e 0%, #09080f 70%, #000000 100%);
+        }
+        /* 横に長く端まであるステージ床（ステージ4専用） */
+        #main-platform.full-width-floor {
+            left: 0px !important;
+            width: 600px !important;
+            border-radius: 0px !important;
+        }
+        #main-platform.full-width-floor::before {
+            width: 600px !important;
+            left: 0px !important;
+        }
+        #main-platform.full-width-floor::after {
+            display: none !important;
+        }
+
+        /* 3Dキチガイ風車（奥に浮かぶ監視エンティティ） */
+        #windmill-3d-wrapper {
+            position: absolute;
+            top: 42px;
+            left: 250px;
+            width: 100px;
+            height: 100px;
+            perspective: 500px;
+            display: none;
+            z-index: 3;
+            pointer-events: none;
+        }
+        #windmill-3d-body {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.25s ease-out;
+        }
+        /* 中央の3D球体フェイス */
+        #windmill-core-face {
+            position: absolute;
+            top: 26px;
+            left: 26px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #fff200 0%, #f1c40f 55%, #b7860b 100%);
+            box-shadow: 0 0 20px rgba(255, 211, 42, 0.7), inset -4px -6px 10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            transform: translateZ(18px);
+        }
+        /* 回転する4本の3D手アーム */
+        #windmill-hands-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100px;
+            height: 100px;
+            transform-style: preserve-3d;
+            animation: spinWindmill3D 1.6s linear infinite;
+        }
+        @keyframes spinWindmill3D {
+            0%   { transform: translateZ(24px) rotateZ(0deg); }
+            100% { transform: translateZ(24px) rotateZ(360deg); }
+        }
+        .wm-hand {
+            position: absolute;
+            font-size: 24px;
+            filter: drop-shadow(0 3px 4px rgba(0,0,0,0.8));
+        }
+        .wm-hand-top    { top: -4px; left: 38px; transform: rotate(0deg); }
+        .wm-hand-right  { top: 36px; right: -4px; transform: rotate(90deg); }
+        .wm-hand-bottom { bottom: -4px; left: 38px; transform: rotate(180deg); }
+        .wm-hand-left   { top: 36px; left: -4px; transform: rotate(270deg); }
+
+        /* サーチライト（スポットライトの円錐光） */
+        #windmill-spotlight {
+            position: absolute;
+            top: 90px;
+            width: 150px;
+            height: 170px;
+            background: linear-gradient(180deg, rgba(255, 242, 0, 0.45) 0%, rgba(255, 242, 0, 0.12) 85%, rgba(255, 242, 0, 0) 100%);
+            clip-path: polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%);
+            pointer-events: none;
+            display: none;
+            z-index: 4;
+        }
+        #windmill-spotlight.alert-red {
+            background: linear-gradient(180deg, rgba(255, 63, 63, 0.7) 0%, rgba(255, 63, 63, 0.25) 85%, transparent 100%);
+        }
+
+        /* 3D遮蔽物（スポットライトを遮る石柱ブロック） */
+        .cover-pillar-3d {
+            position: absolute;
+            bottom: 126px;
+            width: 46px;
+            height: 62px;
+            background: linear-gradient(135deg, #7f8fa6 0%, #353b48 60%, #192a56 100%);
+            border-top: 4px solid #dcdde1;
+            border-left: 3px solid #a4b0be;
+            border-right: 4px solid #1e272e;
+            border-radius: 4px 4px 0 0;
+            box-shadow: 6px 6px 14px rgba(0, 0, 0, 0.85);
+            display: none;
+            z-index: 8;
+            pointer-events: none;
+        }
+        .cover-pillar-3d::after {
+            content: '遮蔽';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.45);
+            font-weight: bold;
+        }
+
+        /* 指から発射される極太制裁ビーム */
+        .windmill-finger-beam {
+            position: absolute;
+            width: 14px;
+            background: linear-gradient(90deg, #ff3f3f, #ffffff, #ffd32a);
+            box-shadow: 0 0 20px #ff3f3f, 0 0 35px #ffd32a;
+            transform-origin: top center;
+            z-index: 38;
+            pointer-events: none;
+            border-radius: 6px;
+        }
     </style>
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
    <script>
@@ -1184,11 +1316,11 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                 </div>
 
 
-                <div class="section-label">ステージを選択してください：</div>
-                <div class="stage-select" style="flex-wrap: wrap;">
+                              <div class="stage-select" style="flex-wrap: wrap;">
                     <button type="button" class="stage-btn selected" onclick="selectStage(1, this)">終点風平原</button>
                     <button type="button" class="stage-btn" onclick="selectStage(2, this)">戦場風浮島</button>
                     <button type="button" class="stage-btn" onclick="selectStage(3, this)" style="border-color: #ff9f43; color: #ffdd59;">🌋 灼熱溶岩城</button>
+                    <button type="button" class="stage-btn" onclick="selectStage(4, this)" style="border-color: #ffd32a; color: #fff200;">🌪️ キチガイ風車</button>
                 </div>
 
                 <div class="section-label">操作タイプ：</div>
@@ -1235,9 +1367,21 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                     <div id="magma-warning-zone">⚠️ 噴火注意 ⚠️</div>
                     <div id="magma-pillar"></div>
 
-
-
-
+                    <!-- 🌪️ ステージ4：3Dキチガイ風車＆スポットライト＆遮蔽物 -->
+                    <div id="windmill-spotlight"></div>
+                    <div id="windmill-3d-wrapper">
+                        <div id="windmill-3d-body">
+                            <div id="windmill-core-face">😳</div>
+                            <div id="windmill-hands-ring">
+                                <span class="wm-hand wm-hand-top">👆</span>
+                                <span class="wm-hand wm-hand-right">👉</span>
+                                <span class="wm-hand wm-hand-bottom">👇</span>
+                                <span class="wm-hand wm-hand-left">👈</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="cover-pillar-left" class="cover-pillar-3d" style="left: 155px;"></div>
+                    <div id="cover-pillar-right" class="cover-pillar-3d" style="left: 399px;"></div>
 
                     <div id="player-fighter" class="piece">
                         <div id="player-nametag" class="fighter-nametag">あなた #00001</div>
@@ -1963,15 +2107,23 @@ function executeGameStart() {
 
     
     const gv = document.getElementById('game-view');
-    if (gv) { gv.classList.remove('stage-2-bg'); gv.classList.remove('stage-3-bg'); }
+    const mainPlat = document.getElementById('main-platform');
+    if (gv) { gv.classList.remove('stage-2-bg'); gv.classList.remove('stage-3-bg'); gv.classList.remove('stage-4-bg'); }
+    if (mainPlat) mainPlat.classList.remove('full-width-floor');
     document.getElementById('plat-left').style.display = 'none';
     document.getElementById('plat-right').style.display = 'none';
     document.getElementById('plat-top').style.display = 'none';
     document.getElementById('plat-magma-center').style.display = 'none';
     document.getElementById('magma-warning-zone').style.display = 'none';
     document.getElementById('magma-pillar').style.display = 'none';
+    document.getElementById('windmill-3d-wrapper').style.display = 'none';
+    document.getElementById('windmill-spotlight').style.display = 'none';
+    document.getElementById('cover-pillar-left').style.display = 'none';
+    document.getElementById('cover-pillar-right').style.display = 'none';
     window.magmaCycleTimer = 0;
     window.magmaSide = 'left';
+    window.windmillTimer = 0;
+    window.windmillCooldown = 0;
 
     if (selectedStage === 2) {
         if (gv) gv.classList.add('stage-2-bg');
@@ -1981,15 +2133,13 @@ function executeGameStart() {
     } else if (selectedStage === 3) {
         if (gv) gv.classList.add('stage-3-bg');
         document.getElementById('plat-magma-center').style.display = 'block';
+    } else if (selectedStage === 4) {
+        if (gv) gv.classList.add('stage-4-bg');
+        if (mainPlat) mainPlat.classList.add('full-width-floor');
+        document.getElementById('windmill-3d-wrapper').style.display = 'block';
+        document.getElementById('cover-pillar-left').style.display = 'block';
+        document.getElementById('cover-pillar-right').style.display = 'block';
     }
-
-
-
-
-
-
-
-
 
        p = {
         x: startLeft ? 150 : 410, y: 196, vx: 0, vy: 0, dmg: 0, isGrounded: true, dir: startLeft ? 1 : -1, stocks: 3, spGauge: 0,
@@ -2265,9 +2415,12 @@ function updateFrame() {
 
         let prevY = char.y - char.vy;
         let buffer = Math.max(8, char.vy + 4);
+        // メインの床（ステージ4は画面端から端まで床があり落ちない）
+        const floorMinX = (selectedStage === 4) ? -60 : 75;
+        const floorMaxX = (selectedStage === 4) ? 640 : 485;
+        if (char.x >= floorMinX && char.x <= floorMaxX) { 
 
-        // メインの床（3D将棋盤の中央付近にしっかり乗るように高さを調整）
-        if (char.x >= 75 && char.x <= 485) { 
+
             let mainGroundY = (char === p) ? 196 : 192;
             if (prevY <= mainGroundY + 4 && char.y >= mainGroundY - buffer) {
                 char.y = mainGroundY;
@@ -2476,6 +2629,114 @@ function updateFrame() {
         }
     }
 
+    // 🌪️ ステージ4（キチガイ風車・監視の回廊）8秒1往復＆3D首振り＆指ビームギミック
+    if (selectedStage === 4) {
+        window.windmillTimer = (window.windmillTimer || 0) + 1;
+        if (window.windmillCooldown > 0) window.windmillCooldown--;
+
+        const wmWrap = document.getElementById('windmill-3d-wrapper');
+        const wmBody = document.getElementById('windmill-3d-body');
+        const wmFace = document.getElementById('windmill-core-face');
+        const spotEl = document.getElementById('windmill-spotlight');
+
+        // 1. 8秒（480フレーム）で左右を1往復する滑らかな移動
+        const phase = (window.windmillTimer / 480) * Math.PI * 2;
+        const wmX = 250 + Math.sin(phase) * 175; // 75px 〜 425px を往復
+        if (wmWrap) wmWrap.style.left = wmX + 'px';
+
+        // 2. 首振りサイクル（後ろ向き＝安全 / 横向き＝警戒 / 正面＝スポットライト照射！）
+        const lookCycle = window.windmillTimer % 360; // 6秒周期で首を振る
+        let isWatching = false;
+        let rotY = 0;
+
+        if (lookCycle < 110) {
+            // 後ろ（奥）を向いている（安全タイム）
+            rotY = 180;
+            isWatching = false;
+        } else if (lookCycle < 160) {
+            // 横を向いている（予兆：そろそろ振り返る！）
+            rotY = (Math.cos(phase) >= 0) ? -75 : 75;
+            isWatching = false;
+        } else if (lookCycle < 310) {
+            // 正面を向いてスポットライト照射中！
+            rotY = Math.sin(window.windmillTimer * 0.08) * 18;
+            isWatching = true;
+        } else {
+            // 横を向いて後ろへ戻る途中
+            rotY = (Math.cos(phase) >= 0) ? 75 : -75;
+            isWatching = false;
+        }
+
+        if (wmBody) wmBody.style.transform = 'rotateY(' + rotY + 'deg)';
+
+        const spotCenterX = wmX + 50;
+        if (spotEl) {
+            if (isWatching) {
+                spotEl.style.display = 'block';
+                spotEl.style.left = (spotCenterX - 75) + 'px';
+            } else {
+                spotEl.style.display = 'none';
+                spotEl.classList.remove('alert-red');
+                if (wmFace && window.windmillCooldown <= 0) wmFace.textContent = '😳';
+            }
+        }
+
+        // 3. スポットライト照射中の発見＆遮蔽物（石柱）判定
+        if (isWatching && window.windmillCooldown <= 0) {
+            const isBehindCover = (charX) => {
+                // 左の遮蔽物(155〜201) または 右の遮蔽物(399〜445) の陰に隠れているか
+                return (charX >= 145 && charX <= 195) || (charX >= 389 && charX <= 439);
+            };
+
+            const pCenter = p.x + 19;
+            const eCenter = e.x + 21;
+            const pInLight = (!p.onLift && p.invulnTimer <= 0 && Math.abs(pCenter - spotCenterX) < 68 && !isBehindCover(pCenter));
+            const eInLight = (!e.onLift && e.invulnTimer <= 0 && Math.abs(eCenter - spotCenterX) < 68 && !isBehindCover(eCenter));
+
+            // 「右が見つかってなくて、左が見つかった時（またはその逆）」＝片方だけが光に入った瞬間に制裁ビーム！
+            if (pInLight !== eInLight) {
+                window.windmillCooldown = 95; // 連続発射防止クールダウン
+                if (wmFace) wmFace.textContent = '😄'; // 見つけた瞬間の満面の笑顔！
+                if (spotEl) spotEl.classList.add('alert-red');
+
+                const targetChar = pInLight ? p : e;
+                const isTargetPlayer = pInLight;
+                const targetX = isTargetPlayer ? pCenter : eCenter;
+                const targetY = targetChar.y + 22;
+
+                fireWindmillFingerBeams(spotCenterX, 92, targetX, targetY);
+
+                // ビーム着弾ダメージ＆大吹っ飛び（横へ吹き飛ばして画面端バーストを狙う！）
+                const knockDir = (targetX >= spotCenterX) ? 1 : -1;
+                if (isTargetPlayer) {
+                    if (p.isGuarding) {
+                        handleGuardedHit({ x: spotCenterX }, true);
+                    } else {
+                        let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
+                        p.dmg += Math.floor(20 * dmgFactor);
+                        p.vx = knockDir * (7.5 + p.dmg * 0.14) / p.weight;
+                        p.vy = -5.5 / p.weight;
+                        p.knockbackTimer = 26;
+                        spawnHitVisual(targetX, targetY, true);
+                        updateUI();
+                    }
+                } else if (gameMode === 'offline') {
+                    e.dmg += 20;
+                    e.vx = knockDir * (7.5 + e.dmg * 0.14) / e.weight;
+                    e.vy = -5.5 / e.weight;
+                    e.knockbackTimer = 26;
+                    spawnHitVisual(targetX, targetY, true);
+                    updateUI();
+                }
+
+                setTimeout(() => {
+                    if (wmFace) wmFace.textContent = '😳';
+                    if (spotEl) spotEl.classList.remove('alert-red');
+                }, 600);
+            }
+        }
+    }
+
     // 💨 吹っ飛び中の白い煙（スモーク軌跡）エフェクト
     if (p.knockbackTimer > 0 && Math.hypot(p.vx, p.vy) > 3.5 && p.knockbackTimer % 2 === 0) {
         spawnKnockbackSmoke(p.x + 18, p.y + 21, p.dmg > 90);
@@ -2543,9 +2804,12 @@ function updateFighterShadow(shadowId, char, isPlayer) {
     }
 
     // 浮島の上になければ、メイン足場（3D将棋盤の中央面）の上か判定
-    if (groundSurfaceY === null && char.x >= 75 && char.x <= 485 && footY <= 246) {
+    const shMinX = (selectedStage === 4) ? -40 : 75;
+    const shMaxX = (selectedStage === 4) ? 620 : 485;
+    if (groundSurfaceY === null && char.x >= shMinX && char.x <= shMaxX && footY <= 246) {
         groundSurfaceY = 240;
     }
+
 
 
     if (groundSurfaceY === null || char.onLift) {
@@ -3061,9 +3325,21 @@ function applyEnemyInitInfo(data) {
         document.getElementById('plat-magma-center').style.display = (selectedStage === 3) ? 'block' : 'none';
         window.magmaCycleTimer = 0;
 
+        const mainPlat = document.getElementById('main-platform');
+        if (mainPlat) mainPlat.classList.remove('full-width-floor');
+        document.getElementById('windmill-3d-wrapper').style.display = (selectedStage === 4) ? 'block' : 'none';
+        document.getElementById('cover-pillar-left').style.display = (selectedStage === 4) ? 'block' : 'none';
+        document.getElementById('cover-pillar-right').style.display = (selectedStage === 4) ? 'block' : 'none';
+        window.windmillTimer = 0;
+
         if (selectedStage === 2 && gv) gv.classList.add('stage-2-bg');
         if (selectedStage === 3 && gv) gv.classList.add('stage-3-bg');
+        if (selectedStage === 4) {
+            if (gv) gv.classList.add('stage-4-bg');
+            if (mainPlat) mainPlat.classList.add('full-width-floor');
+        }
     }
+
 }
 // 3. 接続確立後の送受信ルール（バースト演出＆残機同期対応）
 function setupConnection(conn) {
@@ -3777,6 +4053,47 @@ function spawnBishopCrossEffect(cx, cy, isEnemy = false) {
                 }
             }
         }, idx * 65);
+    });
+}
+
+// ==============================================================================
+// 🌪️ キチガイ風車：4本の指先から極太制裁ビームを発射する関数
+// ==============================================================================
+function fireWindmillFingerBeams(originX, originY, targetX, targetY) {
+    const stage = document.getElementById('battle-stage');
+    if (!stage) return;
+
+    if (typeof playSE === 'function') playSE('critical');
+    if (typeof triggerCameraShake === 'function') triggerCameraShake();
+
+    // 上下左右の4本の指位置からターゲットへ向かって4本の極太ビームを同時発射！
+    const fingerOffsets = [
+        { dx: 0, dy: -36 },
+        { dx: 36, dy: 0 },
+        { dx: 0, dy: 36 },
+        { dx: -36, dy: 0 }
+    ];
+
+    fingerOffsets.forEach(off => {
+        const startX = originX + off.dx;
+        const startY = originY + off.dy;
+        const dist = Math.hypot(targetX - startX, targetY - startY);
+        const angleRad = Math.atan2(targetY - startY, targetX - startX);
+        const angleDeg = (angleRad * 180 / Math.PI) - 90;
+
+        const beam = document.createElement('div');
+        beam.className = 'windmill-finger-beam';
+        beam.style.left = (startX - 7) + 'px';
+        beam.style.top = startY + 'px';
+        beam.style.height = dist + 'px';
+        beam.style.transform = 'rotate(' + angleDeg + 'deg)';
+        stage.appendChild(beam);
+
+        setTimeout(() => {
+            beam.style.transition = 'opacity 0.2s ease-out';
+            beam.style.opacity = '0';
+            setTimeout(() => beam.remove(), 220);
+        }, 220);
     });
 }
 
@@ -4802,6 +5119,20 @@ function equipTitleById(titleId) {
 
 // 選択画面に「称号切り替え」と「フレンドリスト（オンライン表示付き）」を描画
 function renderFriendAndTitleUI() {
+    // 🏅 すでに達成済みのステータス（過去レート1600以上・過去のランキング記録など）を自動同期して解放
+    if (typeof playerRating === 'number' && playerRating >= 1600) {
+        unlockTitle('rate_1600');
+        unlockTitle('online_first');
+    }
+    try {
+        const pastRanking = JSON.parse(localStorage.getItem('smash_shogi_ranking') || '[]');
+        if (pastRanking.length > 0) {
+            unlockTitle('first_win');
+            if (pastRanking.some(r => r.time <= 30000)) unlockTitle('speed_star');
+            if (pastRanking.some(r => r.time <= 15000)) unlockTitle('god_speed');
+        }
+    } catch (e) {}
+
     const roomSection = document.getElementById('custom-room-section');
     if (!roomSection) return;
 
