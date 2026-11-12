@@ -1178,10 +1178,12 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                 <div class="section-label">対戦相手（CPU）を選択してください：</div>
                 <div class="stage-select" id="cpu-select-box" style="flex-wrap: wrap;">
                     <button type="button" class="stage-btn selected" onclick="selectCpuBoss('random', this)">ランダム</button>
+                    <button type="button" class="stage-btn" onclick="selectCpuBoss('king2', this)">玉将 (入門)</button>
                     <button type="button" class="stage-btn" onclick="selectCpuBoss('king1', this)">王将 (標準)</button>
-                    <button type="button" class="stage-btn" onclick="selectCpuBoss('king3', this)">裏王 (快速)</button>
-                    <button type="button" class="stage-btn" onclick="selectCpuBoss('king2', this)" style="border-color: #ff3f3f; color: #ff9f43;">玉将 🔥上級者向け</button>
+                    <button type="button" class="stage-btn" onclick="selectCpuBoss('king3', this)" style="border-color: #ff3f3f; color: #ff9f43;">裏王 🔥上級者向け</button>
                 </div>
+
+
                 <div class="section-label">ステージを選択してください：</div>
                 <div class="stage-select" style="flex-wrap: wrap;">
                     <button type="button" class="stage-btn selected" onclick="selectStage(1, this)">終点風平原</button>
@@ -1463,9 +1465,11 @@ const CHAR_DATA = {
 
 const BOSS_DATA = [
     { type: 'king1', name: '敵 (王将) [LV.9 バランス]', speed: 4.2, jump: -11.5, weight: 1.5, power: 1.5, range: 48, color: '#ffd27f', text: '王', cutinColor: '#ff9f43', spTitle: '王手・覇王烈風斬！' },
-    { type: 'king2', name: '敵 (玉将) [LV.9 重量鉄壁]', speed: 3.2, jump: -10.5, weight: 2.4, power: 1.8, range: 52, color: '#bdc3c7', text: '玉', cutinColor: '#00d2ff', spTitle: '玉将・天罰雷光落！' },
-    { type: 'king3', name: '敵 (裏王) [LV.9 快速猛攻]', speed: 5.0, jump: -13.0, weight: 1.2, power: 1.4, range: 46, color: '#e74c3c', text: '王', cutinColor: '#ff3f3f', spTitle: '裏王・修羅暴走解放！' }
+    { type: 'king2', name: '敵 (玉将) [LV.9 快速入門]', speed: 4.6, jump: -12.5, weight: 1.2, power: 1.35, range: 45, color: '#bdc3c7', text: '玉', cutinColor: '#00d2ff', spTitle: '玉将・疾風覚醒解放！' },
+    { type: 'king3', name: '敵 (裏王) [LV.9 最強覇道]', speed: 3.4, jump: -11.0, weight: 2.3, power: 1.8, range: 52, color: '#e74c3c', text: '王', cutinColor: '#ff3f3f', spTitle: '裏王・天罰雷光落！' }
 ];
+
+
 
 
 
@@ -1690,6 +1694,10 @@ function triggerPlayerAttack() {
         e.vx = p.dir * kbScale; e.vy = -4.0;
 
         playSE('counter');
+        if (window.matchStats) {
+            window.matchStats.counters++;
+            if (window.matchStats.counters >= 2) unlockTitle('counter_master');
+        }
         const ci = document.getElementById('cutin-text');
         if (ci) {
             ci.textContent = 'ジャストカウンター！！';
@@ -3582,9 +3590,18 @@ function triggerCpuSpecial() {
             }, idx * 180);
         });
     } else if (boss.type === 'king2') {
-        // 玉将：天罰雷光レーザー＆大爆発
+        // 玉将：疾風オーラ解放（スピードアップ＋突進）
+        const eAura = document.getElementById('e-aura');
+        if (eAura) eAura.style.display = 'block';
+        const eStatus = document.getElementById('ui-e-status');
+        if (eStatus) eStatus.textContent = '【玉将覚醒: 機動上昇】';
+        e.speed = 5.8;
+        e.power = 1.6;
+        e.vx = (p.x > e.x ? 1 : -1) * 8;
+    } else {
+        // 裏王：天罰雷光レーザー＆大爆発（最強ボス専用奥義）
         let targetX = Math.max(80, Math.min(520, p.x + 18));
-        let targetY = Math.min(245, p.y + 21);
+        let targetY = Math.min(230, p.y + 21);
         const laser = document.getElementById('keima-laser');
         if (laser) {
             laser.style.left = (targetX - 22) + 'px';
@@ -3608,15 +3625,6 @@ function triggerCpuSpecial() {
                 updateUI();
             }
         }, 200);
-    } else {
-        // 裏王：修羅オーラ解放（スピード・攻撃力アップ＋突進）
-        const eAura = document.getElementById('e-aura');
-        if (eAura) eAura.style.display = 'block';
-        const eStatus = document.getElementById('ui-e-status');
-        if (eStatus) eStatus.textContent = '【裏王覚醒: 全能力上昇】';
-        e.speed = 6.2;
-        e.power = 1.8;
-        e.vx = (p.x > e.x ? 1 : -1) * 9;
     }
 }
 
@@ -4497,11 +4505,42 @@ function triggerFinishZoom(x, y) {
 // 🏅 4. 称号システム（自動解放・保存・ネームタグ反映）
 // ==============================================================================
 const TITLE_LIST = [
-    { id: 'novice', name: '見習い棋士' },
-    { id: 'first_win', name: '初陣の勝者' },
-    { id: 'gyoku_slayer', name: '玉将殺し' },
-    { id: 'unpromoted_pawn', name: '不屈の歩兵' },
-    { id: 'speed_star', name: '電光石火' }
+    // --- 基本・勝利数系 ---
+    { id: 'novice', name: '見習い棋士', hint: '初期称号' },
+    { id: 'first_win', name: '初陣の勝者', hint: '初めて試合に勝利する' },
+    { id: 'win_5', name: '五段の腕前', hint: '累計5勝を達成する' },
+    { id: 'win_15', name: '八段の猛者', hint: '累計15勝を達成する' },
+    { id: 'win_30', name: '永世名人', hint: '累計30勝を達成する' },
+
+    // --- ボス撃破系 ---
+    { id: 'beat_gyoku', name: '玉将突破', hint: 'CPU「玉将」に勝利する' },
+    { id: 'beat_ou', name: '王手飛車取り', hint: 'CPU「王将」に勝利する' },
+    { id: 'gyoku_slayer', name: '裏王殺し', hint: '最強CPU「裏王」に勝利する' },
+    { id: 'all_boss_clear', name: '天下統一', hint: '玉将・王将・裏王のすべてを撃破する' },
+
+    // --- 縛り・特殊勝利系 ---
+    { id: 'unpromoted_pawn', name: '不屈の歩兵', hint: '「歩」のまま一度もと金にならず勝利' },
+    { id: 'perfect_win', name: '完全無欠', hint: '1ストックも失わず（残機3のまま）勝利' },
+    { id: 'no_sp_win', name: '技に頼らぬ武人', hint: '必殺技（SP技）を1回も使わず勝利' },
+    { id: 'comeback_king', name: '逆転の棋士', hint: '自分のダメージ150%以上の状態で勝利' },
+    { id: 'magma_survivor', name: '灼熱の覇者', hint: 'ステージ3「灼熱溶岩城」で勝利' },
+
+    // --- スピード・テクニック系 ---
+    { id: 'speed_star', name: '電光石火', hint: '30秒以内に勝利する' },
+    { id: 'god_speed', name: '神速の寄せ', hint: '15秒以内に勝利する' },
+    { id: 'counter_master', name: '見切りの達人', hint: '1試合中にジャストカウンターを2回決める' },
+    { id: 'guard_wall', name: '鉄壁の守り', hint: '1試合中にシールドで攻撃を3回防ぐ' },
+    { id: 'sp_finisher', name: '奥義の極み', hint: '1試合中に必殺技（SP技）を3回発動する' },
+
+    // --- キャラクター愛・全駒制覇系 ---
+    { id: 'sniper_bow', name: '百発百中の弓聖', hint: '「弓」で勝利する' },
+    { id: 'sky_knight', name: '天空の桂馬', hint: '「桂」で勝利する' },
+    { id: 'dragon_king', name: '無双の竜王', hint: '「飛」で勝利する' },
+    { id: 'all_chars_win', name: '八方桂馬の万能神', hint: '全8種類の駒すべてで勝利する' },
+
+    // --- オンライン・レート系 ---
+    { id: 'online_first', name: '電脳の挑戦者', hint: 'オンライン対戦で勝利する' },
+    { id: 'rate_1600', name: 'レート1600突破', hint: 'オンラインレート1600以上に到達' }
 ];
 
 function getUnlockedTitles() {
@@ -4528,19 +4567,95 @@ function getEquippedTitleName() {
     return info ? info.name : '見習い棋士';
 }
 
-// 試合終了時に称号の達成条件をチェック
+// 📊 試合中の実績トラッキング用カウンタ
+window.matchStats = { counters: 0, guards: 0, specials: 0 };
+
+// 試合開始時にカウンタをリセット
+const _statsResetStart = executeGameStart;
+executeGameStart = function() {
+    window.matchStats = { counters: 0, guards: 0, specials: 0 };
+    _statsResetStart.apply(this, arguments);
+};
+
+// ガード成功・カウンター成功・SP発動を自動カウント
+const _statsHookGuard = handleGuardedHit;
+handleGuardedHit = function() {
+    if (window.matchStats) window.matchStats.guards++;
+    _statsHookGuard.apply(this, arguments);
+};
+
+const _statsHookSpecial = triggerPlayerSpecial;
+triggerPlayerSpecial = function() {
+    const prevSp = p ? p.spGauge : 0;
+    _statsHookSpecial.apply(this, arguments);
+    if (p && prevSp >= 100 && p.spGauge === 0 && window.matchStats) {
+        window.matchStats.specials++;
+    }
+};
+
+// 試合終了時に全25種類の称号達成条件を一括チェック
 const _titleHookEndMatch = endMatch;
 endMatch = function(playerWon) {
+    // 敗北でも達成できるテクニック系称号の判定
+    if (window.matchStats) {
+        if (window.matchStats.guards >= 3) unlockTitle('guard_wall');
+        if (window.matchStats.specials >= 3) unlockTitle('sp_finisher');
+    }
+
     if (playerWon) {
         unlockTitle('first_win');
-        if (gameMode === 'offline' && window.currentCpuBoss && window.currentCpuBoss.type === 'king2') {
-            unlockTitle('gyoku_slayer');
+
+        // 累計勝利数の記録と判定
+        let totalWins = parseInt(localStorage.getItem('smash_shogi_total_wins') || '0', 10) + 1;
+        localStorage.setItem('smash_shogi_total_wins', String(totalWins));
+        if (totalWins >= 5) unlockTitle('win_5');
+        if (totalWins >= 15) unlockTitle('win_15');
+        if (totalWins >= 30) unlockTitle('win_30');
+
+        // ボス撃破記録と判定
+        if (gameMode === 'offline' && window.currentCpuBoss) {
+            const bType = window.currentCpuBoss.type;
+            let defeatedBosses = JSON.parse(localStorage.getItem('smash_shogi_defeated_bosses') || '[]');
+            if (!defeatedBosses.includes(bType)) {
+                defeatedBosses.push(bType);
+                localStorage.setItem('smash_shogi_defeated_bosses', JSON.stringify(defeatedBosses));
+            }
+            if (bType === 'king2') unlockTitle('beat_gyoku');
+            if (bType === 'king1') unlockTitle('beat_ou');
+            if (bType === 'king3') unlockTitle('gyoku_slayer');
+            if (defeatedBosses.includes('king1') && defeatedBosses.includes('king2') && defeatedBosses.includes('king3')) {
+                unlockTitle('all_boss_clear');
+            }
         }
-        if (selectedCharKey === 'pawn' && !p.isPromoted) {
-            unlockTitle('unpromoted_pawn');
+
+        // 特殊・縛り勝利判定
+        if (selectedCharKey === 'pawn' && !p.isPromoted) unlockTitle('unpromoted_pawn');
+        if (p && p.stocks === 3) unlockTitle('perfect_win');
+        if (window.matchStats && window.matchStats.specials === 0) unlockTitle('no_sp_win');
+        if (p && p.dmg >= 150) unlockTitle('comeback_king');
+        if (selectedStage === 3) unlockTitle('magma_survivor');
+
+        // スピード記録判定
+        if (matchElapsedTime > 0 && matchElapsedTime <= 30000) unlockTitle('speed_star');
+        if (matchElapsedTime > 0 && matchElapsedTime <= 15000) unlockTitle('god_speed');
+
+        // 使用駒の勝利記録と全8駒制覇判定
+        let wonChars = JSON.parse(localStorage.getItem('smash_shogi_won_chars') || '[]');
+        if (!wonChars.includes(selectedCharKey)) {
+            wonChars.push(selectedCharKey);
+            localStorage.setItem('smash_shogi_won_chars', JSON.stringify(wonChars));
         }
-        if (matchElapsedTime > 0 && matchElapsedTime <= 30000) {
-            unlockTitle('speed_star');
+        if (selectedCharKey === 'bow') unlockTitle('sniper_bow');
+        if (selectedCharKey === 'knight') unlockTitle('sky_knight');
+        if (selectedCharKey === 'rook') unlockTitle('dragon_king');
+        if (wonChars.length >= Object.keys(CHAR_DATA).length) unlockTitle('all_chars_win');
+
+        // オンライン勝利＆レート判定
+        if (gameMode === 'online') {
+            unlockTitle('online_first');
+            setTimeout(() => {
+                if (playerRating >= 1600) unlockTitle('rate_1600');
+            }, 300);
         }
     }
     _titleHookEndMatch.apply(this, arguments);
@@ -4703,8 +4818,9 @@ function renderFriendAndTitleUI() {
     const titleButtonsHtml = TITLE_LIST.map(t => {
         const isOpen = unlocked.includes(t.id);
         const isEquipped = (t.id === equipped);
-        if (!isOpen) {
-            return '<div style="padding:4px 8px; margin:2px 0; background:rgba(0,0,0,0.4); color:#7f8c8d; border-radius:4px; font-size:11px;">🔒 ???（未解放）</div>';
+              if (!isOpen) {
+            const hintText = t.hint ? (' - ' + t.hint) : '';
+            return '<div style="padding:4px 8px; margin:2px 0; background:rgba(0,0,0,0.4); color:#95a5a6; border-radius:4px; font-size:10px;">🔒 ??? <span style="color:#7f8c8d;">(' + (t.hint || '条件不明') + ')</span></div>';
         }
         return '<button type="button" onclick="equipTitleById(\'' + t.id + '\')" style="display:block; width:100%; text-align:left; padding:5px 8px; margin:2px 0; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer; ' +
                (isEquipped ? 'background:#ffd32a; color:#000; border:1px solid #fff;' : 'background:#2f3640; color:#fff; border:1px solid #555;') + '">' +
