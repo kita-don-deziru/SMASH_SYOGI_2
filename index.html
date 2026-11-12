@@ -1304,8 +1304,8 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
 
 
 
-            <div id="select-screen" class="screen" style="display: none;">
-                <div class="select-title">ファイター & ステージ選択 <span style="color:#ff3f3f; font-size:11px;">[LV.9 CPU]</span></div>
+                       <div id="select-screen" class="screen" style="display: none;">
+                <div class="select-title">ファイター & ステージ選択 <span id="select-cpu-lv-badge" style="color:#ff3f3f; font-size:11px;">[LV.9 CPU]</span></div>
                 <div class="section-label">あなたの駒を選択してください：</div>
                 <div class="char-grid" id="char-grid-container"></div>
                 <div id="char-desc">駒の説明がここに表示されます。</div>
@@ -1316,9 +1316,19 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                     <button type="button" class="stage-btn" onclick="selectCpuBoss('king1', this)">王将 (標準)</button>
                     <button type="button" class="stage-btn" onclick="selectCpuBoss('king3', this)" style="border-color: #ff3f3f; color: #ff9f43;">裏王 🔥上級者向け</button>
                 </div>
-
-
-                              <div class="stage-select" style="flex-wrap: wrap;">
+                <div class="section-label">CPUレベル選択（LV.1 〜 LV.15 不可能）：</div>
+                <div style="background: rgba(0,0,0,0.45); padding: 8px 12px; border-radius: 8px; border: 1px solid #555; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span id="cpu-lv-label" style="font-weight: bold; font-size: 13px; color: #ffd32a;">LV.9 【標準・手応えあり】</span>
+                        <div style="display: flex; gap: 4px;">
+                            <button type="button" class="btn-toggle" onclick="setCpuLevel(3)">LV.3 弱</button>
+                            <button type="button" class="btn-toggle" onclick="setCpuLevel(9)">LV.9 標準</button>
+                            <button type="button" class="btn-toggle" style="background:#8e44ad; border-color:#ff3f3f;" onclick="setCpuLevel(15)">LV.15 不可能</button>
+                        </div>
+                    </div>
+                    <input type="range" id="cpu-level-slider" min="1" max="15" value="9" oninput="setCpuLevel(this.value)" style="width: 100%; cursor: pointer;">
+                </div>
+                <div class="section-label">ステージを選択してください：</div>
                     <button type="button" class="stage-btn selected" onclick="selectStage(1, this)">終点風平原</button>
                     <button type="button" class="stage-btn" onclick="selectStage(2, this)">戦場風浮島</button>
                     <button type="button" class="stage-btn" onclick="selectStage(3, this)" style="border-color: #ff9f43; color: #ffdd59;">🌋 灼熱溶岩城</button>
@@ -1761,11 +1771,41 @@ function initSelectScreen() {
 let selectedCpuType = 'random';
 function selectCharacter(key, element) { selectedCharKey = key; document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('selected')); element.classList.add('selected'); document.getElementById('char-desc').textContent = CHAR_DATA[selectedCharKey].desc; }
 function selectStage(num, element) { selectedStage = num; document.querySelectorAll('#select-screen .stage-select:not(#cpu-select-box) .stage-btn').forEach(b => b.classList.remove('selected')); element.classList.add('selected'); }
+let selectedCpuLevel = 9;
 function selectCpuBoss(type, element) {
     selectedCpuType = type;
     playSE('select');
     document.querySelectorAll('#cpu-select-box .stage-btn').forEach(b => b.classList.remove('selected'));
     element.classList.add('selected');
+}
+
+function setCpuLevel(lv) {
+    selectedCpuLevel = Math.max(1, Math.min(15, parseInt(lv, 10) || 9));
+    const slider = document.getElementById('cpu-level-slider');
+    if (slider) slider.value = selectedCpuLevel;
+
+    let rankText = '';
+    let color = '#ffd32a';
+    if (selectedCpuLevel <= 3) { rankText = '【超入門・練習用】'; color = '#2ecc71'; }
+    else if (selectedCpuLevel <= 6) { rankText = '【初級・やさしい】'; color = '#74b9ff'; }
+    else if (selectedCpuLevel <= 8) { rankText = '【中級・少し手強い】'; color = '#ffeaa7'; }
+    else if (selectedCpuLevel === 9) { rankText = '【標準・今の強さ】'; color = '#ffd32a'; }
+    else if (selectedCpuLevel <= 11) { rankText = '【上級・猛攻AI】'; color = '#ff9f43'; }
+    else if (selectedCpuLevel <= 13) { rankText = '【達人・超反応】'; color = '#ff3f3f'; }
+    else if (selectedCpuLevel === 14) { rankText = '【神域・絶望級】'; color = '#ff007f'; }
+    else { rankText = '【💀不可能レベル・人類撃破不可💀】'; color = '#d63031'; }
+
+    const label = document.getElementById('cpu-lv-label');
+    if (label) {
+        label.textContent = 'LV.' + selectedCpuLevel + ' ' + rankText;
+        label.style.color = color;
+    }
+    const badge = document.getElementById('select-cpu-lv-badge');
+    if (badge) {
+        badge.textContent = '[LV.' + selectedCpuLevel + ' CPU]';
+        badge.style.color = color;
+    }
+    if (typeof playSE === 'function') playSE('select');
 }
 function resetAllKeyStates() { keys.arrowleft = false; keys.arrowright = false; keys[' '] = false; keys.z = false; keys.x = false; keys.shift = false; spaceReleased = true; zReleased = true; xReleased = true; }
 
@@ -2181,18 +2221,37 @@ function executeGameStart() {
     
     const eF = document.getElementById('enemy-fighter');
     if (gameMode === 'offline') {
+    if (gameMode === 'offline') {
         let chosenBoss = BOSS_DATA.find(b => b.type === selectedCpuType) || BOSS_DATA[Math.floor(Math.random() * BOSS_DATA.length)];
         window.currentCpuBoss = chosenBoss;
         e.spGauge = 0;
         e.bossType = chosenBoss.type;
-        document.getElementById('ui-e-name').textContent = chosenBoss.name; 
+        e.cpuLevel = selectedCpuLevel;
+
+        // LV.9を基準(1.0)としたレベル補正倍率を計算
+        const lvDiff = selectedCpuLevel - 9; // -8(LV.1) 〜 +6(LV.15)
+        const speedMult = (selectedCpuLevel === 15) ? 1.55 : Math.max(0.45, 1 + lvDiff * 0.065);
+        const powerMult = (selectedCpuLevel === 15) ? 1.75 : Math.max(0.4, 1 + lvDiff * 0.08);
+        const weightMult = (selectedCpuLevel === 15) ? 1.45 : Math.max(0.75, 1 + lvDiff * 0.04);
+
+        const displayName = chosenBoss.name.replace('LV.9', 'LV.' + selectedCpuLevel);
+        document.getElementById('ui-e-name').textContent = displayName;
+        const eTag = document.getElementById('enemy-nametag');
+        if (eTag) eTag.textContent = 'CPU [LV.' + selectedCpuLevel + ']';
         document.getElementById('e-text').textContent = chosenBoss.text;
+
         if (eF) {
-            eF.style.width = '40px'; eF.style.height = '46px'; eF.style.fontSize = '18px';
-            eF.style.background = chosenBoss.color; eF.style.color = '#b32727';
-            eF.style.boxShadow = 'inset 0 0 0 1px #b32727';
+            eF.style.width = '42px'; eF.style.height = '48px'; eF.style.fontSize = '19px';
+            eF.style.background = ''; eF.style.color = ''; eF.style.boxShadow = '';
+            // LV.13以上は威圧的なオーラを常時纏う
+            const eAura = document.getElementById('e-aura');
+            if (eAura) eAura.style.display = (selectedCpuLevel >= 13) ? 'block' : 'none';
         }
-        e.speed = chosenBoss.speed; e.jump = chosenBoss.jump; e.weight = chosenBoss.weight; e.power = chosenBoss.power; e.range = chosenBoss.range;
+        e.speed = chosenBoss.speed * speedMult;
+        e.jump = chosenBoss.jump * (selectedCpuLevel >= 12 ? 1.08 : 1.0);
+        e.weight = chosenBoss.weight * weightMult;
+        e.power = chosenBoss.power * powerMult;
+        e.range = chosenBoss.range + (selectedCpuLevel >= 12 ? (selectedCpuLevel - 11) * 4 : 0);
     } else {
         // オンライン時は相手もプレイヤーと同じ駒サイズ・デザインに統一
         document.getElementById('ui-e-name').textContent = "対戦相手"; 
@@ -2357,25 +2416,44 @@ function updateFrame() {
                     if (!e.isGrounded && e.vy > 0 && !e.hasAirJumped) { e.vy = e.jump * 0.9; e.hasAirJumped = true; }
                 }
 
-                if (p.y < e.y - 45 && Math.random() < 0.05 && e.isGrounded) {
+                const cpuLv = e.cpuLevel || 9;
+
+                // LV.13以上専用：プレイヤーの攻撃や飛び道具を感知して先読みジャンプ回避＆空中追撃！
+                if (cpuLv >= 13 && e.isGrounded) {
+                    const incomingProj = projectiles.some(pr => !pr.isEnemy && Math.abs(pr.x - e.x) < 110 && Math.abs(pr.y - e.y) < 45);
+                    if ((p.attacking > 0 && Math.abs(dist) < 85) || incomingProj) {
+                        e.vy = e.jump;
+                        e.isGrounded = false;
+                        e.vx = (dist > 0 ? -1 : 1) * e.speed * 1.2;
+                    }
+                }
+
+                if (p.y < e.y - 45 && Math.random() < (0.02 + cpuLv * 0.005) && e.isGrounded) {
                     e.vy = e.jump; e.isGrounded = false;
                 }
                 
-                if (gameMode === 'offline' && !e.isGrounded && e.vy > 0 && e.hasAirJumped === false && e.y < 150) { 
+                // 低レベル(LV.1〜4)は時々崖復帰の空中ジャンプをミスする
+                const recoverChance = (cpuLv <= 4) ? 0.35 : 1.0;
+                if (gameMode === 'offline' && !e.isGrounded && e.vy > 0 && e.hasAirJumped === false && e.y < 150 && Math.random() < recoverChance) { 
                     e.vy = e.jump * 0.9; 
                     e.hasAirJumped = true; 
                 }
                 if (e.isGrounded) { e.hasAirJumped = false; }
 
-                // CPUのSPゲージ自然＆ダメージ蓄積（100%で必殺技発動！）
-                e.spGauge = Math.min(100, (e.spGauge || 0) + 0.18);
-                if (e.spGauge >= 100 && Math.abs(dist) < 180 && e.x >= 85 && e.x <= 475) {
+                // CPUのSPゲージ自然＆ダメージ蓄積（LV.15は3.5倍速で必殺技を連発！）
+                const spRate = (cpuLv === 15) ? 0.65 : Math.max(0.04, 0.18 * (cpuLv / 9));
+                e.spGauge = Math.min(100, (e.spGauge || 0) + spRate);
+                const spTriggerRange = (cpuLv >= 13) ? 260 : 180;
+                if (e.spGauge >= 100 && Math.abs(dist) < spTriggerRange && e.x >= 85 && e.x <= 475) {
                     triggerCpuSpecial();
                 }
 
-                // 超反応攻撃（LV9）
-                if (e.cooldown <= 0 && Math.abs(dist) < e.range + 15 && Math.abs(e.y - p.y) < 35 && e.x >= 75 && e.x <= 485) {
-                    e.attacking = 12; e.cooldown = 25;
+                // レベルに応じた反応速度＆連撃間隔（LV.1は隙だらけ、LV.15は7Fの超高速連撃）
+                const baseCooldown = (cpuLv === 15) ? 7 : Math.max(10, Math.round(25 - (cpuLv - 9) * 3.5));
+                const attackChance = (cpuLv <= 5) ? (0.15 + cpuLv * 0.1) : 1.0;
+
+                if (e.cooldown <= 0 && Math.abs(dist) < e.range + 15 && Math.abs(e.y - p.y) < 38 && e.x >= 75 && e.x <= 485 && Math.random() < attackChance) {
+                    e.attacking = 12; e.cooldown = baseCooldown;
                     playSE('swing');
                     const eWp = document.getElementById('enemy-weapon');
                     if (eWp) eWp.style.transform = e.dir === 1 ? 'rotate(75deg)' : 'rotate(-75deg)';
