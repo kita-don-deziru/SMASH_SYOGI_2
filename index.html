@@ -909,7 +909,7 @@
         /* 噴火予兆の警告ゾーン */
         #magma-warning-zone {
             position: absolute;
-            bottom: 124px;
+            bottom: 140px;
             height: 24px;
             background: repeating-linear-gradient(45deg, rgba(255, 0, 0, 0.65) 0px, rgba(255, 0, 0, 0.65) 10px, rgba(255, 211, 42, 0.65) 10px, rgba(255, 211, 42, 0.65) 20px);
             border: 2px solid #ff3f3f;
@@ -928,7 +928,7 @@
         /* 噴き上がるマグマ柱 */
         #magma-pillar {
             position: absolute;
-            bottom: 124px;
+            bottom: 140px;
             height: 175px;
             background: linear-gradient(90deg, rgba(235,47,6,0.2) 0%, rgba(255,63,63,0.9) 25%, rgba(255,235,120,1) 50%, rgba(255,63,63,0.9) 75%, rgba(235,47,6,0.2) 100%);
             box-shadow: 0 0 30px #ff3f3f, 0 0 50px #ff9f43;
@@ -1962,24 +1962,14 @@ function executeGameStart() {
 
 
 
-
-
-
-
-
-
-
-
-
-
        p = {
-        x: startLeft ? 150 : 410, y: 211, vx: 0, vy: 0, dmg: 0, isGrounded: true, dir: startLeft ? 1 : -1, stocks: 3, spGauge: 0,
+        x: startLeft ? 150 : 410, y: 196, vx: 0, vy: 0, dmg: 0, isGrounded: true, dir: startLeft ? 1 : -1, stocks: 3, spGauge: 0,
         isPromoted: false, usedPawnSuper: false, silverMode: false, goldMode: false, hitCount: 0,
         speed: c.speed, jump: c.jump, weight: c.weight, power: c.power, range: c.range,
         passThroughTimer: 0, invulnTimer: 0, onLift: false, liftTimer: 0, attacking: 0
     };
     e = {
-        x: startLeft ? 410 : 150, y: 208, vx: 0, vy: 0, dmg: 0, isGrounded: true, dir: startLeft ? -1 : 1, stocks: 3,
+        x: startLeft ? 410 : 150, y: 192, vx: 0, vy: 0, dmg: 0, isGrounded: true, dir: startLeft ? -1 : 1, stocks: 3,
         cooldown: 0, speed: 2.3, jump: -9.5, weight: 1.4, power: 1.3, range: 45, invulnTimer: 0, onLift: false, liftTimer: 0, attacking: 0
     };
 
@@ -2247,9 +2237,9 @@ function updateFrame() {
         let prevY = char.y - char.vy;
         let buffer = Math.max(8, char.vy + 4);
 
-        // メインの床（どんなに上から猛スピードで叩きつけられても絶対に貫通しない）
+        // メインの床（3D将棋盤の中央付近にしっかり乗るように高さを調整）
         if (char.x >= 75 && char.x <= 485) { 
-            let mainGroundY = (char === p) ? 212 : 208;
+            let mainGroundY = (char === p) ? 196 : 192;
             if (prevY <= mainGroundY + 4 && char.y >= mainGroundY - buffer) {
                 char.y = mainGroundY;
                 char.vy = 0;
@@ -2258,17 +2248,19 @@ function updateFrame() {
             }
         }
 
-        // 戦場風浮島（ステージ2）＆ 灼熱溶岩城（ステージ3）のすり抜け床
+
+        // 戦場風浮島（ステージ2）＆ 灼熱溶岩城（ステージ3）のすり抜け床（3D上面に合わせて調整）
         if ((selectedStage === 2 || selectedStage === 3) && !isSteeringDown) {
             let plats = (selectedStage === 2)
                 ? [
-                    { l: 84, r: 182, top: (char === p) ? 137 : 133 }, 
-                    { l: 384, r: 482, top: (char === p) ? 137 : 133 }, 
-                    { l: 234, r: 332, top: (char === p) ? 87 : 83 }    
+                    { l: 84, r: 182, top: (char === p) ? 129 : 125 }, 
+                    { l: 384, r: 482, top: (char === p) ? 129 : 125 }, 
+                    { l: 234, r: 332, top: (char === p) ? 79 : 75 }    
                   ]
                 : [
-                    { l: 222, r: 344, top: (char === p) ? 127 : 123 }
+                    { l: 222, r: 344, top: (char === p) ? 119 : 115 }
                   ];
+
             for (let pl of plats) {
                 if (char.x >= pl.l && char.x <= pl.r) {
                     if (prevY <= pl.top + 4 && char.y >= pl.top - buffer) {
@@ -2514,17 +2506,18 @@ function updateFighterShadow(shadowId, char, isPlayer) {
 
     // 浮島（ステージ2・3）の上にいるか判定
     if (selectedStage === 2) {
-        if (char.x >= 84 && char.x <= 182 && footY <= 186) groundSurfaceY = 181;
-        else if (char.x >= 384 && char.x <= 482 && footY <= 186) groundSurfaceY = 181;
-        else if (char.x >= 234 && char.x <= 332 && footY <= 136) groundSurfaceY = 131;
+        if (char.x >= 84 && char.x <= 182 && footY <= 178) groundSurfaceY = 173;
+        else if (char.x >= 384 && char.x <= 482 && footY <= 178) groundSurfaceY = 173;
+        else if (char.x >= 234 && char.x <= 332 && footY <= 128) groundSurfaceY = 123;
     } else if (selectedStage === 3) {
-        if (char.x >= 222 && char.x <= 344 && footY <= 176) groundSurfaceY = 171;
+        if (char.x >= 222 && char.x <= 344 && footY <= 168) groundSurfaceY = 163;
     }
 
-    // 浮島の上になければ、メイン足場（将棋盤）の上か判定
-    if (groundSurfaceY === null && char.x >= 75 && char.x <= 485 && footY <= 262) {
-        groundSurfaceY = 256;
+    // 浮島の上になければ、メイン足場（3D将棋盤の中央面）の上か判定
+    if (groundSurfaceY === null && char.x >= 75 && char.x <= 485 && footY <= 246) {
+        groundSurfaceY = 240;
     }
+
 
     if (groundSurfaceY === null || char.onLift) {
         shadow.style.display = 'none';
