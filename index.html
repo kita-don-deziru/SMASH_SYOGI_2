@@ -1690,6 +1690,17 @@ function triggerPlayerAttack() {
         e.vx = p.dir * kbScale; e.vy = -4.0;
 
         playSE('counter');
+        const ci = document.getElementById('cutin-text');
+        if (ci) {
+            ci.textContent = 'ジャストカウンター！！';
+            ci.style.fontSize = '20px';
+            ci.style.opacity = '1';
+            ci.style.transform = 'translate(-50%, -50%) scale(1.1)';
+            setTimeout(() => {
+                ci.style.opacity = '0';
+                setTimeout(() => { ci.style.fontSize = '32px'; }, 200);
+            }, 750);
+        }
         spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, true, true);
         if (p.spGauge < 100) p.spGauge = Math.min(100, p.spGauge + 25); 
         updateUI();
@@ -1774,9 +1785,20 @@ function triggerPlayerAttack() {
 function triggerPlayerSpecial() {
     if (p.spGauge < 100 || p.onLift || !xReleased) return;
     if (selectedCharKey === 'pawn' && !p.isPromoted) {
-        triggerCutIn('3回攻撃して「と金」に進化せよ！');
+        const ci = document.getElementById('cutin-text');
+        if (ci) {
+            ci.textContent = '3回攻撃するまで打てません！！';
+            ci.style.fontSize = '18px';
+            ci.style.opacity = '1';
+            ci.style.transform = 'translate(-50%, -50%) scale(1.0)';
+            setTimeout(() => {
+                ci.style.opacity = '0';
+                setTimeout(() => { ci.style.fontSize = '32px'; }, 200);
+            }, 900);
+        }
         return;
     }
+
     xReleased = false;
     if (selectedCharKey === 'pawn' && p.isPromoted) {
         p.spGauge = 0; updateSPBar(); triggerCutIn('秘技・金駒大散布爆撃！');
