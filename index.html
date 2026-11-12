@@ -1689,16 +1689,17 @@ function triggerPlayerAttack() {
         let kbScale = (5.0 + (e.dmg * 0.12)) / e.weight;
         e.vx = p.dir * kbScale; e.vy = -4.0;
 
-        triggerCutIn('ジャストカウンター・無敵化！！');
-        spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, true);
+        playSE('counter');
+        spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, true, true);
         if (p.spGauge < 100) p.spGauge = Math.min(100, p.spGauge + 25); 
         updateUI();
 
-        // オンライン時は相手にもカウンターの吹っ飛びとカットインを送信！
+        // オンライン時は相手にもカウンターの吹っ飛びを送信（カットインはなし）
         if (gameMode === 'online' && isMatched) {
             if (typeof sendHitToEnemy === 'function') sendHitToEnemy(counterDmg, e.vx, e.vy, 30);
-            if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: 'ジャストカウンターを食らった！', effect: 'none' });
         }
+
+
         
         const pWp = document.getElementById('player-weapon');
         if (pWp) pWp.style.transform = "scaleX(2.0)";
@@ -3920,8 +3921,37 @@ function playSE(type) {
             mOsc.start(now); mOsc.stop(now + 0.25);
         });
     }
+    else if (type === 'counter') {
+        // ⚔️ ジャストカウンター専用音：鋭い刀剣の弾き音（カキィィン！）＋衝撃波の和音
+        // 1. 刃で受け止めて弾き返す超高音の金属和音（2段階に跳ね上がる）
+        const counterFreqs = new Array(3200, 4800, 6400, 8800);
+        counterFreqs.forEach((freq, idx) => {
+            const cOsc = audioCtx.createOscillator();
+            const cGain = audioCtx.createGain();
+            cOsc.type = idx % 2 === 0 ? 'triangle' : 'sine';
+            cOsc.frequency.setValueAtTime(freq * 0.85, now);
+            cOsc.frequency.exponentialRampToValueAtTime(freq * 1.15, now + 0.05);
+            cOsc.frequency.exponentialRampToValueAtTime(freq, now + 0.35);
 
+            cGain.gain.setValueAtTime(0.22 - idx * 0.03, now);
+            cGain.gain.exponentialRampToValueAtTime(0.0005, now + 0.36);
+            cOsc.connect(cGain); cGain.connect(audioCtx.destination);
+            cOsc.start(now); cOsc.stop(now + 0.36);
+        });
+
+        // 2. カウンター成立の重厚な衝撃波（ドォォン！）
+        const subOsc = audioCtx.createOscillator();
+        const subGain = audioCtx.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(180, now + 0.03);
+        subOsc.frequency.exponentialRampToValueAtTime(28, now + 0.42);
+        subGain.gain.setValueAtTime(0.65, now + 0.03);
+        subGain.gain.exponentialRampToValueAtTime(0.005, now + 0.44);
+        subOsc.connect(subGain); subGain.connect(audioCtx.destination);
+        subOsc.start(now + 0.03); subOsc.stop(now + 0.44);
+    }
     else if (type === 'critical') {
+
         const boomOsc = audioCtx.createOscillator();
         const boomGain = audioCtx.createGain();
         boomOsc.type = 'triangle';
@@ -4407,8 +4437,8 @@ function triggerPlayerRecovery() {
     p.invulnTimer = Math.max(p.invulnTimer || 0, 18); // 出始めにわずかな無敵
     playSE('jump');
     spawnHitVisual(p.x + 18, p.y + 42, false, true);
-    triggerCutIn('昇竜復帰！！');
 }
+
 
 // ==============================================================================
 // ⚡ 3. 撃墜確定（フィニッシュズーム＆赤い稲妻）演出
