@@ -1181,59 +1181,30 @@
             100% { filter: blur(5px) hue-rotate(360deg); transform: scale(0.95); opacity: 0.85; }
         }
 
-        /* 🪽 「不可能を超えし絶対神」限定・天使の羽コスチューム */
-        .angel-wings-wrap {
+        /* 🔥 「不可能を超えし絶対神」限定・神炎（WebGLシェーダー）コスチューム */
+        .god-flame-canvas {
             position: absolute;
-            width: 104px;
-            height: 46px;
+            width: 136px;
+            height: 100px;
             pointer-events: none;
             z-index: 19;
+            mix-blend-mode: screen;
             display: none;
         }
-        .angel-wing {
-            position: absolute;
-            top: 0px;
-            width: 44px;
-            height: 36px;
-            background: linear-gradient(135deg, #ffffff 0%, #dff9fb 50%, #74b9ff 100%);
-            box-shadow: 0 0 14px #ffffff, 0 0 24px #00d2ff;
-            border: 1px solid #ffffff;
-        }
-        .angel-wing-left {
-            left: 0px;
-            border-radius: 30px 4px 24px 6px;
-            clip-path: polygon(0% 10%, 100% 35%, 95% 85%, 45% 100%, 15% 75%, 0% 50%);
-            transform-origin: right center;
-            animation: flapLeftWing 0.9s ease-in-out infinite alternate;
-        }
-        .angel-wing-right {
-            right: 0px;
-            border-radius: 4px 30px 6px 24px;
-            clip-path: polygon(0% 35%, 100% 10%, 100% 50%, 85% 75%, 55% 100%, 5% 85%);
-            transform-origin: left center;
-            animation: flapRightWing 0.9s ease-in-out infinite alternate;
-        }
-        @keyframes flapLeftWing {
-            0%   { transform: rotate(-8deg) scaleX(1.0); }
-            100% { transform: rotate(16deg) scaleX(0.88); }
-        }
-        @keyframes flapRightWing {
-            0%   { transform: rotate(8deg) scaleX(1.0); }
-            100% { transform: rotate(-16deg) scaleX(0.88); }
-        }
-        /* 絶対神装備時の白銀プラチナ3D駒スキン */
+        /* 絶対神装備時の白銀プラチナ3D駒スキン（羽なしのスリムシルエット） */
         .god-angel-skin {
             background:
-                linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(223,249,251,0.4) 50%, rgba(116,185,255,0.5) 100%),
+                linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(223,249,251,0.45) 50%, rgba(116,185,255,0.55) 100%),
                 linear-gradient(180deg, #ffffff 0%, #dff9fb 65%, #74b9ff 100%) !important;
             color: #0984e3 !important;
-            text-shadow: 0 1px 0 #ffffff, 0 0 8px rgba(0, 210, 255, 0.8) !important;
+            text-shadow: 0 1px 0 #ffffff, 0 0 8px rgba(0, 210, 255, 0.85) !important;
             filter:
                 drop-shadow(0 1px 0 #74b9ff)
                 drop-shadow(0 2px 0 #0984e3)
                 drop-shadow(0 3px 0 #192a56)
-                drop-shadow(0 0 12px rgba(255, 255, 255, 0.9)) !important;
+                drop-shadow(0 0 10px rgba(255, 230, 120, 0.9)) !important;
         }
+
     </style>
 
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
@@ -1497,14 +1468,8 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                         <div id="e-guard-bubble" class="active-guard-bubble"></div>
                         <div id="enemy-weapon" class="weapon" style="left:-22px; transform-origin: right center;"></div>
                     </div>
-                    <div id="p-angel-wings" class="angel-wings-wrap">
-                        <div class="angel-wing angel-wing-left"></div>
-                        <div class="angel-wing angel-wing-right"></div>
-                    </div>
-                    <div id="e-angel-wings" class="angel-wings-wrap">
-                        <div class="angel-wing angel-wing-left"></div>
-                        <div class="angel-wing angel-wing-right"></div>
-                    </div>
+                    <canvas id="p-god-flame" class="god-flame-canvas" width="136" height="100"></canvas>
+                    <canvas id="e-god-flame" class="god-flame-canvas" width="136" height="100"></canvas>
                     <div id="player-shadow" class="fighter-ground-shadow"></div>
 
                     <div id="player-shadow" class="fighter-ground-shadow"></div>
@@ -3053,16 +3018,16 @@ function updateFrame() {
         eRainbow.style.display = ((e.spGauge || 0) >= 100) ? 'block' : 'none';
     }
 
-    // 🪽 天使の羽の座標を駒の背中に追従させる
-    const pWingsEl = document.getElementById('p-angel-wings');
-    if (pWingsEl && pWingsEl.style.display !== 'none') {
-        pWingsEl.style.left = (p.x - 33) + 'px';
-        pWingsEl.style.top = (p.y + 4) + 'px';
+    // 🔥 神炎エフェクトの座標を駒の周囲・足元に追従させる（ワイド炎中央揃え）
+    const pFlameEl = document.getElementById('p-god-flame');
+    if (pFlameEl && pFlameEl.style.display !== 'none') {
+        pFlameEl.style.left = (p.x - 49) + 'px';
+        pFlameEl.style.top = (p.y - 42) + 'px';
     }
-    const eWingsEl = document.getElementById('e-angel-wings');
-    if (eWingsEl && eWingsEl.style.display !== 'none') {
-        eWingsEl.style.left = (e.x - 31) + 'px';
-        eWingsEl.style.top = (e.y + 6) + 'px';
+    const eFlameEl = document.getElementById('e-god-flame');
+    if (eFlameEl && eFlameEl.style.display !== 'none') {
+        eFlameEl.style.left = (e.x - 47) + 'px';
+        eFlameEl.style.top = (e.y - 40) + 'px';
     }
 
     // 🌑 将棋駒の接地影をリアルタイム更新（高さに応じて濃さとサイズを変化）
@@ -3874,8 +3839,8 @@ function setupConnection(conn) {
                 if (eGuard) eGuard.style.display = data.isGuarding ? 'block' : 'none';
                 const eRainbow = document.getElementById('e-rainbow-aura');
                 if (eRainbow) eRainbow.style.display = data.spFull ? 'block' : 'none';
-                const eWings = document.getElementById('e-angel-wings');
-                if (eWings) eWings.style.display = data.angelCostume ? 'block' : 'none';
+                const eFlame = document.getElementById('e-god-flame');
+                if (eFlame) eFlame.style.display = data.angelCostume ? 'block' : 'none';
                 if (data.angelCostume) enemyEl.classList.add('god-angel-skin');
                 else enemyEl.classList.remove('god-angel-skin');
             }
@@ -5427,20 +5392,23 @@ executeGameStart = function() {
     const isAngelGod = (eqId === 'impossible_slayer');
     window.hasAngelCostume = isAngelGod;
 
-    const pWings = document.getElementById('p-angel-wings');
+    const pFlame = document.getElementById('p-god-flame');
     const pFighter = document.getElementById('player-fighter');
-    if (pWings) pWings.style.display = isAngelGod ? 'block' : 'none';
+    if (pFlame) pFlame.style.display = isAngelGod ? 'block' : 'none';
     if (pFighter) {
         if (isAngelGod) pFighter.classList.add('god-angel-skin');
         else pFighter.classList.remove('god-angel-skin');
     }
 
-    // 敵側の天使の羽は初期リセット（オンラインで相手が装備している場合のみ後で点灯）
-    const eWings = document.getElementById('e-angel-wings');
+    // 敵側の神炎は初期リセット（オンラインで相手が装備している場合のみ後で点灯）
+    const eFlame = document.getElementById('e-god-flame');
     const eFighter = document.getElementById('enemy-fighter');
-    if (eWings) eWings.style.display = 'none';
+    if (eFlame) eFlame.style.display = 'none';
     if (eFighter) eFighter.classList.remove('god-angel-skin');
-};
+
+    // WebGL炎シェーダーの初期化・起動
+    if (typeof initGodFlameShaders === 'function') initGodFlameShaders();
+
 // ==============================================================================
 // 🔒 5. 同一端末（自己対戦）レート不正防止 ＆ 🤝 フレンドオンライン確認機能
 // ==============================================================================
@@ -5687,6 +5655,165 @@ applyEnemyInitInfo = function(data) {
         syncOnlineLeaderboardEntry(data.seqId, data.playerName, data.rating);
     }
 };
+
+// ==============================================================================
+// 🔥 「不可能を超えし絶対神」専用 WebGL 炎シェーダーレンダラー（@kuvkar GLSL移植）
+// ==============================================================================
+window.godFlameInstances = [];
+
+function createWebGLFlameRenderer(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false });
+    if (!gl) return null;
+
+    const vsSource = `
+        attribute vec2 aPos;
+        varying vec2 vUv;
+        void main() {
+            vUv = aPos * 0.5 + 0.5;
+            gl_Position = vec4(aPos, 0.0, 1.0);
+        }
+    `;
+
+    // ご提示いただいたGLSLシェーダーを標準WebGLで動作するよう完全移植
+    const fsSource = `
+        precision mediump float;
+        varying vec2 vUv;
+        uniform sampler2D mapSampler;
+        uniform vec2 dimensions;
+        uniform float time;
+
+        float rand(vec2 co) {
+            return fract(sin(dot(co.xy ,vec2(12.9898, 78.233))) * 43758.5453);
+        }
+
+        mat2 rotz(float angle) {
+            mat2 m;
+            m[0][0] = cos(angle); m[0][1] = -sin(angle);
+            m[1][0] = sin(angle); m[1][1] = cos(angle);
+            return m;
+        }
+
+        float fbm(vec2 uv) {
+            float n = (texture2D(mapSampler, uv).r - 0.5) * 0.5;
+            n += (texture2D(mapSampler, uv * 2.0).r - 0.5) * 0.25;
+            n += (texture2D(mapSampler, uv * 3.0).r - 0.5) * 0.125;
+            return n + 0.5;
+        }
+
+        void main() {
+            vec2 uv = vUv;
+            vec2 _uv = uv;
+            uv -= vec2(0.5);
+            uv.y /= dimensions.x / dimensions.y;
+            vec2 centerUV = uv;
+
+            float variationH = fbm(vec2(time * 0.3)) * 1.1;
+            vec2 offset = vec2(0.0, -time * 0.05);
+            float f = fbm(uv * 0.1 + offset);
+            float l = max(0.1, length(uv));
+            uv += rotz(((f - 0.5) / l) * smoothstep(-0.2, 0.4, _uv.y) * 0.45) * uv;
+
+            float flame = 1.35 - length(uv.x) * 3.1;
+            float blueflame = pow(max(0.0, flame * 0.9), 15.0);
+            blueflame *= smoothstep(0.2, -1.0, _uv.y);
+            blueflame /= max(0.05, abs(uv.x * 2.0));
+            blueflame = clamp(blueflame, 0.0, 1.0);
+
+            flame *= smoothstep(1.0, variationH * 0.5, _uv.y);
+            flame = clamp(flame, 0.0, 1.0);
+            flame = pow(flame, 3.0);
+            flame /= max(0.08, smoothstep(1.1, -0.1, _uv.y));
+            flame = clamp(flame, 0.0, 1.0);
+
+            vec4 col = mix(vec4(1.0, 1.0, 0.0, 0.0), vec4(1.0, 1.0, 0.6, 0.0), flame);
+            col = mix(vec4(1.0, 0.0, 0.0, 0.0), col, smoothstep(0.0, 1.6, flame));
+            gl_FragColor = col;
+
+            vec4 bluecolor = mix(vec4(0.0, 0.2, 1.0, 0.0), gl_FragColor, 0.92);
+            gl_FragColor = mix(gl_FragColor, bluecolor, blueflame);
+
+            gl_FragColor *= flame;
+            gl_FragColor.a = flame;
+
+            float haloSize = 0.52;
+            float centerL = max(0.0, 1.0 - (length(centerUV + vec2(0.0, 0.1)) / haloSize));
+            vec4 halo = vec4(0.8, 0.35, 0.2, 0.0) * fbm(vec2(time * 0.035)) * centerL;
+            vec4 finalCol = mix(halo, gl_FragColor, gl_FragColor.a);
+            finalCol.a = max(gl_FragColor.a, centerL * 0.35);
+
+            finalCol *= mix(rand(uv) + rand(uv * 0.45), 1.0, 0.9);
+            gl_FragColor = clamp(finalCol, 0.0, 1.0);
+        }
+    `;
+
+    const compile = (type, src) => {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        return s;
+    };
+
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vsSource));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fsSource));
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(prog, 'aPos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    // FBM乱流用のシームレスなノイズテクスチャ（mapSampler）を自動生成
+    const texSize = 128;
+    const noiseData = new Uint8Array(texSize * texSize * 4);
+    for (let i = 0; i < noiseData.length; i += 4) {
+        const v = Math.floor(Math.random() * 256);
+        noiseData[i] = v; noiseData[i + 1] = v; noiseData[i + 2] = v; noiseData[i + 3] = 255;
+    }
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texSize, texSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, noiseData);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    const uDim = gl.getUniformLocation(prog, 'dimensions');
+    const uTime = gl.getUniformLocation(prog, 'time');
+    gl.uniform2f(uDim, canvas.width, canvas.height);
+
+    return { canvas, gl, uTime };
+}
+
+function initGodFlameShaders() {
+    if (window.godFlameInstances.length === 0) {
+        const pInst = createWebGLFlameRenderer('p-god-flame');
+        const eInst = createWebGLFlameRenderer('e-god-flame');
+        if (pInst) window.godFlameInstances.push(pInst);
+        if (eInst) window.godFlameInstances.push(eInst);
+
+        const startTs = performance.now();
+        function renderFlameLoop(now) {
+            const elapsedSec = (now - startTs) * 0.001;
+            window.godFlameInstances.forEach(inst => {
+                if (inst.canvas && inst.canvas.style.display !== 'none') {
+                    inst.gl.viewport(0, 0, inst.canvas.width, inst.canvas.height);
+                    inst.gl.clearColor(0, 0, 0, 0);
+                    inst.gl.clear(inst.gl.COLOR_BUFFER_BIT);
+                    inst.gl.uniform1f(inst.uTime, elapsedSec * 6.0);
+                    inst.gl.drawArrays(inst.gl.TRIANGLE_STRIP, 0, 4);
+                }
+            });
+            requestAnimationFrame(renderFlameLoop);
+        }
+        requestAnimationFrame(renderFlameLoop);
+    }
+}
 </script>
 </body>
 </html>
