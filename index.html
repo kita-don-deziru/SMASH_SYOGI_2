@@ -1159,7 +1159,29 @@
             pointer-events: none;
             border-radius: 6px;
         }
+
+        /* 🌈 SPゲージ100%満タン時の「虹色の霧オーラ」 */
+        .rainbow-sp-aura {
+            position: absolute;
+            top: -14px;
+            left: -14px;
+            width: 66px;
+            height: 72px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,0,128,0.55) 0%, rgba(255,211,42,0.45) 35%, rgba(0,210,255,0.4) 65%, rgba(162,155,254,0) 100%);
+            filter: blur(5px);
+            animation: rainbowAuraShift 1.4s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+            display: none;
+        }
+        @keyframes rainbowAuraShift {
+            0%   { filter: blur(5px) hue-rotate(0deg);   transform: scale(0.95); opacity: 0.85; }
+            50%  { filter: blur(7px) hue-rotate(180deg); transform: scale(1.18); opacity: 1.0; }
+            100% { filter: blur(5px) hue-rotate(360deg); transform: scale(0.95); opacity: 0.85; }
+        }
     </style>
+
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
    <script>
 const pUrl = ['ht', 'tps', ':/', '/un', 'pkg', '.c', 'om/', 'pe', 'erj', 's@1', '.5.', '4/d', 'ist', '/pe', 'erj', 's.m', 'in.', 'js'].join('');
@@ -1347,8 +1369,9 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
 
                 <div class="section-label">対戦モード：</div>
                 <div style="display:flex; justify-content:center; margin-bottom:15px;">
-                    <div class="opt-toggle-container">
-                        <button type="button" class="btn-toggle active" id="mode-offline" onclick="toggleGameMode('offline')">VS CPU (オフライン)</button>
+                    <div class="opt-toggle-container" style="flex-wrap: wrap; justify-content: center;">
+                        <button type="button" class="btn-toggle active" id="mode-offline" onclick="toggleGameMode('offline')">VS CPU (3ストック)</button>
+                        <button type="button" class="btn-toggle" id="mode-timeattack3" onclick="toggleGameMode('timeattack3')" style="border-color: #ff9f43; color: #ffdd59;">⏱️ 3分間KOバトル</button>
                         <button type="button" class="btn-toggle" id="mode-online" onclick="toggleGameMode('online')">オンライン対戦</button>
                     </div>
                 </div>
@@ -1400,6 +1423,7 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                         <div id="player-nametag" class="fighter-nametag">あなた #00001</div>
                         <span id="p-text">歩</span>
                         <div id="p-status-bubble" class="status-bubble"></div>
+                        <div id="p-rainbow-aura" class="rainbow-sp-aura"></div>
                         <div id="p-aura" class="silver-aura"></div>
                         <div id="p-shield" class="gold-shield"></div>
                         <div id="p-guard-bubble" class="active-guard-bubble"></div>
@@ -1413,6 +1437,7 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                         <div id="enemy-nametag" class="fighter-nametag">敵</div>
                         <span id="e-text">王</span>
                         <div id="e-status-bubble" class="status-bubble">Zzz...</div>
+                        <div id="e-rainbow-aura" class="rainbow-sp-aura"></div>
                         <div id="e-aura" class="silver-aura"></div>
                         <div id="e-shield" class="gold-shield"></div>
                         <div id="e-guard-bubble" class="active-guard-bubble"></div>
@@ -1674,25 +1699,13 @@ let gameMode = 'offline';
 
 function toggleGameMode(mode) {
     gameMode = mode;
-    const btnOffline = document.getElementById('mode-offline'); const btnOnline = document.getElementById('mode-online');
-    if (mode === 'offline') { btnOffline.classList.add('active'); btnOnline.classList.remove('active'); }
-    else { btnOffline.classList.remove('active'); btnOnline.classList.add('active'); }
+    const btnOffline = document.getElementById('mode-offline');
+    const btnTime3 = document.getElementById('mode-timeattack3');
+    const btnOnline = document.getElementById('mode-online');
+    if (btnOffline) btnOffline.classList.toggle('active', mode === 'offline');
+    if (btnTime3) btnTime3.classList.toggle('active', mode === 'timeattack3');
+    if (btnOnline) btnOnline.classList.toggle('active', mode === 'online');
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 function showScreen(s) {
     if(window.scrTitle) window.scrTitle.style.display = 'none';
@@ -1923,6 +1936,13 @@ function triggerPlayerAttack() {
         } else {
             let pCenterX = p.x + 18; let eCenterX = e.x + 20;
             if (e.invulnTimer <= 0 && !e.onLift && Math.abs(pCenterX - eCenterX) < reach && Math.abs(p.y - e.y) < 32) {
+                // 🛡️ CPU（特にLV.15）がガード中なら攻撃を完全に防ぐ！
+                if (gameMode === 'offline' && e.isGuarding) {
+                    playSE('swing');
+                    e.vx = p.dir * 2.0;
+                    spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, false, true);
+                    return;
+                }
                 let pBonus = 1.0 + (e.dmg * 0.005); 
                 let dmgDeal = Math.floor((Math.random() * 6 + 6) * p.power * pBonus); 
                 e.dmg += dmgDeal;
@@ -2125,7 +2145,7 @@ function triggerPlayerSpecial() {
 
 
 function pressStartButton() {
-    if (gameMode === 'offline') { 
+    if (gameMode === 'offline' || gameMode === 'timeattack3') { 
         myRole = 'offline'; 
         executeGameStart(); 
     } else {
@@ -2136,7 +2156,8 @@ function pressStartButton() {
 
 function executeGameStart() {
     window.scrSelect.style.display = 'none'; window.scrGame.style.display = 'block';
-    const c = CHAR_DATA[selectedCharKey]; let startLeft = (gameMode === 'offline' || myRole === 'host');
+    const isOfflineLike = (gameMode === 'offline' || gameMode === 'timeattack3');
+    const c = CHAR_DATA[selectedCharKey]; let startLeft = (isOfflineLike || myRole === 'host');
 
     const myName = window.myPlayerName || '名無しの棋士';
     const myIdStr = (typeof formatSeqId === 'function') ? formatSeqId(assignedSeqNum) : '00001';
@@ -2146,8 +2167,7 @@ function executeGameStart() {
     document.getElementById('p-text').textContent = c.name;
 
     const eTag = document.getElementById('enemy-nametag');
-    if (eTag) eTag.textContent = (gameMode === 'offline') ? 'CPU [LV.9]' : '対戦相手';
-
+    if (eTag) eTag.textContent = isOfflineLike ? ('CPU [LV.' + selectedCpuLevel + ']') : '対戦相手';
     
     const gv = document.getElementById('game-view');
     const mainPlat = document.getElementById('main-platform');
@@ -2221,18 +2241,17 @@ function executeGameStart() {
     const eStatusUi = document.getElementById('ui-e-status'); if (eStatusUi) eStatusUi.textContent = '';
     
     const eF = document.getElementById('enemy-fighter');
-    if (gameMode === 'offline') {
+    if (isOfflineLike) {
         let chosenBoss = BOSS_DATA.find(b => b.type === selectedCpuType) || BOSS_DATA[Math.floor(Math.random() * BOSS_DATA.length)];
         window.currentCpuBoss = chosenBoss;
         e.spGauge = 0;
         e.bossType = chosenBoss.type;
         e.cpuLevel = selectedCpuLevel;
-
         // LV.9を基準(1.0)としたレベル補正倍率を計算
         const lvDiff = selectedCpuLevel - 9; // -8(LV.1) 〜 +6(LV.15)
-        const speedMult = (selectedCpuLevel === 15) ? 1.55 : Math.max(0.45, 1 + lvDiff * 0.065);
-        const powerMult = (selectedCpuLevel === 15) ? 1.75 : Math.max(0.4, 1 + lvDiff * 0.08);
-        const weightMult = (selectedCpuLevel === 15) ? 1.45 : Math.max(0.75, 1 + lvDiff * 0.04);
+        const speedMult = (selectedCpuLevel === 15) ? 1.85 : Math.max(0.45, 1 + lvDiff * 0.065);
+        const powerMult = (selectedCpuLevel === 15) ? 2.25 : Math.max(0.4, 1 + lvDiff * 0.08);
+        const weightMult = (selectedCpuLevel === 15) ? 2.15 : Math.max(0.75, 1 + lvDiff * 0.04);
 
         const displayName = chosenBoss.name.replace('LV.9', 'LV.' + selectedCpuLevel);
         document.getElementById('ui-e-name').textContent = displayName;
@@ -2263,6 +2282,17 @@ function executeGameStart() {
         }
     }
 
+    p.koCount = 0;
+    e.koCount = 0;
+    const tipEl = document.getElementById('controls-tip');
+    if (tipEl) {
+        if (gameMode === 'timeattack3') {
+            tipEl.innerHTML = '⏱️ 3分間KOバトル<div id="timer-display" style="color:#ffd32a;">03:00.00</div>';
+        } else {
+            tipEl.innerHTML = 'タイムアタック進行中<div id="timer-display">00:00.00</div>';
+        }
+    }
+
     resetAllKeyStates();
     updateUI();
     setupTouchControls();
@@ -2287,10 +2317,30 @@ function executeGameStart() {
 function updateFrame() {
     if (isHitStopping) return;
 
-    // 1. タイマーの更新
+    // 1. タイマーの更新（3分間KOバトル時は 03:00.00 からのカウントダウン）
     matchElapsedTime = Date.now() - matchStartTime;
     const timerDisplay = document.getElementById('timer-display');
-    if (timerDisplay) timerDisplay.textContent = formatTime(matchElapsedTime);
+    if (gameMode === 'timeattack3') {
+        const limitMs = 180000; // 3分 = 180,000ミリ秒
+        const remainMs = Math.max(0, limitMs - matchElapsedTime);
+        if (timerDisplay) {
+            timerDisplay.textContent = formatTime(remainMs);
+            timerDisplay.style.color = (remainMs <= 10000) ? '#ff3f3f' : '#ffd32a';
+        }
+        if (remainMs <= 0) {
+            triggerCutIn('TIME UP !!');
+            const playerWon = (p.koCount || 0) >= (e.koCount || 0);
+            endMatch(playerWon);
+            return;
+        }
+    } else {
+        if (timerDisplay) {
+            timerDisplay.textContent = formatTime(matchElapsedTime);
+            timerDisplay.style.color = '#ffebc2';
+        }
+    }
+
+
 
     // 2. 復活リフト（スポーンプラットフォーム）の処理
     if (p.onLift) {
@@ -2417,14 +2467,37 @@ function updateFrame() {
                 }
 
                 const cpuLv = e.cpuLevel || 9;
+                const eGuardEl = document.getElementById('e-guard-bubble');
+
+                // 🛡️ LV.12以上（特にLV.15）のオートガード行動！プレイヤーの攻撃や矢を感知すると即座に盾を張る
+                const incomingProj = projectiles.some(pr => !pr.isEnemy && Math.abs(pr.x - e.x) < 130 && Math.abs(pr.y - e.y) < 50);
+                const playerAttackingNear = (p.attacking > 0 && Math.abs(dist) < 95);
+                const guardProb = (cpuLv === 15) ? 0.88 : (cpuLv >= 12 ? (cpuLv - 11) * 0.15 : 0);
+
+                if (cpuLv >= 12 && (playerAttackingNear || incomingProj) && e.cooldown <= 12) {
+                    if (!e.isGuarding && Math.random() < guardProb) {
+                        e.isGuarding = true;
+                        e.guardTimer = (cpuLv === 15) ? 28 : 18;
+                    }
+                }
+                if (e.isGuarding) {
+                    e.guardTimer = (e.guardTimer || 0) - 1;
+                    e.vx *= 0.2;
+                    if (eGuardEl) eGuardEl.style.display = 'block';
+                    if (e.guardTimer <= 0) {
+                        e.isGuarding = false;
+                        if (eGuardEl) eGuardEl.style.display = 'none';
+                    }
+                } else if (eGuardEl && gameMode === 'offline') {
+                    eGuardEl.style.display = 'none';
+                }
 
                 // LV.13以上専用：プレイヤーの攻撃や飛び道具を感知して先読みジャンプ回避＆空中追撃！
-                if (cpuLv >= 13 && e.isGrounded) {
-                    const incomingProj = projectiles.some(pr => !pr.isEnemy && Math.abs(pr.x - e.x) < 110 && Math.abs(pr.y - e.y) < 45);
+                if (cpuLv >= 13 && e.isGrounded && !e.isGuarding) {
                     if ((p.attacking > 0 && Math.abs(dist) < 85) || incomingProj) {
                         e.vy = e.jump;
                         e.isGrounded = false;
-                        e.vx = (dist > 0 ? -1 : 1) * e.speed * 1.2;
+                        e.vx = (dist > 0 ? -1 : 1) * e.speed * 1.3;
                     }
                 }
 
@@ -2440,16 +2513,16 @@ function updateFrame() {
                 }
                 if (e.isGrounded) { e.hasAirJumped = false; }
 
-                // CPUのSPゲージ自然＆ダメージ蓄積（LV.15は3.5倍速で必殺技を連発！）
-                const spRate = (cpuLv === 15) ? 0.65 : Math.max(0.04, 0.18 * (cpuLv / 9));
+                // CPUのSPゲージ自然＆ダメージ蓄積（LV.15は超高速チャージで必殺技を乱射！）
+                const spRate = (cpuLv === 15) ? 1.15 : Math.max(0.04, 0.18 * (cpuLv / 9));
                 e.spGauge = Math.min(100, (e.spGauge || 0) + spRate);
-                const spTriggerRange = (cpuLv >= 13) ? 260 : 180;
+                const spTriggerRange = (cpuLv >= 13) ? 320 : 180;
                 if (e.spGauge >= 100 && Math.abs(dist) < spTriggerRange && e.x >= 85 && e.x <= 475) {
                     triggerCpuSpecial();
                 }
 
-                // レベルに応じた反応速度＆連撃間隔（LV.1は隙だらけ、LV.15は7Fの超高速連撃）
-                const baseCooldown = (cpuLv === 15) ? 7 : Math.max(10, Math.round(25 - (cpuLv - 9) * 3.5));
+                // レベルに応じた反応速度＆連撃間隔（LV.15は4Fの人間不可能レベルの超連撃）
+                const baseCooldown = (cpuLv === 15) ? 4 : Math.max(10, Math.round(25 - (cpuLv - 9) * 3.5));
                 const attackChance = (cpuLv <= 5) ? (0.15 + cpuLv * 0.1) : 1.0;
 
                 if (e.cooldown <= 0 && Math.abs(dist) < e.range + 15 && Math.abs(e.y - p.y) < 38 && e.x >= 75 && e.x <= 485 && Math.random() < attackChance) {
@@ -2573,6 +2646,12 @@ function updateFrame() {
         if (!proj.isEnemy) {
             // 自分の弾が相手に当たった場合（撃った側がダメージと吹っ飛びを確定）
             if (e.invulnTimer <= 0 && !e.onLift && Math.abs(proj.x - (e.x + 20)) < 28 && Math.abs(proj.y - (e.y + 20)) < 32) {
+                if (gameMode === 'offline' && e.isGuarding && proj.type !== 'hyper-arrow') {
+                    playSE('swing');
+                    hit = true;
+                    proj.el.remove(); projectiles.splice(i, 1);
+                    continue;
+                }
                 let baseDmg = 5;
                 let kb = 2;
                 if (proj.type === 'hyper-arrow') { baseDmg = 24; kb = 9; }
@@ -2628,7 +2707,15 @@ function updateFrame() {
         }
 
 
-                if (p.stocks <= 0) { 
+        if (gameMode === 'timeattack3') {
+            // 3分間KOバトルはストック無限！相手のKO数を+1して即リスポーン
+            e.koCount = (e.koCount || 0) + 1;
+            p.stocks = 3;
+            p.vx = 0; p.vy = 0; p.knockbackTimer = 0;
+            setupRespawn(p, true);
+            p.y = 10;
+            updateUI();
+        } else if (p.stocks <= 0) { 
             updateStockUI();
             if (gameMode === 'online' && isMatched && dataConnection && dataConnection.open) {
                 dataConnection.send({ type: 'gameover' });
@@ -2645,20 +2732,33 @@ function updateFrame() {
         }
     }
 
-    if (gameMode === 'offline' && (e.y > 410 || e.x < -40 || e.x > 620)) {
+    if ((gameMode === 'offline' || gameMode === 'timeattack3') && (e.y > 410 || e.x < -40 || e.x > 620)) {
         let eDir = e.x < 200 ? -1 : 1;
         spawnKoBeam(Math.max(30, Math.min(570, e.x)), eDir);
         spawnHitVisual(Math.max(10, Math.min(590, e.x)), Math.max(10, Math.min(370, e.y)), true);
-        e.stocks--;
-        if (e.stocks <= 0) { 
-            endMatch(true); return; 
-        } else { 
+
+        if (gameMode === 'timeattack3') {
+            // 3分間KOバトルは自分のKO数を+1して敵を即リスポーン！
+            p.koCount = (p.koCount || 0) + 1;
+            e.stocks = 3;
             e.vx = 0; e.vy = 0; e.knockbackTimer = 0; e.cooldown = 0;
             if (typeof setupRespawn === 'function') { setupRespawn(e, false); }
-            e.y = 10; 
-            updateUI(); 
+            e.y = 10;
+            updateUI();
+        } else {
+            e.stocks--;
+            if (e.stocks <= 0) { 
+                endMatch(true); return; 
+            } else { 
+                e.vx = 0; e.vy = 0; e.knockbackTimer = 0; e.cooldown = 0;
+                if (typeof setupRespawn === 'function') { setupRespawn(e, false); }
+                e.y = 10; 
+                updateUI(); 
+            }
         }
     }
+
+
 
     // 🌋 ステージ3（灼熱溶岩城）マグマ噴火ギミック進行（60fpsで約8秒周期）
     if (selectedStage === 3) {
@@ -2858,10 +2958,22 @@ function updateFrame() {
         }
     }
 
+    // 🌈 SP満タン時の「虹色の霧オーラ」表示制御（使い終わった・効果切れで消去、再び100%で出現）
+    const pRainbow = document.getElementById('p-rainbow-aura');
+    if (pRainbow) {
+        const isPlayerSpFull = (p.spGauge >= 100 || flySpecialActive);
+        pRainbow.style.display = isPlayerSpFull ? 'block' : 'none';
+    }
+    const eRainbow = document.getElementById('e-rainbow-aura');
+    if (eRainbow && gameMode === 'offline') {
+        eRainbow.style.display = ((e.spGauge || 0) >= 100) ? 'block' : 'none';
+    }
 
     // 🌑 将棋駒の接地影をリアルタイム更新（高さに応じて濃さとサイズを変化）
     updateFighterShadow('player-shadow', p, true);
     updateFighterShadow('enemy-shadow', e, false);
+
+
 
     const pLift = document.getElementById('player-lift'); if (pLift && p.onLift) pLift.style.left = (p.x - 7) + 'px';
     const eLift = document.getElementById('enemy-lift'); if (eLift && e.onLift) eLift.style.left = (e.x - 5) + 'px';
@@ -2924,9 +3036,23 @@ function updateSPBar() {
 }
 
 function updateStockUI() {
-    let ps = ''; for(let i=0; i<p.stocks; i++) ps += '●'; document.getElementById('ui-p-stocks').textContent = ps;
-    let es = ''; for(let i=0; i<e.stocks; i++) es += '●'; document.getElementById('ui-e-stocks').textContent = es;
+    if (gameMode === 'timeattack3') {
+        const pKoEl = document.getElementById('ui-p-stocks');
+        const eKoEl = document.getElementById('ui-e-stocks');
+        if (pKoEl) { pKoEl.textContent = '★ ' + (p.koCount || 0) + ' KO'; pKoEl.style.color = '#ffd32a'; }
+        if (eKoEl) { eKoEl.textContent = '★ ' + (e.koCount || 0) + ' KO'; eKoEl.style.color = '#ff9f43'; }
+        return;
+    }
+    const pStEl = document.getElementById('ui-p-stocks');
+    const eStEl = document.getElementById('ui-e-stocks');
+    if (pStEl) pStEl.style.color = '#ff4d4d';
+    if (eStEl) eStEl.style.color = '#ff4d4d';
+
+    let ps = ''; for(let i=0; i<p.stocks; i++) ps += '●'; if (pStEl) pStEl.textContent = ps;
+    let es = ''; for(let i=0; i<e.stocks; i++) es += '●'; if (eStEl) eStEl.textContent = es;
 }
+
+
 
 
 
@@ -3147,6 +3273,32 @@ function endMatch(playerWon) {
             displayRanking(null, 0);
             goToSelectScreen();
         }, 100);
+        return;
+    }
+
+    if (gameMode === 'timeattack3') {
+        const myKo = p.koCount || 0;
+        const cpuKo = e.koCount || 0;
+        const isWin = myKo > cpuKo;
+        const isDraw = myKo === cpuKo;
+        const resultLabel = isWin ? 'VICTORY ! 🏆' : (isDraw ? 'DRAW ! 🤝' : 'LOSE... 💀');
+
+        let bestKo = parseInt(localStorage.getItem('smash_shogi_best_ko_3min') || '0', 10);
+        let newRecordText = '';
+        if (myKo > bestKo) {
+            bestKo = myKo;
+            localStorage.setItem('smash_shogi_best_ko_3min', String(bestKo));
+            newRecordText = '\n🎉 自己ベスト新記録達成！！';
+        }
+
+        alert(
+            '【⏱️ 3分間KOバトル 結果発表】\n' +
+            '勝敗：' + resultLabel + '\n\n' +
+            'あなたの撃墜数：' + myKo + ' KO\n' +
+            'CPU (LV.' + selectedCpuLevel + ') 撃墜数：' + cpuKo + ' KO\n' +
+            '自己ベスト記録：' + bestKo + ' KO' + newRecordText
+        );
+        goToSelectScreen();
         return;
     }
 
@@ -3536,6 +3688,8 @@ function setupConnection(conn) {
                 if (eShield) eShield.style.display = data.goldMode ? 'block' : 'none';
                 const eGuard = document.getElementById('e-guard-bubble');
                 if (eGuard) eGuard.style.display = data.isGuarding ? 'block' : 'none';
+                const eRainbow = document.getElementById('e-rainbow-aura');
+                if (eRainbow) eRainbow.style.display = data.spFull ? 'block' : 'none';
             }
 
             if (uiDmg) uiDmg.textContent = data.dmg + '%';
@@ -3656,7 +3810,8 @@ function broadcastMultiplayerData() {
             silverMode: p.silverMode || false,
             goldMode: p.goldMode || false,
             flySpecial: flySpecialActive || false,
-            isGuarding: p.isGuarding || false
+            isGuarding: p.isGuarding || false,
+            spFull: (p.spGauge >= 100 || flySpecialActive)
         });
     }
 }
@@ -4942,7 +5097,10 @@ const TITLE_LIST = [
 
     // --- オンライン・レート系 ---
     { id: 'online_first', name: '電脳の挑戦者', hint: 'オンライン対戦で勝利する' },
-    { id: 'rate_1600', name: 'レート1600突破', hint: 'オンラインレート1600以上に到達' }
+    { id: 'rate_1600', name: 'レート1600突破', hint: 'オンラインレート1600以上に到達' },
+
+    // --- 究極チャレンジ系 ---
+    { id: 'impossible_slayer', name: '不可能を超えし絶対神', hint: 'LV.15（不可能レベル）のCPUに勝利する' }
 ];
 
 function getUnlockedTitles() {
@@ -5037,9 +5195,10 @@ endMatch = function(playerWon) {
         if (p && p.dmg >= 150) unlockTitle('comeback_king');
         if (selectedStage === 3) unlockTitle('magma_survivor');
 
-        // スピード記録判定
+        // スピード記録＆LV.15不可能レベル撃破判定
         if (matchElapsedTime > 0 && matchElapsedTime <= 30000) unlockTitle('speed_star');
         if (matchElapsedTime > 0 && matchElapsedTime <= 15000) unlockTitle('god_speed');
+        if (gameMode === 'offline' && selectedCpuLevel >= 15) unlockTitle('impossible_slayer');
 
         // 使用駒の勝利記録と全8駒制覇判定
         let wonChars = JSON.parse(localStorage.getItem('smash_shogi_won_chars') || '[]');
