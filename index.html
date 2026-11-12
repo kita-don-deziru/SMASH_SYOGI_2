@@ -2674,10 +2674,10 @@ function updateFrame() {
             if (isWatching) {
                 spotEl.style.display = 'block';
                 spotEl.style.left = (spotCenterX - 75) + 'px';
-            } else {
+              } else {
                 spotEl.style.display = 'none';
                 spotEl.classList.remove('alert-red');
-                if (wmFace && window.windmillCooldown <= 0) wmFace.textContent = '😳';
+                if (wmFace && window.windmillCooldown <= 0) wmFace.textContent = '😄';
             }
         }
 
@@ -2696,8 +2696,10 @@ function updateFrame() {
             // 「右が見つかってなくて、左が見つかった時（またはその逆）」＝片方だけが光に入った瞬間に制裁ビーム！
             if (pInLight !== eInLight) {
                 window.windmillCooldown = 95; // 連続発射防止クールダウン
-                if (wmFace) wmFace.textContent = '😄'; // 見つけた瞬間の満面の笑顔！
+                if (wmFace) wmFace.textContent = '😳'; // 見つけた瞬間に真顔へ急変！
                 if (spotEl) spotEl.classList.add('alert-red');
+
+
 
                 const targetChar = pInLight ? p : e;
                 const isTargetPlayer = pInLight;
@@ -2730,7 +2732,7 @@ function updateFrame() {
                 }
 
                 setTimeout(() => {
-                    if (wmFace) wmFace.textContent = '😳';
+                    if (wmFace) wmFace.textContent = '😄';
                     if (spotEl) spotEl.classList.remove('alert-red');
                 }, 600);
             }
