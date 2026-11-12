@@ -1098,10 +1098,12 @@
             font-size: 24px;
             filter: drop-shadow(0 3px 4px rgba(0,0,0,0.8));
         }
-        .wm-hand-top    { top: -4px; left: 38px; transform: rotate(0deg); }
-        .wm-hand-right  { top: 36px; right: -4px; transform: rotate(90deg); }
-        .wm-hand-bottom { bottom: -4px; left: 38px; transform: rotate(180deg); }
-        .wm-hand-left   { top: 36px; left: -4px; transform: rotate(270deg); }
+        .wm-hand-top    { top: -6px; left: 37px; }
+        .wm-hand-right  { top: 36px; right: -6px; }
+        .wm-hand-bottom { bottom: -6px; left: 37px; }
+        .wm-hand-left   { top: 36px; left: -6px; }
+
+
 
         /* サーチライト（スポットライトの円錐光） */
         #windmill-spotlight {
@@ -1371,9 +1373,9 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                     <div id="windmill-spotlight"></div>
                     <div id="windmill-3d-wrapper">
                         <div id="windmill-3d-body">
-                            <div id="windmill-core-face">😳</div>
+                            <div id="windmill-core-face">😁</div>
                             <div id="windmill-hands-ring">
-                                <span class="wm-hand wm-hand-top">👆</span>
+                                <span class="wm-hand wm-hand-top">☝️</span>
                                 <span class="wm-hand wm-hand-right">👉</span>
                                 <span class="wm-hand wm-hand-bottom">👇</span>
                                 <span class="wm-hand wm-hand-left">👈</span>
@@ -2697,6 +2699,7 @@ function updateFrame() {
             if (pInLight !== eInLight) {
                 window.windmillCooldown = 95; // 連続発射防止クールダウン
                 if (wmFace) wmFace.textContent = '😳'; // 見つけた瞬間に真顔へ急変！
+                document.querySelectorAll('.wm-hand').forEach(h => h.textContent = '🫵'); // 4本の手がすべてこちらを指差す！
                 if (spotEl) spotEl.classList.add('alert-red');
 
 
@@ -2730,9 +2733,11 @@ function updateFrame() {
                     spawnHitVisual(targetX, targetY, true);
                     updateUI();
                 }
-
                 setTimeout(() => {
-                    if (wmFace) wmFace.textContent = '😄';
+                    if (wmFace) wmFace.textContent = '😁';
+                    const hands = document.querySelectorAll('.wm-hand');
+                    const normalIcons = ['☝️', '👉', '👇', '👈'];
+                    hands.forEach((h, idx) => { h.textContent = normalIcons[idx]; });
                     if (spotEl) spotEl.classList.remove('alert-red');
                 }, 600);
             }
