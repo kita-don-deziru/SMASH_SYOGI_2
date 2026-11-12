@@ -1180,6 +1180,63 @@
             50%  { filter: blur(7px) hue-rotate(180deg); transform: scale(1.18); opacity: 1.0; }
             100% { filter: blur(5px) hue-rotate(360deg); transform: scale(0.95); opacity: 0.85; }
         }
+
+        /* 🪽 「不可能を超えし絶対神」限定・天使の羽コスチューム */
+        .angel-wings-wrap {
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 96px;
+            height: 44px;
+            pointer-events: none;
+            z-index: -2;
+            display: none;
+        }
+        .angel-wing {
+            position: absolute;
+            top: 0px;
+            width: 44px;
+            height: 36px;
+            background: linear-gradient(135deg, #ffffff 0%, #dff9fb 50%, #74b9ff 100%);
+            box-shadow: 0 0 14px #ffffff, 0 0 24px #00d2ff;
+            border: 1px solid #ffffff;
+        }
+        .angel-wing-left {
+            left: 0px;
+            border-radius: 30px 4px 24px 6px;
+            clip-path: polygon(0% 10%, 100% 35%, 95% 85%, 45% 100%, 15% 75%, 0% 50%);
+            transform-origin: right center;
+            animation: flapLeftWing 0.9s ease-in-out infinite alternate;
+        }
+        .angel-wing-right {
+            right: 0px;
+            border-radius: 4px 30px 6px 24px;
+            clip-path: polygon(0% 35%, 100% 10%, 100% 50%, 85% 75%, 55% 100%, 5% 85%);
+            transform-origin: left center;
+            animation: flapRightWing 0.9s ease-in-out infinite alternate;
+        }
+        @keyframes flapLeftWing {
+            0%   { transform: rotate(-8deg) scaleX(1.0); }
+            100% { transform: rotate(16deg) scaleX(0.88); }
+        }
+        @keyframes flapRightWing {
+            0%   { transform: rotate(8deg) scaleX(1.0); }
+            100% { transform: rotate(-16deg) scaleX(0.88); }
+        }
+        /* 絶対神装備時の白銀プラチナ3D駒スキン */
+        .god-angel-skin {
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(223,249,251,0.4) 50%, rgba(116,185,255,0.5) 100%),
+                linear-gradient(180deg, #ffffff 0%, #dff9fb 65%, #74b9ff 100%) !important;
+            color: #0984e3 !important;
+            text-shadow: 0 1px 0 #ffffff, 0 0 8px rgba(0, 210, 255, 0.8) !important;
+            filter:
+                drop-shadow(0 1px 0 #74b9ff)
+                drop-shadow(0 2px 0 #0984e3)
+                drop-shadow(0 3px 0 #192a56)
+                drop-shadow(0 0 12px rgba(255, 255, 255, 0.9)) !important;
+        }
     </style>
 
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
@@ -1420,6 +1477,10 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                     <div id="cover-pillar-right" class="cover-pillar-3d" style="left: 399px;"></div>
 
                     <div id="player-fighter" class="piece">
+                        <div id="p-angel-wings" class="angel-wings-wrap">
+                            <div class="angel-wing angel-wing-left"></div>
+                            <div class="angel-wing angel-wing-right"></div>
+                        </div>
                         <div id="player-nametag" class="fighter-nametag">あなた #00001</div>
                         <span id="p-text">歩</span>
                         <div id="p-status-bubble" class="status-bubble"></div>
@@ -1434,6 +1495,10 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
 
 
                     <div id="enemy-fighter" class="piece">
+                        <div id="e-angel-wings" class="angel-wings-wrap">
+                            <div class="angel-wing angel-wing-left"></div>
+                            <div class="angel-wing angel-wing-right"></div>
+                        </div>
                         <div id="enemy-nametag" class="fighter-nametag">敵</div>
                         <span id="e-text">王</span>
                         <div id="e-status-bubble" class="status-bubble">Zzz...</div>
@@ -3301,25 +3366,63 @@ function endMatch(playerWon) {
         goToSelectScreen();
         return;
     }
+    const lv = (typeof selectedCpuLevel === 'number') ? selectedCpuLevel : 9;
+    const bossTitle = (window.currentCpuBoss && window.currentCpuBoss.text) ? (window.currentCpuBoss.text + '将') : '王将';
+    let myFighterName = CHAR_DATA[selectedCharKey].name;
+    if (selectedCharKey === 'pawn' && p.isPromoted) myFighterName = 'と金';
 
     if (playerWon) { 
-        alert('王将のストックをすべて削り切った！LV9 CPUに完全勝利です！🏆\nクリア記録: ' + formatTime(matchElapsedTime)); 
+        let winMsg = '';
+        if (lv <= 3) {
+            winMsg = 'まずは小手調べ！LV.' + lv + ' の' + bossTitle + 'を見事に撃破した！✨';
+        } else if (lv <= 6) {
+            winMsg = 'いい調子だ！LV.' + lv + ' の' + bossTitle + 'を危なげなく打ち破った！👍';
+        } else if (lv <= 8) {
+            winMsg = '見事な立ち回り！手強い LV.' + lv + ' の' + bossTitle + 'に勝利した！🔥';
+        } else if (lv === 9) {
+            winMsg = bossTitle + 'のストックをすべて削り切った！標準最強クラスの LV.9 CPUに完全勝利です！🏆';
+        } else if (lv <= 12) {
+            winMsg = '凄まじい腕前！猛攻を仕掛ける LV.' + lv + ' の' + bossTitle + 'をねじ伏せた！⚡';
+        } else if (lv <= 14) {
+            winMsg = 'まさに神業！！絶望的な強さの LV.' + lv + ' ' + bossTitle + 'を打ち倒した！！👑';
+        } else {
+            winMsg = '【伝説誕生】不可能と言われた LV.15（絶対神）の' + bossTitle + 'を撃破した！！あなたは真のスマッシュ将棋神だ！！🌌🏆🌌';
+        }
+
+        alert(winMsg + '\nクリア記録: ' + formatTime(matchElapsedTime)); 
         let confirmRegister = confirm("ランキングに登録しますか？"); 
         if (confirmRegister) { 
             let userName = prompt("ランキングに登録する名前を記入してください", "プレイヤーA"); 
             if (userName !== null && userName.trim() !== "") { 
                 const fighterName = CHAR_DATA[selectedCharKey].name; 
-                let ranking = saveRanking(matchElapsedTime, fighterName + ":" + userName.trim()); 
+                let ranking = saveRanking(matchElapsedTime, fighterName + ' [LV.' + lv + ']:' + userName.trim()); 
                 displayRanking(ranking, matchElapsedTime); 
-                document.getElementById('result-title').textContent = 'VICTORY !'; 
+                document.getElementById('result-title').textContent = (lv >= 15) ? 'LEGENDARY VICTORY !' : 'VICTORY !'; 
                 showScreen(window.scrResult); 
                 return; 
             } 
         } 
         goToSelectScreen(); 
     } else { 
-        let name = CHAR_DATA[selectedCharKey].name; if (selectedCharKey === 'pawn' && p.isPromoted) name = 'と金'; 
-        alert(name + 'の全ストックが消滅した…レベル9の圧倒的な力に敗北した。'); goToSelectScreen(); 
+        let loseMsg = '';
+        if (lv <= 3) {
+            loseMsg = myFighterName + 'の全ストックが消滅した…まずは基本操作に慣れて、LV.' + lv + ' にリベンジしよう！';
+        } else if (lv <= 6) {
+            loseMsg = myFighterName + 'は力尽きた…ガード（盾）やジャンプをうまく使って LV.' + lv + ' を突破しよう！';
+        } else if (lv <= 8) {
+            loseMsg = '惜しい戦いだった！LV.' + lv + ' の' + bossTitle + 'の攻撃パターンを見切って再挑戦だ！';
+        } else if (lv === 9) {
+            loseMsg = myFighterName + 'の全ストックが消滅した…LV.9 ' + bossTitle + 'の圧倒的な力に敗北した。';
+        } else if (lv <= 12) {
+            loseMsg = 'さすがは上級AI…LV.' + lv + ' の' + bossTitle + 'の猛攻の前に屈した。';
+        } else if (lv <= 14) {
+            loseMsg = '次元が違う強さだ…LV.' + lv + ' の' + bossTitle + 'に手も足も出ず敗北した…。';
+        } else {
+            loseMsg = 'やはり不可能レベルは伊達じゃない…LV.15 ' + bossTitle + 'の絶対的な力の前に完全敗北した。💀';
+        }
+
+        alert(loseMsg); 
+        goToSelectScreen(); 
     }
 }
 
@@ -3690,6 +3793,10 @@ function setupConnection(conn) {
                 if (eGuard) eGuard.style.display = data.isGuarding ? 'block' : 'none';
                 const eRainbow = document.getElementById('e-rainbow-aura');
                 if (eRainbow) eRainbow.style.display = data.spFull ? 'block' : 'none';
+                const eWings = document.getElementById('e-angel-wings');
+                if (eWings) eWings.style.display = data.angelCostume ? 'block' : 'none';
+                if (data.angelCostume) enemyEl.classList.add('god-angel-skin');
+                else enemyEl.classList.remove('god-angel-skin');
             }
 
             if (uiDmg) uiDmg.textContent = data.dmg + '%';
@@ -3811,7 +3918,8 @@ function broadcastMultiplayerData() {
             goldMode: p.goldMode || false,
             flySpecial: flySpecialActive || false,
             isGuarding: p.isGuarding || false,
-            spFull: (p.spGauge >= 100 || flySpecialActive)
+            spFull: (p.spGauge >= 100 || flySpecialActive),
+            angelCostume: window.hasAngelCostume || false
         });
     }
 }
@@ -5222,7 +5330,7 @@ endMatch = function(playerWon) {
     _titleHookEndMatch.apply(this, arguments);
 };
 
-// 試合開始時にネームタグへ称号を付与
+// 試合開始時にネームタグへ称号を付与 ＆ 絶対神限定「天使の羽コスチューム」適用
 const _titleHookGameStart = executeGameStart;
 executeGameStart = function() {
     _titleHookGameStart.apply(this, arguments);
@@ -5231,6 +5339,24 @@ executeGameStart = function() {
     if (pTag) {
         pTag.textContent = '【' + titleName + '】' + pTag.textContent;
     }
+
+    const eqId = localStorage.getItem('smash_shogi_equipped_title') || 'novice';
+    const isAngelGod = (eqId === 'impossible_slayer');
+    window.hasAngelCostume = isAngelGod;
+
+    const pWings = document.getElementById('p-angel-wings');
+    const pFighter = document.getElementById('player-fighter');
+    if (pWings) pWings.style.display = isAngelGod ? 'block' : 'none';
+    if (pFighter) {
+        if (isAngelGod) pFighter.classList.add('god-angel-skin');
+        else pFighter.classList.remove('god-angel-skin');
+    }
+
+    // 敵側の天使の羽は初期リセット（オンラインで相手が装備している場合のみ後で点灯）
+    const eWings = document.getElementById('e-angel-wings');
+    const eFighter = document.getElementById('enemy-fighter');
+    if (eWings) eWings.style.display = 'none';
+    if (eFighter) eFighter.classList.remove('god-angel-skin');
 };
 // ==============================================================================
 // 🔒 5. 同一端末（自己対戦）レート不正防止 ＆ 🤝 フレンドオンライン確認機能
