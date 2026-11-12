@@ -5715,7 +5715,7 @@ function createWebGLFlameRenderer(canvasId) {
             float l = max(0.1, length(uv));
             uv += rotz(((f - 0.5) / l) * smoothstep(-0.2, 0.4, _uv.y) * 0.45) * uv;
 
-            float flame = 1.35 - length(uv.x) * 3.1;
+            float flame = 1.35 - length(uv.x) * 2.0;
             float blueflame = pow(max(0.0, flame * 0.9), 15.0);
             blueflame *= smoothstep(0.2, -1.0, _uv.y);
             blueflame /= max(0.05, abs(uv.x * 2.0));
