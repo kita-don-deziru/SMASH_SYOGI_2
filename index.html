@@ -1470,7 +1470,6 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                     </div>
                     <canvas id="p-god-flame" class="god-flame-canvas" width="136" height="100"></canvas>
                     <canvas id="e-god-flame" class="god-flame-canvas" width="136" height="100"></canvas>
-                    <div id="player-shadow" class="fighter-ground-shadow"></div>
 
                     <div id="player-shadow" class="fighter-ground-shadow"></div>
                     <div id="enemy-shadow" class="fighter-ground-shadow"></div>
@@ -2480,8 +2479,8 @@ function updateFrame() {
 
     p.vy += 0.45; p.x += p.vx; p.y += p.vy;
 
-    // 4. 行動処理（オフラインならCPUのAI、オンラインならデータ通信に分岐）
-    if (gameMode === 'offline') {
+     // 4. 行動処理（オフライン・3分間KOバトルならCPUのAI、オンラインならデータ通信に分岐）
+    if (gameMode === 'offline' || gameMode === 'timeattack3') {
         if (!e.onLift) {
             if (e.knockbackTimer > 0) {
                 e.knockbackTimer--;
@@ -5408,6 +5407,7 @@ executeGameStart = function() {
 
     // WebGL炎シェーダーの初期化・起動
     if (typeof initGodFlameShaders === 'function') initGodFlameShaders();
+};
 
 // ==============================================================================
 // 🔒 5. 同一端末（自己対戦）レート不正防止 ＆ 🤝 フレンドオンライン確認機能
