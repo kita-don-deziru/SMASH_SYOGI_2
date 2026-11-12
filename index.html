@@ -1184,13 +1184,10 @@
         /* 🪽 「不可能を超えし絶対神」限定・天使の羽コスチューム */
         .angel-wings-wrap {
             position: absolute;
-            top: 4px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 96px;
-            height: 44px;
+            width: 104px;
+            height: 46px;
             pointer-events: none;
-            z-index: -2;
+            z-index: 19;
             display: none;
         }
         .angel-wing {
@@ -1477,10 +1474,6 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                     <div id="cover-pillar-right" class="cover-pillar-3d" style="left: 399px;"></div>
 
                     <div id="player-fighter" class="piece">
-                        <div id="p-angel-wings" class="angel-wings-wrap">
-                            <div class="angel-wing angel-wing-left"></div>
-                            <div class="angel-wing angel-wing-right"></div>
-                        </div>
                         <div id="player-nametag" class="fighter-nametag">あなた #00001</div>
                         <span id="p-text">歩</span>
                         <div id="p-status-bubble" class="status-bubble"></div>
@@ -1495,10 +1488,6 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
 
 
                     <div id="enemy-fighter" class="piece">
-                        <div id="e-angel-wings" class="angel-wings-wrap">
-                            <div class="angel-wing angel-wing-left"></div>
-                            <div class="angel-wing angel-wing-right"></div>
-                        </div>
                         <div id="enemy-nametag" class="fighter-nametag">敵</div>
                         <span id="e-text">王</span>
                         <div id="e-status-bubble" class="status-bubble">Zzz...</div>
@@ -1508,6 +1497,16 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                         <div id="e-guard-bubble" class="active-guard-bubble"></div>
                         <div id="enemy-weapon" class="weapon" style="left:-22px; transform-origin: right center;"></div>
                     </div>
+                    <div id="p-angel-wings" class="angel-wings-wrap">
+                        <div class="angel-wing angel-wing-left"></div>
+                        <div class="angel-wing angel-wing-right"></div>
+                    </div>
+                    <div id="e-angel-wings" class="angel-wings-wrap">
+                        <div class="angel-wing angel-wing-left"></div>
+                        <div class="angel-wing angel-wing-right"></div>
+                    </div>
+                    <div id="player-shadow" class="fighter-ground-shadow"></div>
+
                     <div id="player-shadow" class="fighter-ground-shadow"></div>
                     <div id="enemy-shadow" class="fighter-ground-shadow"></div>
 
@@ -1561,7 +1560,27 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                 <div id="result-title" style="font-size: 44px; font-weight: bold; color: #ffd32a; text-shadow: 0 0 15px #ff3f3f; margin-bottom: 5px;">VICTORY !</div>
                 <div id="result-msg" style="font-size: 14px; color: #d2dae2; margin-bottom: 10px; text-align: center;"></div>
                 <div class="ranking-box">
-                    <div class="ranking-title">⏱️ レベル9最速撃破ランキング</div>
+                    <div class="ranking-title" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span id="ranking-box-header">⏱️ LV.9 最速撃破ランキング</span>
+                        <select id="ranking-lv-filter" onchange="displayRanking(null, 0, parseInt(this.value, 10))" style="background:#222; color:#ffd32a; border:1px solid #ffd32a; border-radius:4px; font-size:11px; padding:2px 4px;">
+                            <option value="0">🌐 オンラインレート順位</option>
+                            <option value="1">LV.1 ランキング</option>
+                            <option value="2">LV.2 ランキング</option>
+                            <option value="3">LV.3 ランキング</option>
+                            <option value="4">LV.4 ランキング</option>
+                            <option value="5">LV.5 ランキング</option>
+                            <option value="6">LV.6 ランキング</option>
+                            <option value="7">LV.7 ランキング</option>
+                            <option value="8">LV.8 ランキング</option>
+                            <option value="9" selected>LV.9 ランキング</option>
+                            <option value="10">LV.10 ランキング</option>
+                            <option value="11">LV.11 ランキング</option>
+                            <option value="12">LV.12 ランキング</option>
+                            <option value="13">LV.13 ランキング</option>
+                            <option value="14">LV.14 ランキング</option>
+                            <option value="15">LV.15 (不可能) ランキング</option>
+                        </select>
+                    </div>
                     <div id="ranking-list-container"></div>
                 </div>
                 <button class="back-btn" onclick="backToSelect()">タイトルへ戻る</button>
@@ -3034,10 +3053,21 @@ function updateFrame() {
         eRainbow.style.display = ((e.spGauge || 0) >= 100) ? 'block' : 'none';
     }
 
+    // 🪽 天使の羽の座標を駒の背中に追従させる
+    const pWingsEl = document.getElementById('p-angel-wings');
+    if (pWingsEl && pWingsEl.style.display !== 'none') {
+        pWingsEl.style.left = (p.x - 33) + 'px';
+        pWingsEl.style.top = (p.y + 4) + 'px';
+    }
+    const eWingsEl = document.getElementById('e-angel-wings');
+    if (eWingsEl && eWingsEl.style.display !== 'none') {
+        eWingsEl.style.left = (e.x - 31) + 'px';
+        eWingsEl.style.top = (e.y + 6) + 'px';
+    }
+
     // 🌑 将棋駒の接地影をリアルタイム更新（高さに応じて濃さとサイズを変化）
     updateFighterShadow('player-shadow', p, true);
     updateFighterShadow('enemy-shadow', e, false);
-
 
 
     const pLift = document.getElementById('player-lift'); if (pLift && p.onLift) pLift.style.left = (p.x - 7) + 'px';
@@ -3263,29 +3293,84 @@ function formatTime(ms) {
 
 
 
-function saveRanking(newTimeMs, fighterName) {
+function saveRanking(newTimeMs, fighterName, targetLv = 9) {
+    const storageKey = 'smash_shogi_ranking_lv' + targetLv;
     let ranking = []; 
     try { 
-        let saved = localStorage.getItem('smash_shogi_ranking'); 
+        let saved = localStorage.getItem(storageKey); 
         if (saved) ranking = JSON.parse(saved); 
+        // 旧データ(LV.9)があれば移行
+        if (targetLv === 9 && ranking.length === 0) {
+            const legacy = localStorage.getItem('smash_shogi_ranking');
+            if (legacy) ranking = JSON.parse(legacy);
+        }
     } catch(e) { ranking = []; }
-    ranking.push({ time: newTimeMs, fighter: fighterName, date: new Date().toLocaleDateString() }); 
+
+    ranking.push({
+        time: newTimeMs,
+        fighter: fighterName,
+        lv: targetLv,
+        ownerId: formatSeqId(assignedSeqNum),
+        date: new Date().toLocaleDateString()
+    }); 
     ranking.sort((a, b) => a.time - b.time); 
     ranking = ranking.slice(0, 5); 
-    localStorage.setItem('smash_shogi_ranking', JSON.stringify(ranking)); 
+    localStorage.setItem(storageKey, JSON.stringify(ranking)); 
     return ranking;
 }
 
-
-
-
-function displayRanking(currentRanking, highlightTimeMs) {
+function displayRanking(currentRanking, highlightTimeMs, filterLv = null) {
     const container = document.getElementById('ranking-list-container'); 
-    if(!container) return; 
+    const headerEl = document.getElementById('ranking-box-header');
+    const filterSelect = document.getElementById('ranking-lv-filter');
+    if (!container) return; 
     container.innerHTML = '';
-    
-    if (currentRanking && currentRanking.length > 0) {
-        currentRanking.forEach((item, index) => {
+
+    const targetLv = (filterLv !== null) ? filterLv : (typeof selectedCpuLevel === 'number' ? selectedCpuLevel : 9);
+    if (filterSelect) filterSelect.value = String(targetLv);
+
+    // 0番（オンラインレート順位）が選ばれた場合
+    if (targetLv === 0) {
+        if (headerEl) headerEl.textContent = '🌐 オンラインレート順位';
+        let onlineBoard = [];
+        try {
+            onlineBoard = JSON.parse(localStorage.getItem('smash_shogi_online_leaderboard') || '[]');
+        } catch (e) { onlineBoard = []; }
+
+        // 自分の最新レートを反映
+        const myId = formatSeqId(assignedSeqNum);
+        const myName = window.myPlayerName || 'あなた';
+        onlineBoard = onlineBoard.filter(p => p.id !== myId);
+        onlineBoard.push({ id: myId, name: myName + ' (自分)', rate: playerRating, isMe: true });
+        onlineBoard.sort((a, b) => b.rate - a.rate);
+        onlineBoard = onlineBoard.slice(0, 8);
+        localStorage.setItem('smash_shogi_online_leaderboard', JSON.stringify(onlineBoard));
+
+        onlineBoard.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'ranking-item' + (index < 3 ? ' top3' : '');
+            if (item.isMe) { row.style.background = 'rgba(0, 210, 255, 0.25)'; row.style.borderRadius = '4px'; }
+            let rankEmoji = ['🥇', '🥈', '🥉'][index] || (index + 1) + '位';
+            row.innerHTML = '<span>' + rankEmoji + ' ' + item.name + ' #' + item.id + '</span> <span>' + item.rate + ' Rate</span>';
+            container.appendChild(row);
+        });
+        return;
+    }
+
+    if (headerEl) headerEl.textContent = '⏱️ LV.' + targetLv + ' 最速撃破ランキング';
+
+    let listToShow = currentRanking;
+    if (!listToShow) {
+        try {
+            listToShow = JSON.parse(localStorage.getItem('smash_shogi_ranking_lv' + targetLv) || '[]');
+            if (targetLv === 9 && listToShow.length === 0) {
+                listToShow = JSON.parse(localStorage.getItem('smash_shogi_ranking') || '[]');
+            }
+        } catch (e) { listToShow = []; }
+    }
+
+    if (listToShow && listToShow.length > 0) {
+        listToShow.forEach((item, index) => {
             const row = document.createElement('div'); 
             row.className = 'ranking-item' + (index < 3 ? ' top3' : ''); 
             if (item.time === highlightTimeMs) { 
@@ -3297,14 +3382,10 @@ function displayRanking(currentRanking, highlightTimeMs) {
             let fName = parts[0] || ""; 
             let uName = parts[1] ? " [" + parts[1] + "]" : "";
             row.innerHTML = "<span>" + rankEmoji + " " + fName + uName + "</span> <span>" + formatTime(item.time) + "</span>"; 
-
             container.appendChild(row);
         });
     } else {
-        container.innerHTML = '<div class="ranking-title">🏆 世界レートランキング</div>';
-        container.innerHTML += '<div class="ranking-item top3"><span>🥇 あなた</span><span>' + playerRating + ' Rate</span></div>';
-        container.innerHTML += '<div class="ranking-item"><span>🥈 CPU_LV9</span><span>1500 Rate</span></div>';
-        container.innerHTML += '<div class="ranking-item"><span>🥉 ゲスト棋士</span><span>1420 Rate</span></div>';
+        container.innerHTML = '<div style="text-align:center; color:#95a5a6; padding:10px; font-size:12px;">まだ LV.' + targetLv + ' の記録がありません！<br>一番乗りで記録を残そう！</div>';
     }
 }
 
@@ -3395,8 +3476,8 @@ function endMatch(playerWon) {
             let userName = prompt("ランキングに登録する名前を記入してください", "プレイヤーA"); 
             if (userName !== null && userName.trim() !== "") { 
                 const fighterName = CHAR_DATA[selectedCharKey].name; 
-                let ranking = saveRanking(matchElapsedTime, fighterName + ' [LV.' + lv + ']:' + userName.trim()); 
-                displayRanking(ranking, matchElapsedTime); 
+                let ranking = saveRanking(matchElapsedTime, fighterName + ':' + userName.trim(), lv); 
+                displayRanking(ranking, matchElapsedTime, lv); 
                 document.getElementById('result-title').textContent = (lv >= 15) ? 'LEGENDARY VICTORY !' : 'VICTORY !'; 
                 showScreen(window.scrResult); 
                 return; 
@@ -3981,7 +4062,9 @@ function injectOnlineRoomUI() {
                         '<input type="text" id="input-server-ip" inputmode="numeric" maxlength="12" placeholder="例: 12345" style="width:130px; padding:5px; border-radius:4px; border:1px solid #ccc; text-align:center; background:#fff; color:#000; font-weight:bold; font-size:15px; letter-spacing:2px;">' +
             '<button type="button" class="stage-btn" id="btn-connect-ip" style="background:#3867d6; margin-left:5px; padding:5px 14px; font-size:12px;">相手に突撃（接続）</button>' +
         '</div>' +
-        '<div id="room-status-text" style="color:#ffd32a; font-size:11px; margin-top:4px;">【遊び方】自動発行された永久固定ID（5桁以上）を友達に伝えるか、相手のIDを入れて「相手に突撃」を押すだけ！</div>';
+        '<div id="room-status-text" style="color:#ffd32a; font-size:11px; margin-top:4px;">【遊び方】自動発行された永久固定ID（5桁以上）を友達に伝えるか、相手のIDを入れて「相手に突撃」を押すだけ！</div>' +
+        '<div style="margin-top:8px;"><button type="button" class="stage-btn" style="background:#f39c12; color:#000; padding:5px 14px; font-size:12px;" onclick="openGlobalRankingModal()">🏆 全レベル＆オンラインランキングを見る</button></div>';
+
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) selectScreen.insertBefore(roomSection, startBtn);
 
@@ -5574,8 +5657,36 @@ injectOnlineRoomUI = function() {
     _origInjectOnlineUI.apply(this, arguments);
     renderFriendAndTitleUI();
 };
+
+// 🏆 選択画面からいつでも全レベル＆オンラインランキングを開ける関数
+function openGlobalRankingModal() {
+    document.getElementById('result-title').textContent = 'HALL OF FAME';
+    document.getElementById('result-msg').textContent = 'プルダウンから LV.1〜LV.15 およびオンライン順位を切り替えられます';
+    displayRanking(null, 0, selectedCpuLevel || 9);
+    showScreen(window.scrResult);
+}
+
+// 🌐 オンライン対戦相手と接続した際、お互いの最新レートをオンラインランキング表へ自動反映
+function syncOnlineLeaderboardEntry(peerIdStr, peerName, peerRate) {
+    if (!peerIdStr || typeof peerRate !== 'number') return;
+    let board = [];
+    try {
+        board = JSON.parse(localStorage.getItem('smash_shogi_online_leaderboard') || '[]');
+    } catch (e) { board = []; }
+    board = board.filter(item => item.id !== peerIdStr);
+    board.push({ id: peerIdStr, name: peerName || '対戦相手', rate: peerRate, isMe: false });
+    board.sort((a, b) => b.rate - a.rate);
+    board = board.slice(0, 10);
+    localStorage.setItem('smash_shogi_online_leaderboard', JSON.stringify(board));
+}
+
+const _syncBoardApplyEnemy = applyEnemyInitInfo;
+applyEnemyInitInfo = function(data) {
+    _syncBoardApplyEnemy.apply(this, arguments);
+    if (data && data.seqId && data.rating) {
+        syncOnlineLeaderboardEntry(data.seqId, data.playerName, data.rating);
+    }
+};
 </script>
-
-
 </body>
 </html>
