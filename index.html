@@ -1003,7 +1003,7 @@
             display: none; pointer-events: none; z-index: 22;
         }
 
-        /* 💨 香の睡眠香霧・広域ミストフィールド */
+             /* 💨 香の睡眠香霧・広域ミストフィールド */
         .lance-sleep-cloud {
             position: absolute;
             border-radius: 50%;
@@ -1011,6 +1011,19 @@
             filter: blur(4px);
             pointer-events: none;
             z-index: 34;
+        }
+
+        /* 🌑 将棋駒の接地影（3Dドロップシャドウ） */
+        .fighter-ground-shadow {
+            position: absolute;
+            width: 34px;
+            height: 9px;
+            background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 55%, transparent 80%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 14;
+            transform: translateX(-50%);
+            display: none;
         }
     </style>
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
@@ -1246,6 +1259,9 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
                         <div id="e-guard-bubble" class="active-guard-bubble"></div>
                         <div id="enemy-weapon" class="weapon" style="left:-22px; transform-origin: right center;"></div>
                     </div>
+                    <div id="player-shadow" class="fighter-ground-shadow"></div>
+                    <div id="enemy-shadow" class="fighter-ground-shadow"></div>
+
 
                     <div id="player-lift" class="respawn-lift"></div>
                     <div id="enemy-lift" class="respawn-lift"></div>
@@ -2476,12 +2492,53 @@ function updateFrame() {
     }
 
 
+    // 🌑 将棋駒の接地影をリアルタイム更新（高さに応じて濃さとサイズを変化）
+    updateFighterShadow('player-shadow', p, true);
+    updateFighterShadow('enemy-shadow', e, false);
+
     const pLift = document.getElementById('player-lift'); if (pLift && p.onLift) pLift.style.left = (p.x - 7) + 'px';
     const eLift = document.getElementById('enemy-lift'); if (eLift && e.onLift) eLift.style.left = (e.x - 5) + 'px';
 
     if (typeof broadcastMultiplayerData === 'function') {
         broadcastMultiplayerData();
     }
+}
+
+function updateFighterShadow(shadowId, char, isPlayer) {
+    const shadow = document.getElementById(shadowId);
+    if (!shadow || !char) return;
+
+    const centerX = char.x + (isPlayer ? 19 : 21);
+    const footY = char.y + (isPlayer ? 44 : 48);
+    let groundSurfaceY = null;
+
+    // 浮島（ステージ2・3）の上にいるか判定
+    if (selectedStage === 2) {
+        if (char.x >= 84 && char.x <= 182 && footY <= 186) groundSurfaceY = 181;
+        else if (char.x >= 384 && char.x <= 482 && footY <= 186) groundSurfaceY = 181;
+        else if (char.x >= 234 && char.x <= 332 && footY <= 136) groundSurfaceY = 131;
+    } else if (selectedStage === 3) {
+        if (char.x >= 222 && char.x <= 344 && footY <= 176) groundSurfaceY = 171;
+    }
+
+    // 浮島の上になければ、メイン足場（将棋盤）の上か判定
+    if (groundSurfaceY === null && char.x >= 75 && char.x <= 485 && footY <= 262) {
+        groundSurfaceY = 256;
+    }
+
+    if (groundSurfaceY === null || char.onLift) {
+        shadow.style.display = 'none';
+        return;
+    }
+
+    const heightAboveGround = Math.max(0, groundSurfaceY - footY);
+    const ratio = Math.max(0.25, 1 - heightAboveGround / 220);
+
+    shadow.style.display = 'block';
+    shadow.style.left = centerX + 'px';
+    shadow.style.top = (groundSurfaceY - 4) + 'px';
+    shadow.style.transform = 'translateX(-50%) scale(' + ratio + ')';
+    shadow.style.opacity = ratio;
 }
 
 function updateUI() {
