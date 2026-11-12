@@ -1777,13 +1777,10 @@ function triggerPlayerSpecial() {
         triggerCutIn('3回攻撃して「と金」に進化せよ！');
         return;
     }
-    if (selectedCharKey === 'pawn' && p.usedPawnSuper) {
-        triggerCutIn('と金奥義は1ストック1回まで！');
-        return;
-    }
     xReleased = false;
-    if (selectedCharKey === 'pawn' && p.isPromoted && !p.usedPawnSuper) {
-        p.usedPawnSuper = true; p.spGauge = 0; updateSPBar(); triggerCutIn('秘技・金駒大散布爆撃！');
+    if (selectedCharKey === 'pawn' && p.isPromoted) {
+        p.spGauge = 0; updateSPBar(); triggerCutIn('秘技・金駒大散布爆撃！');
+
 
         if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: '秘技・金駒大散布爆撃！', effect: 'none' });
         for (let i=0; i<8; i++) {
