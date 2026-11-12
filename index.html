@@ -1683,12 +1683,13 @@ function triggerPlayerAttack() {
     if ((isOfflineCounter || isOnlineCounter) && dist < (reach + 20) && Math.abs(p.y - e.y) < 55) {
         e.cooldown = 45; e.attacking = 0; enemyWasAirAttacking = false;
         p.vx = 0; p.vy = 0; p.knockbackTimer = 0;
+        p.invulnTimer = 60; // 🛡️ カウンター成功で1秒間のダメージ＆吹っ飛び完全無効化！
         const counterDmg = Math.floor(15 * p.power);
         e.dmg += counterDmg;
         let kbScale = (5.0 + (e.dmg * 0.12)) / e.weight;
         e.vx = p.dir * kbScale; e.vy = -4.0;
 
-        triggerCutIn('ジャストカウンター！！');
+        triggerCutIn('ジャストカウンター・無敵化！！');
         spawnHitVisual((p.x + e.x) / 2 + 18, (p.y + e.y) / 2 + 20, true);
         if (p.spGauge < 100) p.spGauge = Math.min(100, p.spGauge + 25); 
         updateUI();
@@ -4380,32 +4381,17 @@ function triggerPlayerGuard(active) {
         if (bubble) { bubble.style.display = 'none'; bubble.classList.remove('just-guard'); }
     }
 }
-
 function handleGuardedHit(attacker, isOfflineCpu) {
-    const isJustGuard = (p.guardFrames <= 12); // 展開から0.2秒以内ならジャストガード！
-    const bubble = document.getElementById('p-guard-bubble');
-    playSE(isJustGuard ? 'critical' : 'swing');
+    // 🛡️ 通常ガード：ダメージと吹っ飛びを無効化し、シールド耐久値を消費＋わずかに押し戻される
+    playSE('swing');
+    p.guardHp = Math.max(0, (p.guardHp ?? 100) - 25);
+    p.vx = (p.x >= attacker.x ? 1 : -1) * 4.0;
+    spawnHitVisual(p.x + 18, p.y + 21, false, true);
 
-    if (isJustGuard) {
-        if (bubble) bubble.classList.add('just-guard');
-        triggerCutIn('ジャストガード！！');
-        p.invulnTimer = 25;
-        const repulseDir = (attacker && attacker.x < p.x) ? -1 : 1;
-        if (isOfflineCpu && attacker) {
-            attacker.vx = repulseDir * 8.5;
-            attacker.vy = -3.5;
-            attacker.knockbackTimer = 25;
-        } else if (gameMode === 'online' && isMatched) {
-            // オンラインの相手にも弾き返しノックバック＆カットインを送信！
-            if (typeof sendHitToEnemy === 'function') sendHitToEnemy(0, repulseDir * 9.0, -4.0, 28);
-            if (typeof sendActionToEnemy === 'function') sendActionToEnemy('cutin', { text: 'ジャストガードで弾かれた！', effect: 'none' });
-        }
-        setTimeout(() => { if (bubble) bubble.classList.remove('just-guard'); }, 200);
-    } else {
-        // 通常ガード：ダメージ無効、ノックバックだけ少し受ける
-        p.guardHp = Math.max(0, (p.guardHp ?? 100) - 22);
-        p.vx = (p.x >= attacker.x ? 1 : -1) * 4.5;
-        spawnHitVisual(p.x + 18, p.y + 21, false, true);
+    if (p.guardHp <= 0) {
+        triggerPlayerGuard(false);
+        p.knockbackTimer = 45;
+        triggerCutIn('シールドブレイク！！');
     }
 }
 
