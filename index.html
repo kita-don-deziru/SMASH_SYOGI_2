@@ -1206,6 +1206,11 @@
                 drop-shadow(0 0 10px rgba(255, 230, 120, 0.9)) !important;
         }
 
+        /* 🎭 将棋駒のダイナミックモーション設定 */
+        #player-fighter, #enemy-fighter {
+            transform-origin: bottom center;
+            transition: transform 0.06s ease-out;
+        }
     </style>
 
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
@@ -2979,9 +2984,14 @@ function updateFrame() {
         spawnKnockbackSmoke(e.x + 20, e.y + 23, e.dmg > 90);
     }
 
-    // 8. 最終的なHTML要素への座標反映
+    // 8. 最終的なHTML要素への座標反映 ＋ ダイナミックモーション適用
     const pEl = document.getElementById('player-fighter');
-    if (pEl) { pEl.style.left = p.x + 'px'; pEl.style.top = p.y + 'px'; pEl.style.opacity = (p.invulnTimer % 6 > 3) ? '0.4' : '1'; }
+    if (pEl) {
+        pEl.style.left = p.x + 'px';
+        pEl.style.top = p.y + 'px';
+        pEl.style.opacity = (p.invulnTimer % 6 > 3) ? '0.4' : '1';
+        pEl.style.transform = calcFighterTransform(p, true);
+    }
     const pWp = document.getElementById('player-weapon');
     if (pWp) {
         let wpW = parseFloat(pWp.style.width) || 22;
@@ -2992,11 +3002,16 @@ function updateFrame() {
         }
     }
 
+
     const eEl = document.getElementById('enemy-fighter');
     if (eEl) {
-        eEl.style.left = e.x + 'px'; eEl.style.top = e.y + 'px'; eEl.style.opacity = (e.invulnTimer % 6 > 3) ? '0.4' : '1';
+        eEl.style.left = e.x + 'px';
+        eEl.style.top = e.y + 'px';
+        eEl.style.opacity = (e.invulnTimer % 6 > 3) ? '0.4' : '1';
         if (gameMode === 'online' && Math.abs(e.vx) > 0.1) { e.dir = e.vx > 0 ? 1 : -1; }
+        eEl.style.transform = calcFighterTransform(e, false);
     }
+
     const eWp = document.getElementById('enemy-weapon');
     if (eWp) {
         let eWpW = parseFloat(eWp.style.width) || 22;
@@ -3041,6 +3056,60 @@ function updateFrame() {
     if (typeof broadcastMultiplayerData === 'function') {
         broadcastMultiplayerData();
     }
+}
+
+// 🎭 キャラクターの状態（待機・走り・ジャンプ・着地・攻撃・吹っ飛び）からモーションを計算
+function calcFighterTransform(char, isPlayer) {
+    if (!char) return 'none';
+
+    // 1. 吹っ飛び中：ダメージが高いほど高速でクルクル回転
+    if (char.knockbackTimer > 0) {
+        const spinSpeed = Math.min(38, 16 + (char.dmg || 0) * 0.15);
+        char.spinAngle = ((char.spinAngle || 0) + spinSpeed * (char.vx >= 0 ? 1 : -1)) % 360;
+        return 'translateY(-18px) rotate(' + char.spinAngle + 'deg) scale(0.95)';
+    }
+    char.spinAngle = 0;
+
+    // 2. 着地した瞬間の「グッと潰れる」スクワッシュ演出
+    if (char.isGrounded && char.wasAirborne) {
+        char.landSquashTimer = 7;
+    }
+    char.wasAirborne = !char.isGrounded;
+
+    if (char.landSquashTimer > 0) {
+        char.landSquashTimer--;
+        return 'scale(1.22, 0.78)';
+    }
+
+    // 3. 攻撃モーション中：前へ大きく踏み込みながら振り抜く
+    if (char.attacking > 0) {
+        const lungeTilt = (char.dir || 1) * 22;
+        const lungeX = (char.dir || 1) * 6;
+        return 'translateX(' + lungeX + 'px) rotate(' + lungeTilt + 'deg) scale(1.08, 0.94)';
+    }
+
+    // 4. 空中（ジャンプ上昇・落下）の伸縮モーション
+    if (!char.isGrounded) {
+        const airTilt = Math.max(-18, Math.min(18, (char.vx || 0) * 3.2));
+        if (char.vy < -2) {
+            return 'rotate(' + airTilt + 'deg) scale(0.88, 1.15)';
+        } else if (char.vy > 3) {
+            return 'rotate(' + airTilt + 'deg) scale(0.92, 1.10)';
+        }
+        return 'rotate(' + airTilt + 'deg)';
+    }
+
+    // 5. 地上ダッシュ中：進行方向へ前傾＋上下にリズミカルに弾むステップ
+    const speedAbs = Math.abs(char.vx || 0);
+    if (speedAbs > 0.6) {
+        const runTilt = (char.vx > 0 ? 1 : -1) * Math.min(16, speedAbs * 3.2);
+        const bounceY = -Math.abs(Math.sin(Date.now() * 0.022)) * 4;
+        return 'translateY(' + bounceY.toFixed(1) + 'px) rotate(' + runTilt.toFixed(1) + 'deg) scale(1.03, 0.97)';
+    }
+
+    // 6. 待機中：ゆっくり呼吸するように上下にわずかに伸縮
+    const breath = Math.sin(Date.now() * 0.006 + (isPlayer ? 0 : 1.5)) * 0.035;
+    return 'scale(' + (1 - breath * 0.6).toFixed(3) + ', ' + (1 + breath).toFixed(3) + ')';
 }
 
 function updateFighterShadow(shadowId, char, isPlayer) {
