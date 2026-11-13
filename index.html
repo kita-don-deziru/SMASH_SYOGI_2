@@ -6459,7 +6459,7 @@ injectOnlineRoomUI = function() {
 // ==============================================================================
 // 🎬 完全3D WebGLオープニングエンジン【2 / 4】行列演算＆立体駒メッシュ
 // ==============================================================================
-const opAudio = new Audio('lv_0_20261113211851.mp3');
+const opAudio = new Audio('op_theme.mp3');
 opAudio.volume = 0.75;
 
 let opAnimFrame = null;
@@ -7292,7 +7292,273 @@ setInterval(() => {
         }
     });
 }, 16);
+// ==============================================================================
+// 🔥 「超激しい3Dアクション・モーション＆空中コンボ」強化パッチ
+// ==============================================================================
+window.opCam.baseDist = 11.5;
+window.opCam.basePitch = 0.48;
 
+// 1. 虚空スペシャル演武を「宙返り・超高空跳躍・超高速突進」の激しいモーションに上書き
+fire3DVoidSpecial = function(actor, styleType) {
+    if (!actor) return;
+
+    // カメラも技に合わせてグッとズームイン！
+    window.opCam.dist = 8.8;
+    setTimeout(() => { window.opCam.dist = window.opCam.baseDist; }, 650);
+
+    if (styleType === 'tokin_bomb') {
+        // と金：前転宙返り（フロントフリップ）しながら金爆撃を乱射！
+        if (typeof playSE === 'function') playSE('burst');
+        actor.state = 'flip_attack';
+        actor.targetY = 2.4;
+        setTimeout(() => { if (actor) actor.targetY = 0; }, 380);
+        for (let i = 0; i < 7; i++) {
+            setTimeout(() => {
+                const ang = (i / 7) * Math.PI * 2;
+                spawn3DEffect('ring', Math.cos(ang) * 1.8, 0.3 + (i % 3) * 0.4, Math.sin(ang) * 1.8, [1.0, 0.84, 0.0, 0.95], 0.55);
+                shakeOpScreen(14, 150);
+            }, i * 110);
+        }
+        setTimeout(() => { if (actor) { actor.state = 'idle'; actor.tiltX = 0; } }, 750);
+
+    } else if (styleType === 'knight_laser') {
+        // 桂：超高空大ジャンプ ➔ 急降下叩きつけレーザー！
+        if (typeof playSE === 'function') playSE('jump');
+        actor.state = 'high_jump';
+        actor.targetY = 3.8;
+        setTimeout(() => {
+            if (!actor) return;
+            if (typeof playSE === 'function') playSE('critical');
+            actor.targetY = 0;
+            actor.state = 'squash_land';
+            spawn3DEffect('pillar', 0, 0, 1.4, [0.0, 0.82, 1.0, 1.0], 0.65);
+            spawn3DEffect('ring', 0, 0.1, 1.4, [0.0, 0.82, 1.0, 0.95], 0.75);
+            shakeOpScreen(22, 350);
+            setTimeout(() => { if (actor) actor.state = 'idle'; }, 280);
+        }, 360);
+
+    } else if (styleType === 'lance_mist') {
+        // 香：後方へ溜めてから弾丸のように超高速ダッシュ突進！
+        if (typeof playSE === 'function') playSE('special_cutin');
+        actor.targetZ = -2.6;
+        actor.tiltX = -0.35;
+        setTimeout(() => {
+            if (!actor) return;
+            actor.state = 'dash_rush';
+            actor.tiltX = 0.58; // 猛烈な前傾姿勢！
+            actor.targetZ = 2.8;
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => spawn3DEffect('ring', 0, 0.4, -2.0 + i * 0.85, [0.64, 0.6, 1.0, 0.9], 0.6), i * 65);
+            }
+            setTimeout(() => {
+                if (!actor) return;
+                actor.targetZ = 0;
+                actor.tiltX = 0;
+                actor.state = 'squash_land';
+                setTimeout(() => { if (actor) actor.state = 'idle'; }, 220);
+            }, 450);
+        }, 200);
+
+    } else if (styleType === 'bishop_cross' || styleType === 'rook_slash') {
+        // 角・飛：大跳躍トルネード連続回転斬り！
+        if (typeof playSE === 'function') playSE('critical');
+        actor.state = 'tornado_spin';
+        actor.targetY = 1.9;
+        const col = (styleType === 'bishop_cross') ? [0.11, 0.82, 0.63, 0.95] : [1.0, 0.25, 0.25, 0.95];
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                spawn3DEffect('ring', 0, 0.4 + i * 0.35, 0, col, 0.65);
+                shakeOpScreen(15, 160);
+            }, i * 110);
+        }
+        setTimeout(() => {
+            if (!actor) return;
+            actor.targetY = 0;
+            actor.state = 'squash_land';
+            setTimeout(() => { if (actor) actor.state = 'idle'; }, 240);
+        }, 550);
+
+    } else if (styleType === 'bow_hyper') {
+        // 弓：大きく後ろへ反り返ってチャージ ➔ 反動バックステップ発射！
+        if (typeof playSE === 'function') playSE('critical');
+        actor.tiltX = -0.45;
+        setTimeout(() => {
+            if (!actor) return;
+            actor.tiltX = 0.25;
+            actor.targetZ = -1.8;
+            flashOpScreen(0.75);
+            shakeOpScreen(18, 300);
+            for (let i = 0; i < 7; i++) {
+                setTimeout(() => {
+                    spawn3DEffect('ring', 0, 0.7, -0.5 + i * 0.65, [1.0, 0.62, 0.26, 0.95], 0.45);
+                }, i * 50);
+            }
+            setTimeout(() => {
+                if (actor) { actor.targetZ = 0; actor.tiltX = 0; actor.state = 'idle'; }
+            }, 420);
+        }, 240);
+    }
+};
+
+// 2. サビの3Dバトルを「打ち上げ空中コンボ＆地面叩きつけ」の激闘に差し替え
+const chorusEv = OP_TIMELINE.find(e => e.id === 'c3d_chorus_battle');
+if (chorusEv) {
+    chorusEv.fn = () => {
+        clearOp3DScene();
+        window.opCam = { angleY: window.opCam.angleY, targetAngleY: null, spinSpeed: 1.05, pitch: 0.44, dist: 11.2, targetY: 1.2 };
+
+        const boss = spawn3DPiece('op_boss', '王', 0, -1.5, 0, 'boss');
+        const f1 = spawn3DPiece('op_f1', '飛', -2.0, 2.0, Math.PI, 'normal');
+        const f2 = spawn3DPiece('op_f2', '角', 2.0, 2.0, Math.PI, 'normal');
+        const f3 = spawn3DPiece('op_f3', 'と', 0, 2.5, Math.PI, 'tokin');
+
+        const team = new Array(f1, f2, f3);
+        for (let turn = 0; turn < 12; turn++) {
+            setTimeout(() => {
+                if (opFinished) return;
+                const atk = team[turn % team.length];
+                if (!atk || !boss) return;
+
+                const ox = atk.x, oz = atk.z;
+                const isAirCombo = (turn % 2 === 1); // 奇数ターンは空中打ち上げコンボ！
+
+                atk.state = isAirCombo ? 'tornado_spin' : 'dash_rush';
+                atk.tiltX = 0.55;
+                atk.targetX = 0;
+                atk.targetZ = -1.0;
+                atk.targetY = isAirCombo ? 2.6 : 0.6;
+
+                // カメラも攻撃の瞬間にズームイン！
+                window.opCam.dist = isAirCombo ? 9.4 : 10.2;
+
+                setTimeout(() => {
+                    if (typeof playSE === 'function') playSE(turn % 3 === 0 ? 'counter' : 'hit');
+                    const hitY = isAirCombo ? 2.5 : 0.6;
+                    spawn3DEffect('ring', 0, hitY, -1.5, turn % 2 === 0 ? [0.0, 0.82, 1.0, 1.0] : [1.0, 0.25, 0.25, 1.0], 0.55);
+                    shakeOpScreen(16, 200);
+
+                    // 王将が大きく吹っ飛び＆バウンド！
+                    boss.state = 'knockback';
+                    boss.tiltX = -0.65;
+                    boss.targetY = isAirCombo ? 3.2 : 1.4;
+                    setTimeout(() => {
+                        if (boss) {
+                            boss.targetY = 0;
+                            boss.state = 'squash_land';
+                            boss.tiltX = 0;
+                            setTimeout(() => { if (boss) boss.state = 'idle'; }, 200);
+                        }
+                    }, 320);
+
+                    // 攻撃者も華麗にバックステップ帰還
+                    atk.targetX = ox;
+                    atk.targetZ = oz;
+                    atk.targetY = 0;
+                    atk.tiltX = 0;
+                    atk.state = 'idle';
+                    window.opCam.dist = 11.4;
+                }, 230);
+            }, 400 + turn * 1350);
+        }
+    };
+}
+
+// 3. 毎フレームの激しい伸縮・フリップ・戦闘ステップアニメーション計算
+setInterval(() => {
+    if (opFinished || !opStarted) return;
+    const now = performance.now();
+    window.op3DObjects.forEach((obj, idx) => {
+        if (obj.state === 'flip_attack') {
+            obj.tiltX += 0.38; // 猛スピードで前転宙返り！
+        } else if (obj.state === 'tornado_spin') {
+            obj.facing += 0.45; // 竜巻のように高速回転斬り！
+        } else if (obj.state === 'high_jump') {
+            obj.tiltX = -0.25;
+        } else if (obj.state === 'squash_land') {
+            obj.tiltX = 0;
+        } else if (obj.state === 'idle' && obj.id === 'op_center_actor') {
+            // 待機中も戦闘リズムに合わせて激しく弾むステップ！
+            const bounce = Math.abs(Math.sin(now * 0.009 + idx)) * 0.28;
+            obj.y = bounce;
+        }
+    });
+}, 16);
+
+// ==============================================================================
+// 🌌 オープニング3段階グラデーション背景（だんだんクロスフェード切替）パッチ
+// ==============================================================================
+(function() {
+    const OP_BG_STYLES = [
+        // 1個目の背景（夕焼け星雲）
+        "radial-gradient(circle closest-corner at 6% 52%, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0) 4%), radial-gradient(circle closest-corner at 2% 87%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 15%), radial-gradient(circle farthest-side at 50% 25%, rgba(254, 254, 254, 1) 13%, rgba(255, 255, 255, 0) 14%, rgba(254, 254, 254, 0.45) 73% 78%, rgba(254, 254, 254, 0.46) 84%), radial-gradient(circle closest-corner at 11% 65%, rgba(254, 254, 254, 1), rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-corner at 5% 67%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-corner at 3% 61%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-corner at 10% 79%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-corner at 3% 76%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-side at 13% 84%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-side at 15% 77%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-corner at 22% 93%, rgba(254, 254, 254, 1) 2%, rgba(255, 255, 255, 0) 2%), linear-gradient(40deg, rgba(45, 71, 150, 1) 4%, rgba(95, 91, 165, 1) 23%, rgba(143, 106, 174, 1) 40%, rgba(185, 86, 230, 1) 52%, rgba(219, 111, 150, 1) 67%, rgba(245, 150, 59, 1) 77%, rgba(247, 165, 103, 1) 84%, rgba(216, 175, 104, 1) 94%)",
+        // 2個目の背景（虹の天空光輪）
+        "radial-gradient(circle farthest-side at 26% 77%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 21% 65%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 31% 77%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 22% 79%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 17% 75%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 27% 67%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 69% 80%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 80% 76%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 78% 69%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 72% 72%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 84% 74%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 74% 80%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), linear-gradient(0deg, rgba(113, 219, 255, 1) 12%, rgba(56, 211, 185, 0.25)), radial-gradient(circle at 50% 53%, rgba(58, 201, 255, 1) 33%, rgba(255, 255, 255, 0) 35%), radial-gradient(circle, rgba(87, 0, 255, 1) 37%, rgba(255, 255, 255, 0) 39%), radial-gradient(circle at 50% 51%, rgba(0, 227, 255, 1) 43%, rgba(255, 255, 255, 0) 46%), radial-gradient(circle at 50% 49%, rgba(255, 230, 65, 1) 48%, rgba(255, 255, 255, 0) 51%), radial-gradient(circle, rgba(255, 93, 0, 1) 51%, rgba(255, 255, 255, 0) 52%), radial-gradient(circle at 50% 48%, rgba(38, 128, 255, 1) 46%, rgba(255, 255, 255, 0) 52%), radial-gradient(circle, rgba(255, 0, 0, 0.73) 53%, rgba(255, 255, 255, 0) 56%), linear-gradient(90deg, rgba(189, 255, 236, 0.73), rgba(123, 255, 255, 1))",
+        // 3個目の背景（満月と星空の夜空）
+        "conic-gradient(from 241deg at 22% 40%, rgba(0, 0, 0, 0) 8deg), radial-gradient(circle farthest-side at 13% 9%, rgba(217, 204, 221, 0.59), rgba(217, 204, 221, 0.23) 9%), radial-gradient(circle closest-side at 15% 47%, rgba(116, 103, 116, 0.34) 55%, rgba(0, 0, 0, 0)), radial-gradient(circle closest-corner at 13% 11%, rgb(236, 222, 237) 2%, rgba(0, 0, 0, 0) 11%), radial-gradient(circle closest-corner at 18% 43%, rgba(106, 97, 106, 0.37), rgba(0, 0, 0, 0) 99%), radial-gradient(circle closest-corner at 14% 14%, rgb(237, 209, 238), rgba(0, 0, 0, 0) 11%), radial-gradient(circle closest-corner at 13% 18%, rgb(237, 209, 238) 2%, rgba(0, 0, 0, 0) 11%), radial-gradient(circle closest-corner at 13% 23%, rgb(237, 209, 238) 4%, rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 11% 26%, rgb(237, 209, 238) 2%, rgba(0, 0, 0, 0) 27%), radial-gradient(circle closest-corner at 12% 29%, rgb(237, 209, 238), rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 10% 30%, rgba(237, 221, 238, 0.84), rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 15% 20%, rgb(237, 209, 238), rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 16% 24%, rgb(237, 209, 238), rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 11% 10%, rgb(237, 209, 238), rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 13% 32%, rgb(237, 209, 238) 4%, rgba(0, 0, 0, 0) 28%), radial-gradient(circle closest-corner at 6% 35%, rgb(237, 209, 238) 7%, rgb(237, 209, 238) 8%, rgba(0, 0, 0, 0) 28%), radial-gradient(circle closest-corner at 12% 49%, rgb(237, 209, 238) 7%, rgba(0, 0, 0, 0) 28%), radial-gradient(circle closest-corner at 19% 62%, rgb(237, 209, 238) 8%, rgba(0, 0, 0, 0) 28%), radial-gradient(circle closest-corner at 14% 45%, rgb(255, 247, 255) 65%, rgba(0, 0, 0, 0) 67%), radial-gradient(circle closest-corner at 14% 66%, rgb(206, 203, 220) 38%, rgba(0, 0, 0, 0) 61%), radial-gradient(circle at 15% 47%, rgb(254, 244, 255) 18%, rgba(0, 0, 0, 0) 26%), radial-gradient(circle closest-corner at 50% 43%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 56% 34%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 66% 46%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 80% 26%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 40% 24%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 86% 16%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 64% 20%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 39% 61%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 81% 61%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 65% 64%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 57% 70%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), linear-gradient(0deg, rgb(34, 0, 163), rgb(57, 16, 0))"
+    ];
+
+    // 3枚の背景レイヤーを自動生成して滑らかなクロスフェード（3.5秒かけて変化）を準備
+    function ensureOpBgLayers() {
+        const opScr = document.getElementById('opening-screen');
+        const canvas = document.getElementById('op-3d-canvas');
+        if (!opScr || !canvas) return;
+        opScr.style.background = '#000';
+        canvas.style.zIndex = '10';
+
+        for (let i = 0; i < 3; i++) {
+            if (!document.getElementById('op-bg-layer-' + i)) {
+                const layer = document.createElement('div');
+                layer.id = 'op-bg-layer-' + i;
+                layer.style.cssText =
+                    'position:absolute; top:0; left:0; width:100%; height:100%; ' +
+                    'background:' + OP_BG_STYLES[i] + '; ' +
+                    'opacity:' + (i === 0 ? '1' : '0') + '; ' +
+                    'transition:opacity 3.5s ease-in-out; pointer-events:none; z-index:' + (i + 1) + ';';
+                opScr.insertBefore(layer, canvas);
+            }
+        }
+    }
+
+    function switchOpBgLayer(idx) {
+        for (let i = 0; i < 3; i++) {
+            const el = document.getElementById('op-bg-layer-' + i);
+            if (el) el.style.opacity = (i === idx) ? '1' : '0';
+        }
+    }
+
+    // 1. WebGLの背景を透明化してCSS背景が透けるようにフック
+    const _origInitWebGL = initOpWebGL;
+    initOpWebGL = function() {
+        ensureOpBgLayers();
+        const res = _origInitWebGL.apply(this, arguments);
+        if (res && res.gl) {
+            const gl = res.gl;
+            const _origClearColor = gl.clearColor.bind(gl);
+            gl.clearColor = function(r, g, b, a) {
+                // 不透明な黒塗りつぶしを透明(0,0,0,0)に置き換える
+                _origClearColor(0, 0, 0, 0);
+            };
+        }
+        return res;
+    };
+
+    // 2. 既存のタイムラインに背景切替タイミングを注入（0秒:1個目 → 39秒:2個目 → 64秒:3個目）
+    const evIntro = OP_TIMELINE.find(e => e.time < 1);
+    if (evIntro) {
+        const origFn = evIntro.fn;
+        evIntro.fn = function() { switchOpBgLayer(0); origFn.apply(this, arguments); };
+    }
+    const evBow = OP_TIMELINE.find(e => e.time === 39.0);
+    if (evBow) {
+        const origFn = evBow.fn;
+        evBow.fn = function() { switchOpBgLayer(1); origFn.apply(this, arguments); };
+    }
+    const evChorus = OP_TIMELINE.find(e => e.time === 64.0);
+    if (evChorus) {
+        const origFn = evChorus.fn;
+        evChorus.fn = function() { switchOpBgLayer(2); origFn.apply(this, arguments); };
+    }
+})();
 
 
 </script>
