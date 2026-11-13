@@ -1211,6 +1211,135 @@
             transform-origin: bottom center;
             transition: transform 0.06s ease-out;
         }
+/* ==============================================================================
+   🎬 オープニングアニメーション専用スタイル
+   ============================================================================== */
+#opening-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 45%, #1a0b2e 0%, #05050a 80%, #000000 100%);
+    z-index: 150;
+    display: none;
+    overflow: hidden;
+    perspective: 700px;
+}
+
+#op-skip-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffd32a;
+    border: 1px solid #ffd32a;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: pointer;
+    z-index: 200;
+    transition: background 0.15s, transform 0.1s;
+}
+#op-skip-btn:hover {
+    background: #ffd32a;
+    color: #000;
+}
+
+/* 3D回転する黄金の81マス将棋盤 */
+#op-3d-board {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 260px;
+    height: 280px;
+    margin-left: -130px;
+    margin-top: -140px;
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 211, 42, 0.5) 0px, rgba(255, 211, 42, 0.5) 2px, transparent 2px, transparent 28.8px),
+        repeating-linear-gradient(0deg, rgba(255, 211, 42, 0.5) 0px, rgba(255, 211, 42, 0.5) 2px, transparent 2px, transparent 31.1px),
+        radial-gradient(circle, rgba(255, 165, 2, 0.25) 0%, rgba(10, 10, 25, 0.9) 100%);
+    border: 3px solid #ffd32a;
+    box-shadow: 0 0 40px rgba(255, 211, 42, 0.5), inset 0 0 25px rgba(255, 159, 67, 0.4);
+    transform: rotateX(55deg) rotateZ(0deg) scale(0.4);
+    opacity: 0;
+    transition: opacity 1.5s ease-out;
+}
+
+/* 演出用キャラクター駒 */
+.op-actor-piece {
+    position: absolute;
+    width: 68px;
+    height: 78px;
+    background: linear-gradient(180deg, #fff3d1 0%, #f3c677 65%, #c88a36 100%);
+    clip-path: polygon(50% 0%, 100% 24%, 86% 100%, 14% 100%, 0% 24%);
+    color: #1a1105;
+    font-size: 32px;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    filter: drop-shadow(0 4px 0 #8f5814) drop-shadow(0 0 18px rgba(255, 211, 42, 0.8));
+    opacity: 0;
+    z-index: 20;
+}
+
+/* 宿敵・王将巨大駒 */
+#op-boss-piece {
+    position: absolute;
+    top: -140px;
+    left: 50%;
+    margin-left: -52px;
+    width: 104px;
+    height: 120px;
+    background: linear-gradient(180deg, #ffe299 0%, #ff4d4d 65%, #8f1111 100%);
+    clip-path: polygon(50% 0%, 100% 23%, 86% 100%, 14% 100%, 0% 23%);
+    color: #fff;
+    font-size: 48px;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-shadow: 0 0 12px #000;
+    filter: drop-shadow(0 6px 0 #4a1c02) drop-shadow(0 0 30px #ff3f3f);
+    z-index: 30;
+}
+
+/* 歌詞・キャッチコピー字幕 */
+#op-subtitle {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px #ff3f3f, 2px 2px 0 #000, -2px -2px 0 #000;
+    opacity: 0;
+    transition: opacity 0.35s ease-in-out;
+    z-index: 40;
+}
+
+/* 斜め閃光スラッシュ */
+#op-flash-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 90;
+    transition: opacity 0.15s ease-out;
+}
+
+
     </style>
 
     <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
@@ -1304,6 +1433,17 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
 <div id="screen-shaker">
     <div id="game-scale-wrapper">
         <div id="game-container">
+            <!-- 🎬 オープニング映像スクリーン -->
+            <div id="opening-screen" class="screen">
+                <button type="button" id="op-skip-btn" onclick="skipOpeningToTitle()">SKIP ▶▶</button>
+                <div id="op-3d-board"></div>
+                <div id="op-actors-layer"></div>
+                <div id="op-boss-piece">王</div>
+                <div id="op-subtitle"></div>
+                <div id="op-flash-overlay"></div>
+            </div>
+
+
            <!-- ✨ こう書き換えてください -->
             <div id="title-screen" class="screen" style="display: flex;" onclick="goToSelectScreen()">
 
@@ -6410,6 +6550,201 @@ injectOnlineRoomUI = function() {
     _cleanInjectLobby.apply(this, arguments);
     injectMultiBattleLobbyUI();
 };
+// ==============================================================================
+// 🎬 Suno AI 楽曲シンクロ・オープニングアニメーション制御（約1分59秒フル対応）
+// ==============================================================================
+const opAudio = new Audio('lv_0_20261113211851.mp3'); // ← 保存したMP3ファイル名に合わせて変更できます
+opAudio.volume = 0.7;
+
+let opAnimFrame = null;
+let opStarted = false;
+let opFinished = false;
+let opTriggeredEvents = {};
+
+// 楽曲の再生秒数（currentTime）に合わせた演出タイムライン
+const OP_TIMELINE = [
+    { time: 0.2,  id: 'intro_board',  fn: () => {
+        const b = document.getElementById('op-3d-board');
+        if (b) { b.style.opacity = '1'; b.style.transform = 'rotateX(55deg) rotateZ(0deg) scale(1)'; }
+        showOpSubtitle('八十一のマスに　魂が宿る――');
+    }},
+    { time: 14.0, id: 'intro_pulse',  fn: () => {
+        flashOpScreen(0.5);
+        showOpSubtitle('天空の将棋盤、開門。');
+    }},
+    { time: 28.0, id: 'verse_pawn',   fn: () => {
+        showOpSubtitle('盤上の宇宙に　鳴り響く鼓動');
+        spawnOpPiece('歩', 266, 150, '#ffd32a', 1.2);
+    }},
+    { time: 39.0, id: 'verse_tokin',  fn: () => {
+        flashOpScreen(0.8);
+        showOpSubtitle('成金の刃が　闇を切り裂く！');
+        clearOpActors();
+        spawnOpPiece('と', 266, 145, '#ff3f3f', 1.45);
+    }},
+    { time: 50.0, id: 'b_knight',     fn: () => {
+        clearOpActors();
+        showOpSubtitle('桂馬が宙を舞い――');
+        spawnOpPiece('桂', 110, 80, '#00d2ff', 1.25);
+    }},
+    { time: 53.5, id: 'b_lance',      fn: () => {
+        showOpSubtitle('香車が駆け抜ける！');
+        spawnOpPiece('香', 420, 170, '#a29bfe', 1.25);
+    }},
+    { time: 57.0, id: 'b_bishop',     fn: () => {
+        showOpSubtitle('角行と飛車が　嵐を巻き起こす！！');
+        spawnOpPiece('角', 160, 210, '#1dd1a1', 1.3);
+        spawnOpPiece('飛', 370, 90, '#ff3f3f', 1.3);
+    }},
+    { time: 64.0, id: 'chorus_boss',  fn: () => {
+        flashOpScreen(1.0);
+        clearOpActors();
+        showOpSubtitle('王手を狙え　限界を超えて！！');
+        const boss = document.getElementById('op-boss-piece');
+        if (boss) {
+            boss.style.transition = 'top 0.5s cubic-bezier(0.1, 0.9, 0.2, 1)';
+            boss.style.top = '55px';
+        }
+        // 全8駒が下から集結
+        const chars = [
+            { t: '歩', x: 55,  y: 230, c: '#ffd700' },
+            { t: '香', x: 120, y: 245, c: '#a29bfe' },
+            { t: '桂', x: 185, y: 230, c: '#00d2ff' },
+            { t: '角', x: 250, y: 245, c: '#1dd1a1' },
+            { t: '弓', x: 315, y: 245, c: '#ff9f43' },
+            { t: '飛', x: 380, y: 230, c: '#ff3f3f' },
+            { t: '銀', x: 445, y: 245, c: '#ff6b81' },
+            { t: '金', x: 505, y: 230, c: '#feca57' }
+        ];
+        chars.forEach((ch, i) => {
+            setTimeout(() => spawnOpPiece(ch.t, ch.x, ch.y, ch.c, 0.95), i * 120);
+        });
+    }},
+    { time: 78.0, id: 'chorus_clash', fn: () => {
+        flashOpScreen(0.9);
+        showOpSubtitle('大乱闘の果てに　頂点を掴め！！');
+        document.querySelectorAll('.op-actor-piece').forEach(el => {
+            el.style.transition = 'all 0.6s ease-in';
+            el.style.left = '266px';
+            el.style.top = '95px';
+            el.style.transform = 'scale(1.4)';
+        });
+    }},
+    { time: 90.0, id: 'outro_logo',   fn: () => {
+        flashOpScreen(1.0);
+        showOpSubtitle('大乱闘スマッシュ将棋 SPECIAL STOCKS');
+    }}
+];
+
+function showOpSubtitle(text) {
+    const sub = document.getElementById('op-subtitle');
+    if (!sub) return;
+    sub.style.opacity = '0';
+    setTimeout(() => {
+        sub.textContent = text;
+        sub.style.opacity = '1';
+    }, 180);
+}
+
+function flashOpScreen(intensity = 0.8) {
+    const fl = document.getElementById('op-flash-overlay');
+    if (!fl) return;
+    fl.style.opacity = String(intensity);
+    setTimeout(() => { fl.style.opacity = '0'; }, 160);
+}
+
+function clearOpActors() {
+    const layer = document.getElementById('op-actors-layer');
+    if (layer) layer.innerHTML = '';
+}
+
+function spawnOpPiece(kanji, x, y, glowColor, scale = 1.0) {
+    const layer = document.getElementById('op-actors-layer');
+    if (!layer) return;
+    const el = document.createElement('div');
+    el.className = 'op-actor-piece';
+    el.textContent = kanji;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.filter = 'drop-shadow(0 4px 0 #5e3608) drop-shadow(0 0 20px ' + glowColor + ')';
+    el.style.transform = 'scale(' + (scale * 1.8) + ')';
+    el.style.transition = 'transform 0.35s cubic-bezier(0.15, 0.9, 0.3, 1), opacity 0.25s ease-out';
+    layer.appendChild(el);
+
+    requestAnimationFrame(() => {
+        el.style.opacity = '1';
+        el.style.transform = 'scale(' + scale + ')';
+    });
+}
+
+function startOpeningSequence() {
+    if (opStarted) return;
+    opStarted = true;
+    opFinished = false;
+    opTriggeredEvents = {};
+
+    const opScr = document.getElementById('opening-screen');
+    const titleScr = document.getElementById('title-screen');
+    if (titleScr) titleScr.style.display = 'none';
+    if (opScr) opScr.style.display = 'block';
+
+    opAudio.currentTime = 0;
+    opAudio.play().catch(err => console.log('OP音声再生エラー:', err));
+
+    const startFallback = performance.now();
+
+    function updateOpeningLoop(now) {
+        if (opFinished) return;
+        // 音声が再生されていれば音声の現在秒数を使用、未読み込み時は経過時間を使用
+        const t = (!opAudio.paused && opAudio.currentTime > 0)
+            ? opAudio.currentTime
+            : (now - startFallback) * 0.001;
+
+        // 3D将棋盤のゆっくり回転
+        const board = document.getElementById('op-3d-board');
+        if (board && board.style.opacity === '1') {
+            board.style.transform = 'rotateX(55deg) rotateZ(' + (t * 12).toFixed(1) + 'deg) scale(1)';
+        }
+
+        // タイムラインイベントの発火
+        OP_TIMELINE.forEach(ev => {
+            if (!opTriggeredEvents[ev.id] && t >= ev.time) {
+                opTriggeredEvents[ev.id] = true;
+                ev.fn();
+            }
+        });
+
+        // 曲の終了（約118秒）または再生完了で自動的にタイトル画面へ
+        if (opAudio.ended || t >= 118.5) {
+            skipOpeningToTitle();
+            return;
+        }
+        opAnimFrame = requestAnimationFrame(updateOpeningLoop);
+    }
+    opAnimFrame = requestAnimationFrame(updateOpeningLoop);
+}
+
+function skipOpeningToTitle() {
+    if (opFinished) return;
+    opFinished = true;
+    if (opAnimFrame) cancelAnimationFrame(opAnimFrame);
+    opAudio.pause();
+    opAudio.currentTime = 0;
+
+    const opScr = document.getElementById('opening-screen');
+    const titleScr = document.getElementById('title-screen');
+    if (opScr) opScr.style.display = 'none';
+    if (titleScr) titleScr.style.display = 'flex';
+}
+
+// 「同意してゲーム開始」を押した直後にオープニングを自動再生するようフック
+const _origAcceptNoticeForOp = acceptNotice;
+acceptNotice = function() {
+    _origAcceptNoticeForOp.apply(this, arguments);
+    startOpeningSequence();
+};
+
+
 </script>
 </body>
 </html>
