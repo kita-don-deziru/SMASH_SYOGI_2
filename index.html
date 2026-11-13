@@ -1211,115 +1211,48 @@
             transform-origin: bottom center;
             transition: transform 0.06s ease-out;
         }
-/* ==============================================================================
-   🎬 フル3D空間・回り込みカメラワーク オープニングMV専用スタイル
-   ============================================================================== */
+/* =========================================
+   🎬 完全3D WebGLオープニング専用CSS
+   ========================================= */
 #opening-screen {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle at 50% 35%, #2b1d4e 0%, #0d0b1e 60%, #030308 100%);
-    z-index: 150; display: none; overflow: hidden;
-    perspective: 850px;
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #05050c;
+    z-index: 150;
+    display: none;
+    overflow: hidden;
+}
+
+#op-3d-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: block;
 }
 
 #op-skip-btn {
-    position: absolute; top: 12px; right: 12px;
-    background: rgba(0, 0, 0, 0.55); color: #ffd32a;
-    border: 1px solid rgba(255, 211, 42, 0.7); border-radius: 6px;
-    padding: 4px 11px; font-size: 11px; font-weight: bold;
-    letter-spacing: 1px; cursor: pointer; z-index: 250;
-}
-#op-skip-btn:hover { background: #ffd32a; color: #000; }
-
-/* 3Dワールド全体（カメラの回り込み・ズーム・傾きを制御） */
-#op-3d-world {
-    position: absolute; top: 50%; left: 50%;
-    width: 0; height: 0;
-    transform-style: preserve-3d;
-    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* 3D回転する81マス天空将棋盤（厚みのある立体ボード） */
-#op-3d-board {
     position: absolute;
-    width: 340px; height: 360px;
-    left: -170px; top: -180px;
-    background:
-        repeating-linear-gradient(90deg, rgba(60, 30, 5, 0.55) 0px, rgba(60, 30, 5, 0.55) 2px, transparent 2px, transparent 37.7px),
-        repeating-linear-gradient(0deg, rgba(60, 30, 5, 0.55) 0px, rgba(60, 30, 5, 0.55) 2px, transparent 2px, transparent 40px),
-        linear-gradient(135deg, #f5cd79 0%, #d49b42 50%, #8c5a20 100%);
-    border: 4px solid #ffd32a;
-    box-shadow: 0 0 50px rgba(255, 211, 42, 0.45), inset 0 0 25px rgba(0, 0, 0, 0.4);
-    transform-style: preserve-3d;
-}
-/* 将棋盤の立体的な厚み（側面） */
-#op-3d-board::after {
-    content: ''; position: absolute;
-    left: -4px; bottom: -22px; width: 348px; height: 22px;
-    background: linear-gradient(180deg, #b88438 0%, #3d250a 80%, #1a0f04 100%);
-    border: 2px solid #ffd32a; box-sizing: border-box;
-    transform-origin: top center; transform: rotateX(-90deg);
-}
-
-/* 盤面上に垂直に立つ3D立体将棋駒（ビルボード＋多層厚み） */
-.op-3d-piece-anchor {
-    position: absolute;
-    width: 0; height: 0;
-    transform-style: preserve-3d;
-    transition: left 0.35s ease-out, top 0.35s ease-out;
-}
-.op-3d-piece-body {
-    position: absolute;
-    left: -22px; top: -52px;
-    width: 44px; height: 52px;
-    background:
-        linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 45%, rgba(139, 90, 43, 0.4) 100%),
-        repeating-linear-gradient(90deg, rgba(160, 110, 50, 0.1) 0px, rgba(160, 110, 50, 0.1) 2px, transparent 2px, transparent 5px),
-        linear-gradient(180deg, #fff3d1 0%, #f3c677 65%, #c88a36 100%);
-    clip-path: polygon(50% 0%, 100% 24%, 86% 100%, 14% 100%, 0% 24%);
-    color: #1a1105; font-size: 20px; font-weight: bold;
-    display: flex; justify-content: center; align-items: center;
-    text-shadow: 0 1px 0 rgba(255,255,255,0.85);
-    filter:
-        drop-shadow(0 1px 0 #b87a28)
-        drop-shadow(0 2px 0 #8f5814)
-        drop-shadow(0 4px 0 #5e3608)
-        drop-shadow(0 8px 10px rgba(0, 0, 0, 0.85));
-    transform-origin: bottom center;
-    transform-style: preserve-3d;
-}
-.op-3d-piece-body.boss {
-    left: -25px; top: -58px; width: 50px; height: 58px; font-size: 23px; color: #8f1111;
-    background:
-        linear-gradient(135deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 45%, rgba(120, 20, 20, 0.4) 100%),
-        linear-gradient(180deg, #ffe299 0%, #f5a642 65%, #b85d19 100%);
-    filter:
-        drop-shadow(0 1px 0 #a84e10)
-        drop-shadow(0 2px 0 #7a3306)
-        drop-shadow(0 4px 0 #4a1c02)
-        drop-shadow(0 10px 12px rgba(0, 0, 0, 0.9));
-}
-.op-3d-piece-body.tokin {
-    background: linear-gradient(180deg, #ffe3e8 0%, #ff9aa8 65%, #d6455b 100%);
-    color: #8f0b1e;
-}
-
-/* 3D空間上の立体衝撃波リング・光柱 */
-.op-3d-ring {
-    position: absolute; border-radius: 50%;
-    border: 4px solid #00d2ff;
-    box-shadow: 0 0 25px #00d2ff, inset 0 0 20px #00d2ff;
-    transform: translate(-50%, -50%) scale(0.1);
-    pointer-events: none;
-    animation: op3dRingExpand 0.65s ease-out forwards;
-}
-@keyframes op3dRingExpand {
-    0%   { transform: translate(-50%, -50%) scale(0.1); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+    top: 12px; right: 12px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffd32a;
+    border: 1px solid #ffd32a;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 250;
 }
 
 #op-flash-overlay {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: #ffffff; opacity: 0; pointer-events: none; z-index: 200;
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 200;
     transition: opacity 0.14s ease-out;
 }
 
@@ -1409,13 +1342,12 @@
 <div id="screen-shaker">
     <div id="game-scale-wrapper">
         <div id="game-container">
-            <!-- 🎬 フル3D空間オープニングスクリーン（字幕・文字なし） -->
+            <!-- 🎬 完全3D WebGLオープニングスクリーン -->
             <div id="opening-screen" class="screen">
                 <button type="button" id="op-skip-btn" onclick="skipOpeningToTitle()">SKIP ▶▶</button>
-                <div id="op-3d-world">
-                    <div id="op-3d-board">
-                        <div id="op-3d-actors"></div>
-                    </div>
+                <canvas id="op-3d-canvas" width="600" height="450"></canvas>
+                <div id="op-flash-overlay"></div>
+            </div>
                 </div>
                 <div id="op-flash-overlay"></div>
             </div>
@@ -6529,7 +6461,7 @@ injectOnlineRoomUI = function() {
     injectMultiBattleLobbyUI();
 };
 // ==============================================================================
-// 🎬 フル3D回転＆虚空スペシャル演武 オープニングエンジン【2 / 3】
+// 🎬 完全3D WebGLオープニングエンジン【2 / 4】行列演算＆立体駒メッシュ
 // ==============================================================================
 const opAudio = new Audio('op_theme.mp3');
 opAudio.volume = 0.75;
@@ -6539,305 +6471,476 @@ let opStarted = false;
 let opFinished = false;
 let opTriggeredEvents = {};
 
-// カメラ（3Dワールド）の現在角度・ズーム状態
+// 3D空間上の駒・エフェクト管理リスト
+window.op3DObjects = [];
+window.op3DEffects = [];
 window.opCam = {
-    rotX: 58,
-    rotZ: 0,
-    spinSpeed: 16,
-    scale: 1.0,
-    panX: 0,
-    panY: 20
+    angleY: 0,      // 盤面の水平回り込み角度（ラジアン）
+    spinSpeed: 0.45,// 回転速度
+    pitch: 0.58,    // カメラの俯瞰角度（見下ろし角）
+    dist: 13.5,     // カメラ距離（小さいほどズームイン）
+    targetY: 1.2    // 注視点の高さ
 };
 
-function flashOpScreen(intensity = 0.85) {
-    const fl = document.getElementById('op-flash-overlay');
-    if (!fl) return;
-    fl.style.opacity = String(intensity);
-    setTimeout(() => { fl.style.opacity = '0'; }, 140);
-}
-
-function shakeOpScreen(power = 12, duration = 260) {
-    const scr = document.getElementById('opening-screen');
-    if (!scr) return;
-    let elapsed = 0;
-    const iv = setInterval(() => {
-        elapsed += 25;
-        scr.style.transform = 'translate(' + ((Math.random() - 0.5) * power) + 'px,' + ((Math.random() - 0.5) * power) + 'px)';
-        if (elapsed >= duration) {
-            clearInterval(iv);
-            scr.style.transform = 'translate(0px, 0px)';
+// --- 4x4 3D行列演算ヘルパー ---
+const M4 = {
+    identity: () =>,
+    perspective: (fov, aspect, near, far) => {
+        const f = 1.0 / Math.tan(fov / 2), nf = 1 / (near - far);
+        return [f/aspect,0,0,0, 0,f,0,0, 0,0,(far+near)*nf,-1, 0,0,(2*far*near)*nf,0];
+    },
+    multiply: (a, b) => {
+        const out = new Array(16);
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+                out[j*4+i] = a[i]*b[j*4] + a[i+4]*b[j*4+1] + a[i+8]*b[j*4+2] + a[i+12]*b[j*4+3];
+            }
         }
-    }, 25);
+        return out;
+    },
+    translate: (m, x, y, z) => M4.multiply(m, [1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]),
+    rotateX: (m, rad) => {
+        const c = Math.cos(rad), s = Math.sin(rad);
+        return M4.multiply(m, [1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1]);
+    },
+    rotateY: (m, rad) => {
+        const c = Math.cos(rad), s = Math.sin(rad);
+        return M4.multiply(m, [c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1]);
+    },
+    rotateZ: (m, rad) => {
+        const c = Math.cos(rad), s = Math.sin(rad);
+        return M4.multiply(m, [c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1]);
+    },
+    scale: (m, x, y, z) => M4.multiply(m, [x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1])
+};
+
+// WebGLコンテキスト＆シェーダー初期化
+function initOpWebGL() {
+    const canvas = document.getElementById('op-3d-canvas');
+    if (!canvas) return null;
+    const gl = canvas.getContext('webgl', { antialias: true });
+    if (!gl) return null;
+
+    const vs = `
+        attribute vec3 aPos;
+        attribute vec3 aNorm;
+        attribute vec2 aUv;
+        uniform mat4 uMvp;
+        uniform mat4 uModel;
+        varying vec3 vNorm;
+        varying vec2 vUv;
+        void main() {
+            gl_Position = uMvp * vec4(aPos, 1.0);
+            vNorm = mat3(uModel) * aNorm;
+            vUv = aUv;
+        }
+    `;
+    const fs = `
+        precision mediump float;
+        varying vec3 vNorm;
+        varying vec2 vUv;
+        uniform sampler2D uTex;
+        uniform int uUseTex;
+        uniform vec4 uColor;
+        void main() {
+            vec3 lightDir = normalize(vec3(0.45, 0.85, 0.55));
+            float diff = max(dot(normalize(vNorm), lightDir), 0.0);
+            float shade = 0.42 + diff * 0.68;
+            vec4 base = (uUseTex == 1) ? texture2D(uTex, vUv) : uColor;
+            gl_FragColor = vec4(base.rgb * shade, base.a);
+        }
+    `;
+
+    const compile = (type, src) => {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        return s;
+    };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+
+    gl.enable(gl.DEPTH_TEST);
+
+    // 本物の「くさび形3D将棋駒（下底が分厚く、先端が薄い五角柱）」の頂点データ生成
+    const wBottom = 0.58, wShoulder = 0.48, hTop = 1.45, hShoulder = 1.08;
+    const zBot = 0.24, zTop = 0.07; // 底面は分厚く(0.48)、先端は薄い(0.14)くさび形状！
+
+    // 5つの輪郭点 (x, y, z厚み半分)
+    const pts = [
+        { x: 0,          y: hTop,      z: zTop }, // 0: 頂点
+        { x: wShoulder,  y: hShoulder, z: zTop * 1.3 }, // 1: 右肩
+        { x: wBottom,    y: 0,         z: zBot }, // 2: 右下
+        { x: -wBottom,   y: 0,         z: zBot }, // 3: 左下
+        { x: -wShoulder, y: hShoulder, z: zTop * 1.3 }  // 4: 左肩
+    ];
+
+    const pos = [], norm = [], uvs = [];
+    const pushTri = (p1, p2, p3, nx, ny, nz, uv1, uv2, uv3) => {
+        pos.push(p1[0],p1[1],p1[2], p2[0],p2[1],p2[2], p3[0],p3[1],p3[2]);
+        norm.push(nx,ny,nz, nx,ny,nz, nx,ny,nz);
+        uvs.push(uv1[0],uv1[1], uv2[0],uv2[1], uv3[0],uv3[1]);
+    };
+
+    const toUv = (p) => [(p.x / (wBottom * 2)) + 0.5, 1.0 - (p.y / hTop)];
+
+    // 正面（漢字が描かれる面: +Z）
+    const fPts = pts.map(p => [p.x, p.y, p.z]);
+    const fUvs = pts.map(toUv);
+    pushTri(fPts[0], fPts[4], fPts[3], 0, 0.1, 1, fUvs[0], fUvs[4], fUvs[3]);
+    pushTri(fPts[0], fPts[3], fPts[2], 0, 0.1, 1, fUvs[0], fUvs[3], fUvs[2]);
+    pushTri(fPts[0], fPts[2], fPts[1], 0, 0.1, 1, fUvs[0], fUvs[2], fUvs[1]);
+
+    // 背面（-Z）
+    const bPts = pts.map(p => [p.x, p.y, -p.z]);
+    const bUv = [0.02, 0.02];
+    pushTri(bPts[0], bPts[1], bPts[2], 0, 0.1, -1, bUv, bUv, bUv);
+    pushTri(bPts[0], bPts[2], bPts[3], 0, 0.1, -1, bUv, bUv, bUv);
+    pushTri(bPts[0], bPts[3], bPts[4], 0, 0.1, -1, bUv, bUv, bUv);
+
+    // 5つの側面（厚み部分）
+    const sideNormals = [[0.6,0.8,0], [1,-0.1,0], [0,-1,0], [-1,-0.1,0], [-0.6,0.8,0]];
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        const n = sideNormals[i];
+        pushTri(fPts[i], fPts[next], bPts[next], n[0], n[1], n[2], bUv, bUv, bUv);
+        pushTri(fPts[i], bPts[next], bPts[i],    n[0], n[1], n[2], bUv, bUv, bUv);
+    }
+
+    const createBuf = (arr) => {
+        const b = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, b);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
+        return b;
+    };
+
+    // 3D将棋盤（直方体ボックス）の頂点データ生成
+    const bw = 4.6, bh = 0.75, bd = 5.0;
+    const boxPos = [], boxNorm = [], boxUv = [];
+    const addQuad = (v0, v1, v2, v3, nx, ny, nz, topFace = false) => {
+const u0 = topFace ? new Array(0, 0) : new Array(0.02, 0.02);
+const u1 = topFace ? new Array(0, 1) : new Array(0.02, 0.02);
+const u2 = topFace ? new Array(1, 1) : new Array(0.02, 0.02);
+const u3 = topFace ? new Array(1, 0) : new Array(0.02, 0.02);
+        boxPos.push(...v0,...v1,...v2, ...v0,...v2,...v3);
+        for(let k=0;k<6;k++) boxNorm.push(nx,ny,nz);
+        boxUv.push(...u0,...u1,...u2, ...u0,...u2,...u3);
+    };
+    addQuad([-bw,0,-bd], [-bw,0,bd], [bw,0,bd], [bw,0,-bd], 0,1,0, true); // 天面（81マス）
+    addQuad([-bw,-bh,bd], [bw,-bh,bd], [bw,0,bd], [-bw,0,bd], 0,0,1); // 手前側面
+    addQuad([bw,-bh,-bd], [-bw,-bh,-bd], [-bw,0,-bd], [bw,0,-bd], 0,0,-1); // 奥側面
+    addQuad([bw,-bh,bd], [bw,-bh,-bd], [bw,0,-bd], [bw,0,bd], 1,0,0); // 右側面
+    addQuad([-bw,-bh,-bd], [-bw,-bh,bd], [-bw,0,bd], [-bw,0,-bd], -1,0,0); // 左側面
+
+    return {
+        gl, prog,
+        aPos: gl.getAttribLocation(prog, 'aPos'),
+        aNorm: gl.getAttribLocation(prog, 'aNorm'),
+        aUv: gl.getAttribLocation(prog, 'aUv'),
+        uMvp: gl.getUniformLocation(prog, 'uMvp'),
+        uModel: gl.getUniformLocation(prog, 'uModel'),
+        uUseTex: gl.getUniformLocation(prog, 'uUseTex'),
+        uColor: gl.getUniformLocation(prog, 'uColor'),
+        pieceMesh: { pos: createBuf(pos), norm: createBuf(norm), uv: createBuf(uvs), count: pos.length / 3 },
+        boardMesh: { pos: createBuf(boxPos), norm: createBuf(boxNorm), uv: createBuf(boxUv), count: boxPos.length / 3 },
+        textures: {}
+    };
+}
+// ==============================================================================
+// 🎬 完全3D WebGLオープニングエンジン【3 / 4】テクスチャ＆3D描画ループ
+// ==============================================================================
+// 2回目の行列・UV定義の補完
+M4.identity = () =>;
+
+// 漢字入り木目テクスチャ＆81マス将棋盤テクスチャをCanvasから動的生成
+function getOpWebGLTexture(ctxObj, key, kanji, isBoss = false, isTokin = false) {
+    if (ctxObj.textures[key]) return ctxObj.textures[key];
+    const gl = ctxObj.gl;
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 256;
+    const ctx = c.getContext('2d');
+
+    if (key === 'board') {
+        // 黄金の81マス将棋盤テクスチャ
+        const grad = ctx.createLinearGradient(0, 0, 256, 256);
+        grad.addColorStop(0, '#f5cd79');
+        grad.addColorStop(0.5, '#d49b42');
+        grad.addColorStop(1, '#8c5a20');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+
+        ctx.strokeStyle = '#3d2005';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(4, 4, 248, 248);
+        ctx.lineWidth = 1.5;
+        for (let i = 1; i < 9; i++) {
+            const p = 4 + (248 / 9) * i;
+            ctx.beginPath(); ctx.moveTo(p, 4); ctx.lineTo(p, 252); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(4, p); ctx.lineTo(252, p); ctx.stroke();
+        }
+    } else {
+        // 本物の木目調将棋駒テクスチャ
+        const grad = ctx.createLinearGradient(0, 0, 0, 256);
+        if (isTokin) {
+            grad.addColorStop(0, '#ffe3e8'); grad.addColorStop(0.6, '#ff9aa8'); grad.addColorStop(1, '#d6455b');
+        } else if (isBoss) {
+            grad.addColorStop(0, '#ffe299'); grad.addColorStop(0.6, '#f5a642'); grad.addColorStop(1, '#b85d19');
+        } else {
+            grad.addColorStop(0, '#fff3d1'); grad.addColorStop(0.6, '#f3c677'); grad.addColorStop(1, '#c88a36');
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+
+        // 木目ライン
+        ctx.fillStyle = 'rgba(140, 80, 20, 0.08)';
+        for (let x = 0; x < 256; x += 6) ctx.fillRect(x, 0, 2, 256);
+
+        // 彫り込み漢字
+        ctx.fillStyle = isTokin ? '#8f0b1e' : (isBoss ? '#7a0b0b' : '#1a1105');
+        ctx.font = 'bold 122px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(kanji, 128, 148);
+    }
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    ctxObj.textures[key] = tex;
+    return tex;
 }
 
-function clearOp3DActors() {
-    const box = document.getElementById('op-3d-actors');
-    if (box) box.innerHTML = '';
+// 3D空間上の駒・エフェクト操作関数（将棋盤の辺と平行な向きで固定）
+function clearOp3DScene() {
+    window.op3DObjects = [];
+    window.op3DEffects = [];
 }
 
-// 3D将棋盤の上（boardX: 0〜340, boardY: 0〜360）に立体駒を配置
-function spawn3DOpPiece(id, kanji, boardX, boardY, type = 'normal') {
-    const box = document.getElementById('op-3d-actors');
-    if (!box) return null;
-
-    const anchor = document.createElement('div');
-    anchor.id = id;
-    anchor.className = 'op-3d-piece-anchor';
-    anchor.style.left = boardX + 'px';
-    anchor.style.top = boardY + 'px';
-    anchor.dataset.bx = boardX;
-    anchor.dataset.by = boardY;
-    anchor.dataset.state = 'idle'; // idle, dash, jump, attack, knockback
-    anchor.dataset.tilt = '0';
-    anchor.dataset.liftZ = '0';
-
-    const body = document.createElement('div');
-    body.className = 'op-3d-piece-body' + (type === 'boss' ? ' boss' : (type === 'tokin' ? ' tokin' : ''));
-    body.textContent = kanji;
-
-    anchor.appendChild(body);
-    box.appendChild(anchor);
-    return anchor;
+// facing: 0(奥向き/+Z), Math.PI(手前向き/-Z), Math.PI/2(右向き), -Math.PI/2(左向き) → 常に盤の辺と平行！
+function spawn3DPiece(id, kanji, x, z, facing = 0, type = 'normal') {
+    const obj = {
+        id, kanji, x, y: 0, z,
+        targetX: x, targetY: 0, targetZ: z,
+        facing,
+        type, // 'normal', 'boss', 'tokin'
+        state: 'idle', // 'idle', 'attack', 'knockback', 'spin_ko'
+        tiltX: 0,
+        spinAngle: 0
+    };
+    window.op3DObjects.push(obj);
+    return obj;
 }
 
-// 3D空間上の立体エフェクト（衝撃波リング・3D光柱・3D斬撃）
-function spawn3DRing(bx, by, color = '#00d2ff', size = 140, liftZ = 10) {
-    const box = document.getElementById('op-3d-actors');
-    if (!box) return;
-    const ring = document.createElement('div');
-    ring.className = 'op-3d-ring';
-    ring.style.left = bx + 'px';
-    ring.style.top = by + 'px';
-    ring.style.width = size + 'px';
-    ring.style.height = size + 'px';
-    ring.style.borderColor = color;
-    ring.style.boxShadow = '0 0 25px ' + color + ', inset 0 0 20px ' + color;
-    ring.style.transform = 'translate(-50%, -50%) translateZ(' + liftZ + 'px) scale(0.1)';
-    box.appendChild(ring);
-    setTimeout(() => ring.remove(), 660);
+// 3D空間上の立体リング・光柱・破片エフェクト生成
+function spawn3DEffect(kind, x, y, z, color, maxLife = 0.65) {
+    window.op3DEffects.push({ kind, x, y, z, color, age: 0, maxLife });
 }
 
-// 盤面から垂直に立ち上がる3Dエネルギー光柱（レーザー・KOビーム用）
-function spawn3DPillarBeam(bx, by, color = '#00d2ff', width = 56) {
-    const box = document.getElementById('op-3d-actors');
-    if (!box) return;
-    const pillar = document.createElement('div');
-    pillar.style.cssText =
-        'position:absolute; left:' + (bx - width / 2) + 'px; top:' + by + 'px; ' +
-        'width:' + width + 'px; height:340px; ' +
-        'background:linear-gradient(90deg, transparent 0%, ' + color + ' 25%, #ffffff 50%, ' + color + ' 75%, transparent 100%); ' +
-        'box-shadow:0 0 35px ' + color + ', 0 0 60px #ffffff; ' +
-        'transform-origin:bottom center; ' +
-        'transform:translateY(-340px) rotateZ(' + (-window.opCam.rotZ) + 'deg) rotateX(' + (-window.opCam.rotX) + 'deg); ' +
-        'transition:opacity 0.35s ease-out; pointer-events:none; z-index:50;';
-    box.appendChild(pillar);
-    setTimeout(() => {
-        pillar.style.opacity = '0';
-        setTimeout(() => pillar.remove(), 360);
-    }, 180);
-}
+// 虚空へ向かって放つ3Dスペシャル演武（カットインなし）
+function fire3DVoidSpecial(actor, styleType) {
+    if (!actor) return;
+    actor.state = 'attack';
+    actor.tiltX = 0.42;
+    setTimeout(() => { if (actor) { actor.state = 'idle'; actor.tiltX = 0; } }, 350);
 
-// 虚空へ向かって放つ3D斬撃＆エネルギー弾演出
-function fire3DVoidSpecial(actorEl, styleType) {
-    if (!actorEl) return;
-    const bx = parseFloat(actorEl.style.left) || 170;
-    const by = parseFloat(actorEl.style.top) || 180;
-
-    // 踏み込み＋伸縮モーション
-    actorEl.dataset.state = 'attack';
-    actorEl.dataset.tilt = '24';
-    setTimeout(() => { actorEl.dataset.state = 'idle'; actorEl.dataset.tilt = '0'; }, 350);
+    const fx = actor.x + Math.sin(actor.facing) * 1.6;
+    const fz = actor.z + Math.cos(actor.facing) * 1.6;
 
     if (styleType === 'tokin_bomb') {
         if (typeof playSE === 'function') playSE('burst');
         for (let i = 0; i < 6; i++) {
             setTimeout(() => {
-                const tx = bx + 60 + Math.cos(i) * 55;
-                const ty = by - 50 + Math.sin(i) * 55;
-                spawn3DRing(tx, ty, '#ffd700', 110, 25);
-                shakeOpScreen(10, 140);
-            }, i * 160);
+                spawn3DEffect('ring', fx + Math.cos(i)*1.3, 0.3, fz + Math.sin(i)*1.3, [1.0, 0.84, 0.0, 0.9], 0.6);
+            }, i * 150);
         }
     } else if (styleType === 'knight_laser') {
         if (typeof playSE === 'function') playSE('critical');
-        actorEl.dataset.liftZ = '65';
+        actor.targetY = 1.8;
         setTimeout(() => {
-            spawn3DPillarBeam(bx + 75, by - 40, '#00d2ff', 64);
-            spawn3DRing(bx + 75, by - 40, '#00d2ff', 190, 5);
-            shakeOpScreen(16, 300);
-            actorEl.dataset.liftZ = '0';
-        }, 250);
+            if (actor) actor.targetY = 0;
+            spawn3DEffect('pillar', fx, 0, fz, [0.0, 0.82, 1.0, 0.95], 0.55);
+            spawn3DEffect('ring', fx, 0.1, fz, [0.0, 0.82, 1.0, 0.9], 0.7);
+        }, 260);
     } else if (styleType === 'lance_mist') {
         if (typeof playSE === 'function') playSE('special_cutin');
-        actorEl.style.left = (bx + 90) + 'px';
+        actor.targetX = actor.x + Math.sin(actor.facing) * 2.5;
+        actor.targetZ = actor.z + Math.cos(actor.facing) * 2.5;
         for (let i = 0; i < 5; i++) {
-            setTimeout(() => spawn3DRing(bx + i * 25, by, '#a29bfe', 130, 18), i * 90);
+            setTimeout(() => spawn3DEffect('ring', actor.x, 0.4, actor.z, [0.64, 0.6, 1.0, 0.85], 0.65), i * 85);
         }
     } else if (styleType === 'bishop_cross') {
         if (typeof playSE === 'function') playSE('critical');
         for (let i = 0; i < 4; i++) {
-            setTimeout(() => {
-                spawn3DRing(bx + 40, by - 20, '#1dd1a1', 180 + i * 30, 20 + i * 12);
-                shakeOpScreen(12, 160);
-            }, i * 140);
+            setTimeout(() => spawn3DEffect('ring', fx, 0.4 + i*0.25, fz, [0.11, 0.82, 0.63, 0.9], 0.6), i * 130);
         }
     } else if (styleType === 'bow_hyper') {
         if (typeof playSE === 'function') playSE('critical');
-        flashOpScreen(0.7);
         for (let i = 0; i < 6; i++) {
             setTimeout(() => {
-                spawn3DRing(bx + 35 + i * 32, by - i * 12, '#ff9f43', 100 + i * 18, 30);
-            }, i * 70);
+                spawn3DEffect('ring', actor.x + Math.sin(actor.facing)*(1 + i*0.65), 0.7, actor.z + Math.cos(actor.facing)*(1 + i*0.65), [1.0, 0.62, 0.26, 0.95], 0.45);
+            }, i * 65);
         }
     } else if (styleType === 'rook_slash') {
         if (typeof playSE === 'function') playSE('burst');
-        spawn3DRing(bx + 40, by, '#ff3f3f', 240, 15);
-        shakeOpScreen(15, 280);
+        spawn3DEffect('ring', fx, 0.5, fz, [1.0, 0.25, 0.25, 0.95], 0.75);
     }
 }
+// ==============================================================================
+// 🎬 完全3D WebGLオープニングエンジン【4 / 4 - 前半】タイムライン
+// ==============================================================================
+M4.identity = function() {
+    return new Array(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+};
 
-// ==============================================================================
-// 🎬 フル3D回転＆虚空スペシャル演武 オープニングエンジン【3 / 3】
-// ==============================================================================
+function buildOpEffectMeshes(gl) {
+    const ringPos = [], ringNorm = [], ringUv = [];
+    const seg = 32, rIn = 0.72, rOut = 1.0;
+    for (let i = 0; i < seg; i++) {
+        const a0 = (i / seg) * Math.PI * 2;
+        const a1 = ((i + 1) / seg) * Math.PI * 2;
+        const c0 = Math.cos(a0), s0 = Math.sin(a0);
+        const c1 = Math.cos(a1), s1 = Math.sin(a1);
+        ringPos.push(
+            c0*rIn, 0, s0*rIn,  c0*rOut, 0, s0*rOut,  c1*rOut, 0, s1*rOut,
+            c0*rIn, 0, s0*rIn,  c1*rOut, 0, s1*rOut,  c1*rIn,  0, s1*rIn
+        );
+        for (let k = 0; k < 6; k++) { ringNorm.push(0, 1, 0); ringUv.push(0.5, 0.5); }
+    }
+
+    const pilPos = [
+        -0.45,0,0,  0.45,0,0,  0.45,7.5,0,  -0.45,0,0,  0.45,7.5,0,  -0.45,7.5,0,
+        0,0,-0.45,  0,0,0.45,  0,7.5,0.45,  0,0,-0.45,  0,7.5,0.45,  0,7.5,-0.45
+    ];
+    const pilNorm = [], pilUv = [];
+    for (let k = 0; k < 12; k++) { pilNorm.push(0, 1, 0); pilUv.push(0.5, 0.5); }
+
+    const makeBuf = (arr) => {
+        const b = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, b);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
+        return b;
+    };
+    return {
+        ring: { pos: makeBuf(ringPos), norm: makeBuf(ringNorm), uv: makeBuf(ringUv), count: ringPos.length / 3 },
+        pillar: { pos: makeBuf(pilPos), norm: makeBuf(pilNorm), uv: makeBuf(pilUv), count: pilPos.length / 3 }
+    };
+}
+
 const OP_TIMELINE = [
-    // 【0:00〜0:28 イントロ】回転する3D将棋盤の上で「歩」が静かに呼吸しながら構える（文字なし）
-    { time: 0.2, id: '3d_intro_1', fn: () => {
-        clearOp3DActors();
-        window.opCam = { rotX: 60, rotZ: 0, spinSpeed: 18, scale: 0.95, panX: 0, panY: 25 };
-        spawn3DOpPiece('op_p_pawn', '歩', 170, 180, 'normal');
+    { time: 0.2, id: 'w3d_intro_1', fn: () => {
+        clearOp3DScene();
+        window.opCam = { angleY: 0.3, spinSpeed: 0.38, pitch: 0.52, dist: 14.2, targetY: 0.8 };
+        spawn3DPiece('op_p1', '歩', 0, 1.2, Math.PI, 'normal');
     }},
-    { time: 14.0, id: '3d_intro_2', fn: () => {
-        // カメラがグッと寄りながら回り込み加速
-        window.opCam.scale = 1.18;
-        window.opCam.rotX = 52;
-        window.opCam.spinSpeed = 28;
-        spawn3DRing(170, 180, '#ffd32a', 170, 5);
+    { time: 14.0, id: 'w3d_intro_2', fn: () => {
+        window.opCam.dist = 11.2;
+        window.opCam.pitch = 0.42;
+        window.opCam.spinSpeed = 0.55;
+        spawn3DEffect('ring', 0, 0.1, 1.2, [1.0, 0.84, 0.15, 0.9], 0.75);
     }},
-
-    // 【0:28〜0:50 Aメロ】「歩」が「と金」へ覚醒し、虚空へ金爆撃スペシャルを放つ！
-    { time: 28.0, id: '3d_a_tokin_evo', fn: () => {
-        clearOp3DActors();
-        flashOpScreen(0.85);
-        window.opCam = { rotX: 55, rotZ: window.opCam.rotZ, spinSpeed: 22, scale: 1.22, panX: 0, panY: 20 };
-        const tokin = spawn3DOpPiece('op_p_tokin', 'と', 150, 190, 'tokin');
-        spawn3DRing(150, 190, '#ff3f3f', 200, 10);
-        setTimeout(() => fire3DVoidSpecial(tokin, 'tokin_bomb'), 1200);
+    { time: 28.0, id: 'w3d_a_tokin', fn: () => {
+        clearOp3DScene();
+        window.opCam = { angleY: window.opCam.angleY, spinSpeed: 0.48, pitch: 0.46, dist: 11.0, targetY: 0.9 };
+        const tokin = spawn3DPiece('op_tokin', 'と', 0, 1.5, Math.PI, 'tokin');
+        spawn3DEffect('ring', 0, 0.15, 1.5, [1.0, 0.25, 0.25, 0.95], 0.7);
+        setTimeout(() => fire3DVoidSpecial(tokin, 'tokin_bomb'), 1100);
     }},
-    { time: 39.0, id: '3d_a_bow_solo', fn: () => {
-        clearOp3DActors();
-        window.opCam.spinSpeed = -24; // 逆方向へカメラ回り込み
-        const bow = spawn3DOpPiece('op_p_bow', '弓', 110, 210, 'normal');
-        setTimeout(() => fire3DVoidSpecial(bow, 'bow_hyper'), 800);
+    { time: 39.0, id: 'w3d_a_bow', fn: () => {
+        clearOp3DScene();
+        window.opCam.spinSpeed = -0.52;
+        const bow = spawn3DPiece('op_bow', '弓', -1.8, 0, Math.PI / 2, 'normal');
+        setTimeout(() => fire3DVoidSpecial(bow, 'bow_hyper'), 750);
     }},
-
-    // 【0:50〜1:04 Bメロ】桂・香・角・飛が次々と現れ、カットインなしで虚空へスペシャル技を連発！
-    { time: 50.0, id: '3d_b_knight', fn: () => {
-        clearOp3DActors();
-        window.opCam = { rotX: 48, rotZ: window.opCam.rotZ, spinSpeed: 30, scale: 1.15, panX: 0, panY: 15 };
-        const knight = spawn3DOpPiece('op_p_knight', '桂', 130, 190, 'normal');
-        setTimeout(() => fire3DVoidSpecial(knight, 'knight_laser'), 450);
+    { time: 50.0, id: 'w3d_b_knight', fn: () => {
+        clearOp3DScene();
+        window.opCam = { angleY: window.opCam.angleY, spinSpeed: 0.58, pitch: 0.44, dist: 11.5, targetY: 1.0 };
+        const knight = spawn3DPiece('op_knight', '桂', 0, 1.6, Math.PI, 'normal');
+        setTimeout(() => fire3DVoidSpecial(knight, 'knight_laser'), 400);
     }},
-    { time: 53.5, id: '3d_b_lance', fn: () => {
-        clearOp3DActors();
-        const lance = spawn3DOpPiece('op_p_lance', '香', 90, 180, 'normal');
+    { time: 53.5, id: 'w3d_b_lance', fn: () => {
+        clearOp3DScene();
+        const lance = spawn3DPiece('op_lance', '香', -2.2, 0, Math.PI / 2, 'normal');
         setTimeout(() => fire3DVoidSpecial(lance, 'lance_mist'), 350);
     }},
-    { time: 57.0, id: '3d_b_bishop', fn: () => {
-        clearOp3DActors();
-        const bishop = spawn3DOpPiece('op_p_bishop', '角', 150, 180, 'normal');
+    { time: 57.0, id: 'w3d_b_bishop', fn: () => {
+        clearOp3DScene();
+        const bishop = spawn3DPiece('op_bishop', '角', 0, -1.5, 0, 'normal');
         setTimeout(() => fire3DVoidSpecial(bishop, 'bishop_cross'), 350);
     }},
-    { time: 60.5, id: '3d_b_rook', fn: () => {
-        clearOp3DActors();
-        const rook = spawn3DOpPiece('op_p_rook', '飛', 150, 180, 'normal');
+    { time: 60.5, id: 'w3d_b_rook', fn: () => {
+        clearOp3DScene();
+        const rook = spawn3DPiece('op_rook', '飛', 2.0, 0, -Math.PI / 2, 'normal');
         setTimeout(() => fire3DVoidSpecial(rook, 'rook_slash'), 350);
     }},
+    { time: 64.0, id: 'w3d_chorus_battle', fn: () => {
+        clearOp3DScene();
+        window.opCam = { angleY: window.opCam.angleY, spinSpeed: 0.85, pitch: 0.48, dist: 12.2, targetY: 1.0 };
 
-    // 【1:04〜1:30 サビ】3D将棋盤の上でカメラが激しく回り込みながら3Dバトル勃発！
-    { time: 64.0, id: '3d_chorus_battle', fn: () => {
-        clearOp3DActors();
-        flashOpScreen(1.0);
-        window.opCam = { rotX: 54, rotZ: window.opCam.rotZ, spinSpeed: 42, scale: 1.12, panX: 0, panY: 20 };
+        const boss = spawn3DPiece('op_boss', '王', 0, -1.8, 0, 'boss');
+        const f1 = spawn3DPiece('op_f1', '飛', -1.8, 2.2, Math.PI, 'normal');
+        const f2 = spawn3DPiece('op_f2', '角', 1.8, 2.2, Math.PI, 'normal');
+        const f3 = spawn3DPiece('op_f3', 'と', 0, 2.8, Math.PI, 'tokin');
 
-        const boss = spawn3DOpPiece('op_b_king', '王', 170, 130, 'boss');
-        const f1 = spawn3DOpPiece('op_f1', '飛', 90, 230, 'normal');
-        const f2 = spawn3DOpPiece('op_f2', '角', 250, 230, 'normal');
-        const f3 = spawn3DOpPiece('op_f3', 'と', 170, 260, 'tokin');
-
-        // 3D盤上を飛び交う連続攻防（1.4秒ごとに高速交差＆3D衝撃波）
-        const fighters = new Array(f1, f2, f3);
+        const team = new Array(f1, f2, f3);
         for (let turn = 0; turn < 10; turn++) {
             setTimeout(() => {
                 if (opFinished) return;
-                const attacker = fighters[turn % fighters.length];
-                if (!attacker || !boss) return;
+                const atk = team[turn % team.length];
+                if (!atk || !boss) return;
 
-                const origX = attacker.dataset.bx;
-                const origY = attacker.dataset.by;
-                attacker.dataset.state = 'dash';
-                attacker.dataset.tilt = '25';
-                attacker.dataset.liftZ = '35';
-                attacker.style.left = '170px';
-                attacker.style.top = '155px';
+                const ox = atk.x, oz = atk.z;
+                atk.state = 'attack';
+                atk.tiltX = 0.45;
+                atk.targetX = 0;
+                atk.targetZ = -0.9;
+                atk.targetY = 0.9;
 
                 setTimeout(() => {
                     if (typeof playSE === 'function') playSE(turn % 3 === 0 ? 'counter' : 'hit');
-                    spawn3DRing(170, 140, turn % 2 === 0 ? '#00d2ff' : '#ff3f3f', 160, 25);
-                    shakeOpScreen(12, 180);
+                    spawn3DEffect('ring', 0, 0.7, -1.4, turn % 2 === 0 ? [0.0, 0.82, 1.0, 0.95] : [1.0, 0.25, 0.25, 0.95], 0.6);
+                    boss.state = 'knockback';
+                    boss.tiltX = -0.45;
+                    setTimeout(() => { if (boss) { boss.state = 'idle'; boss.tiltX = 0; } }, 240);
 
-                    // 王将の被弾スクワッシュ＆反撃
-                    boss.dataset.state = 'knockback';
-                    setTimeout(() => { boss.dataset.state = 'idle'; }, 240);
-
-                    // 攻撃者が元の陣形へ跳躍帰還
-                    attacker.style.left = origX + 'px';
-                    attacker.style.top = origY + 'px';
-                    attacker.dataset.liftZ = '0';
-                    attacker.dataset.tilt = '0';
-                    attacker.dataset.state = 'idle';
+                    atk.targetX = ox;
+                    atk.targetZ = oz;
+                    atk.targetY = 0;
+                    atk.tiltX = 0;
+                    atk.state = 'idle';
                 }, 260);
             }, 600 + turn * 1650);
         }
     }},
-
-    // 【1:23 サビクライマックス】王将を3D空間の上空へ吹っ飛ばし、3D光柱KOバースト！
-    { time: 83.0, id: '3d_chorus_ko', fn: () => {
-        flashOpScreen(1.0);
-        shakeOpScreen(22, 550);
-        window.opCam.spinSpeed = 55;
-        window.opCam.scale = 1.05;
-
-        const boss = document.getElementById('op_b_king');
+    { time: 83.0, id: 'w3d_chorus_ko', fn: () => {
+        window.opCam.spinSpeed = 1.1;
+        window.opCam.dist = 13.5;
+        const boss = window.op3DObjects.find(o => o.id === 'op_boss');
         if (boss) {
-            boss.dataset.state = 'spin_ko';
-            boss.dataset.liftZ = '260';
+            boss.state = 'spin_ko';
+            boss.targetY = 7.5;
+            boss.targetZ = -4.5;
         }
-        spawn3DPillarBeam(170, 130, '#ff3f3f', 75);
-        spawn3DRing(170, 130, '#ffd32a', 260, 20);
+        spawn3DEffect('pillar', 0, 0, -1.8, [1.0, 0.25, 0.25, 0.95], 0.85);
+        spawn3DEffect('ring', 0, 0.2, -1.8, [1.0, 0.84, 0.15, 0.95], 0.85);
         if (typeof playSE === 'function') playSE('burst');
     }},
-
-    // 【1:30〜1:59 アウトロ】全8駒が3D将棋盤の上に円陣を組んでゆっくり回り込みフィナーレ
-    { time: 92.0, id: '3d_outro', fn: () => {
-        clearOp3DActors();
-        flashOpScreen(0.85);
-        window.opCam = { rotX: 58, rotZ: window.opCam.rotZ, spinSpeed: 15, scale: 1.02, panX: 0, panY: 20 };
-
-        const ringChars = [
-            { t: '歩', tp: 'normal' }, { t: '香', tp: 'normal' },
-            { t: '桂', tp: 'normal' }, { t: '角', tp: 'normal' },
-            { t: '弓', tp: 'normal' }, { t: '飛', tp: 'normal' },
-            { t: '銀', tp: 'normal' }, { t: '金', tp: 'normal' }
-        ];
-        ringChars.forEach((ch, idx) => {
-            const ang = (idx / ringChars.length) * Math.PI * 2;
-            const bx = 170 + Math.cos(ang) * 105;
-            const by = 180 + Math.sin(ang) * 105;
-            spawn3DOpPiece('op_out_' + idx, ch.t, bx, by, ch.tp);
-        });
+    { time: 92.0, id: 'w3d_outro', fn: () => {
+        clearOp3DScene();
+        window.opCam = { angleY: window.opCam.angleY, spinSpeed: 0.35, pitch: 0.52, dist: 13.0, targetY: 0.9 };
+        const frontRow = new Array('歩', '香', '桂', '弓');
+        const backRow  = new Array('飛', '角', '銀', '金');
+        frontRow.forEach((k, i) => spawn3DPiece('out_f_' + i, k, -2.4 + i * 1.6, 1.3, Math.PI, 'normal'));
+        backRow.forEach((k, i)  => spawn3DPiece('out_b_' + i, k, -2.4 + i * 1.6, -1.3, Math.PI, 'normal'));
     }}
 ];
-
+// ==============================================================================
+// 🎬 完全3D WebGLオープニングエンジン【4 / 4 - 後半】描画ループ＆制御
+// ==============================================================================
 function startOpeningSequence() {
     if (opStarted) return;
     opStarted = true;
@@ -6849,13 +6952,16 @@ function startOpeningSequence() {
     if (titleScr) titleScr.style.display = 'none';
     if (opScr) opScr.style.display = 'block';
 
+    const wgl = initOpWebGL();
+    const fxMeshes = wgl ? buildOpEffectMeshes(wgl.gl) : null;
+
     opAudio.currentTime = 0;
     opAudio.play().catch(err => console.log('OP音声再生待機:', err));
 
     let lastTs = performance.now();
     const startFallback = lastTs;
 
-    function updateOpeningLoop(now) {
+    function renderOp3DLoop(now) {
         if (opFinished) return;
         const dt = Math.min(0.05, (now - lastTs) * 0.001);
         lastTs = now;
@@ -6864,52 +6970,6 @@ function startOpeningSequence() {
             ? opAudio.currentTime
             : (now - startFallback) * 0.001;
 
-        // 1. 3Dワールド全体の回転・傾き・ズーム更新（盤面ごと回り込む）
-        window.opCam.rotZ = (window.opCam.rotZ + window.opCam.spinSpeed * dt) % 360;
-        const world = document.getElementById('op-3d-world');
-        if (world) {
-            world.style.transform =
-                'translate(' + window.opCam.panX + 'px, ' + window.opCam.panY + 'px) ' +
-                'scale(' + window.opCam.scale + ') ' +
-                'rotateX(' + window.opCam.rotX + 'deg) ' +
-                'rotateZ(' + window.opCam.rotZ.toFixed(2) + 'deg)';
-        }
-
-        // 2. 盤上の全3D駒を「盤面と一緒に回転しつつ、常にカメラへ正対」させ、呼吸・伸縮モーションを適用
-        const anchors = document.querySelectorAll('.op-3d-piece-anchor');
-        anchors.forEach((anc, idx) => {
-            const liftZ = parseFloat(anc.dataset.liftZ || '0');
-            // 盤面の回転（rotZ・rotX）を打ち消す逆回転をアンカーにかけることで、3D空間上で垂直に立ち続ける
-            anc.style.transform =
-                'translateZ(' + liftZ + 'px) ' +
-                'rotateZ(' + (-window.opCam.rotZ).toFixed(2) + 'deg) ' +
-                'rotateX(' + (-window.opCam.rotX).toFixed(2) + 'deg)';
-
-            const body = anc.querySelector('.op-3d-piece-body');
-            if (!body) return;
-
-            const st = anc.dataset.state || 'idle';
-            const tilt = parseFloat(anc.dataset.tilt || '0');
-
-            if (st === 'spin_ko') {
-                const spin = (now * 0.9) % 360;
-                body.style.transform = 'rotate(' + spin + 'deg) scale(1.25)';
-            } else if (st === 'knockback') {
-                // 被弾時のグッと潰れるスクワッシュ伸縮
-                body.style.transform = 'rotate(-18deg) scale(1.24, 0.76)';
-            } else if (st === 'attack' || st === 'dash') {
-                // 踏み込み＆攻撃時の前傾＋縦伸び
-                body.style.transform = 'rotate(' + tilt + 'deg) scale(0.92, 1.14)';
-            } else {
-                // 待機中のリアルな呼吸モーション（ゆっくり上下に伸縮）
-                const breath = Math.sin(now * 0.0055 + idx * 1.1) * 0.045;
-                const sx = (1 - breath * 0.65).toFixed(3);
-                const sy = (1 + breath).toFixed(3);
-                body.style.transform = 'scale(' + sx + ', ' + sy + ')';
-            }
-        });
-
-        // 3. タイムライン発火
         OP_TIMELINE.forEach(ev => {
             if (!opTriggeredEvents[ev.id] && t >= ev.time) {
                 opTriggeredEvents[ev.id] = true;
@@ -6917,13 +6977,119 @@ function startOpeningSequence() {
             }
         });
 
+        window.opCam.angleY += window.opCam.spinSpeed * dt;
+
+        if (wgl && fxMeshes) {
+            const gl = wgl.gl;
+            gl.viewport(0, 0, 600, 450);
+            gl.clearColor(0.04, 0.04, 0.09, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            const proj = M4.perspective(Math.PI / 4, 600 / 450, 0.1, 100.0);
+            let view = M4.identity();
+            view = M4.translate(view, 0, -window.opCam.targetY, -window.opCam.dist);
+            view = M4.rotateX(view, window.opCam.pitch);
+            view = M4.rotateY(view, window.opCam.angleY);
+            const vp = M4.multiply(proj, view);
+
+            const drawMesh = (mesh, modelMat, tex, colorArr) => {
+                gl.bindBuffer(gl.ARRAY_BUFFER, mesh.pos);
+                gl.enableVertexAttribArray(wgl.aPos);
+                gl.vertexAttribPointer(wgl.aPos, 3, gl.FLOAT, false, 0, 0);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, mesh.norm);
+                gl.enableVertexAttribArray(wgl.aNorm);
+                gl.vertexAttribPointer(wgl.aNorm, 3, gl.FLOAT, false, 0, 0);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, mesh.uv);
+                gl.enableVertexAttribArray(wgl.aUv);
+                gl.vertexAttribPointer(wgl.aUv, 2, gl.FLOAT, false, 0, 0);
+
+                const mvp = M4.multiply(vp, modelMat);
+                gl.uniformMatrix4fv(wgl.uMvp, false, new Float32Array(mvp));
+                gl.uniformMatrix4fv(wgl.uModel, false, new Float32Array(modelMat));
+
+                if (tex) {
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(gl.TEXTURE_2D, tex);
+                    gl.uniform1i(wgl.uUseTex, 1);
+                } else {
+                    gl.uniform1i(wgl.uUseTex, 0);
+                    gl.uniform4fv(wgl.uColor, new Float32Array(colorArr));
+                }
+                gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
+            };
+
+            const boardTex = getOpWebGLTexture(wgl, 'board', '');
+            drawMesh(wgl.boardMesh, M4.identity(), boardTex, null);
+
+            window.op3DObjects.forEach((obj, idx) => {
+                obj.x += (obj.targetX - obj.x) * 0.22;
+                obj.y += (obj.targetY - obj.y) * 0.22;
+                obj.z += (obj.targetZ - obj.z) * 0.22;
+
+                let sx = 1.0, sy = 1.0, sz = 1.0;
+                if (obj.state === 'spin_ko') {
+                    obj.spinAngle += 18 * dt;
+                    sx = 1.25; sy = 1.25; sz = 1.25;
+                } else if (obj.state === 'knockback') {
+                    sx = 1.24; sy = 0.76; sz = 1.24;
+                } else if (obj.state === 'attack') {
+                    sx = 0.90; sy = 1.16; sz = 0.90;
+                } else {
+                    const breath = Math.sin(now * 0.0055 + idx * 1.1) * 0.045;
+                    sx = 1 - breath * 0.65;
+                    sy = 1 + breath;
+                    sz = 1 - breath * 0.65;
+                }
+
+                const bossScale = (obj.type === 'boss') ? 1.22 : 1.0;
+                let m = M4.identity();
+                m = M4.translate(m, obj.x, obj.y, obj.z);
+                m = M4.rotateY(m, obj.facing);
+                m = M4.rotateX(m, obj.tiltX + (obj.state === 'spin_ko' ? obj.spinAngle : 0));
+                m = M4.scale(m, sx * bossScale, sy * bossScale, sz * bossScale);
+
+                const texKey = obj.kanji + '_' + obj.type;
+                const pTex = getOpWebGLTexture(wgl, texKey, obj.kanji, obj.type === 'boss', obj.type === 'tokin');
+                drawMesh(wgl.pieceMesh, m, pTex, null);
+            });
+
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+            for (let i = window.op3DEffects.length - 1; i >= 0; i--) {
+                const fx = window.op3DEffects[i];
+                fx.age += dt;
+                if (fx.age >= fx.maxLife) {
+                    window.op3DEffects.splice(i, 1);
+                    continue;
+                }
+                const prog = fx.age / fx.maxLife;
+                const alpha = 1.0 - prog;
+                const col = new Array(fx.color[0], fx.color[1], fx.color[2], alpha);
+
+                let fm = M4.identity();
+                fm = M4.translate(fm, fx.x, fx.y, fx.z);
+                if (fx.kind === 'ring') {
+                    const rScale = 0.3 + prog * 2.5;
+                    fm = M4.scale(fm, rScale, 1.0, rScale);
+                    drawMesh(fxMeshes.ring, fm, null, col);
+                } else if (fx.kind === 'pillar') {
+                    const pScale = 1.2 - prog * 0.8;
+                    fm = M4.scale(fm, pScale, 1.0, pScale);
+                    drawMesh(fxMeshes.pillar, fm, null, col);
+                }
+            }
+            gl.disable(gl.BLEND);
+        }
+
         if (opAudio.ended || t >= 118.5) {
             skipOpeningToTitle();
             return;
         }
-        opAnimFrame = requestAnimationFrame(updateOpeningLoop);
+        opAnimFrame = requestAnimationFrame(renderOp3DLoop);
     }
-    opAnimFrame = requestAnimationFrame(updateOpeningLoop);
+    opAnimFrame = requestAnimationFrame(renderOp3DLoop);
 }
 
 function skipOpeningToTitle() {
@@ -6944,6 +7110,7 @@ acceptNotice = function() {
     _origAcceptNoticeForOp.apply(this, arguments);
     startOpeningSequence();
 };
+
 </script>
 </body>
 </html>
