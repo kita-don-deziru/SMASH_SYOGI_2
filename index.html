@@ -1324,9 +1324,7 @@
 }
 
 
-</script>
-
-
+</style>
 
 </head>
 <body>
@@ -3752,6 +3750,7 @@ function formatSeqId(num) {
 }
 
 function initPeerConnection() {
+    if (typeof Peer === 'undefined') return;
     const statusTxt = document.getElementById('room-status-text');
     const myIpUi = document.getElementById('ui-my-local-ip');
     const formattedId = formatSeqId(assignedSeqNum);
@@ -6532,7 +6531,7 @@ injectOnlineRoomUI = function() {
 // ==============================================================================
 // 🎬 フル3D回転＆虚空スペシャル演武 オープニングエンジン【2 / 3】
 // ==============================================================================
-const opAudio = new Audio('lv_0_20261113211851.mp3');
+const opAudio = new Audio('op_theme.mp3');
 opAudio.volume = 0.75;
 
 let opAnimFrame = null;
