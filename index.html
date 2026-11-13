@@ -6459,7 +6459,7 @@ injectOnlineRoomUI = function() {
 // ==============================================================================
 // 🎬 完全3D WebGLオープニングエンジン【2 / 4】行列演算＆立体駒メッシュ
 // ==============================================================================
-const opAudio = new Audio('lv_0_20261113211851.mp3');
+const opAudio = new Audio('op_theme.mp3');
 opAudio.volume = 0.75;
 
 let opAnimFrame = null;
@@ -7559,7 +7559,126 @@ setInterval(() => {
         evChorus.fn = function() { switchOpBgLayer(2); origFn.apply(this, arguments); };
     }
 })();
+// ==============================================================================
+// 🛡️ 3D描画消滅バグ完全修正 ＆ 王将戦・重厚剣戟アクション刷新パッチ
+// ==============================================================================
+(function() {
+    // 1. 駒と将棋盤が一瞬消えるバグを防止（alpha:true と preserveDrawingBuffer:true を強制）
+    const origGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function(type, attrs) {
+        if (this.id === 'op-3d-canvas' && (type === 'webgl' || type === 'experimental-webgl')) {
+            attrs = Object.assign({}, attrs, {
+                antialias: true,
+                alpha: true,
+                premultipliedAlpha: false,
+                preserveDrawingBuffer: true
+            });
+        }
+        return origGetContext.call(this, type, attrs);
+    };
 
+    // 2. サビ（1:04〜）の王将戦を「盤上での重厚な踏み込み斬り＆鍔迫り合い」に完全刷新
+    const chorusEv = OP_TIMELINE.find(e => e.time === 64.0);
+    if (chorusEv) {
+        chorusEv.fn = () => {
+            clearOp3DScene();
+            window.opCam = {
+                angleY: window.opCam.angleY,
+                targetAngleY: null,
+                spinSpeed: 0.55,
+                pitch: 0.46,
+                dist: 11.4,
+                targetY: 0.95
+            };
+
+            // 王将（中央奥） vs 飛・角・と（手前陣形）— 盤の辺と平行に配置
+            const boss = spawn3DPiece('op_boss', '王', 0, -1.7, 0, 'boss');
+            const f1 = spawn3DPiece('op_f1', '飛', -1.8, 1.9, Math.PI, 'normal');
+            const f2 = spawn3DPiece('op_f2', '角', 1.8, 1.9, Math.PI, 'normal');
+            const f3 = spawn3DPiece('op_f3', 'と', 0, 2.4, Math.PI, 'tokin');
+
+            const team = new Array(f1, f2, f3);
+
+            for (let turn = 0; turn < 11; turn++) {
+                setTimeout(() => {
+                    if (opFinished) return;
+                    const atk = team[turn % team.length];
+                    if (!atk || !boss) return;
+
+                    const ox = atk.x, oz = atk.z;
+                    const isClash = (turn % 3 === 2); // 3回に1回は王将との激しい正面衝突（鍔迫り合い）
+
+                    // ① 盤面を蹴って低く鋭い前傾姿勢で高速ダッシュ突進（上でくるくる回らない）
+                    atk.state = 'dash_slash';
+                    atk.tiltX = 0.52;
+                    atk.targetX = 0;
+                    atk.targetZ = -0.85;
+                    atk.targetY = 0.12; // 盤面スレスレの低い軌道
+
+                    if (isClash) {
+                        // 王将も迎え撃つように前へ踏み込む！
+                        boss.state = 'dash_slash';
+                        boss.tiltX = 0.42;
+                        boss.targetZ = -1.25;
+                    }
+
+                    setTimeout(() => {
+                        if (!atk || !boss) return;
+                        if (typeof playSE === 'function') playSE(isClash ? 'counter' : 'hit');
+                        spawn3DEffect(
+                            'ring', 0, 0.45, -1.1,
+                            isClash ? [1.0, 0.84, 0.15, 1.0] : [0.0, 0.82, 1.0, 0.95],
+                            0.55
+                        );
+                        shakeOpScreen(isClash ? 18 : 12, 180);
+
+                        if (isClash) {
+                            // 鍔迫り合いで両者が大きく後方へ弾き飛ばされる！
+                            boss.state = 'knockback';
+                            boss.tiltX = -0.35;
+                            boss.targetZ = -2.6;
+                            atk.targetZ = 1.4;
+                            atk.tiltX = -0.35;
+                            setTimeout(() => {
+                                if (boss) { boss.targetZ = -1.7; boss.tiltX = 0; boss.state = 'idle'; }
+                            }, 320);
+                        } else {
+                            // ヒット時の王将の仰け反り（ノックバック）と即座の体勢立て直し
+                            boss.state = 'knockback';
+                            boss.tiltX = -0.48;
+                            boss.targetZ = -2.3;
+                            setTimeout(() => {
+                                if (boss) { boss.targetZ = -1.7; boss.tiltX = 0; boss.state = 'idle'; }
+                            }, 260);
+                        }
+
+                        // 攻撃者がシュッと元の陣形へバックステップで戻る
+                        setTimeout(() => {
+                            if (!atk) return;
+                            atk.targetX = ox;
+                            atk.targetZ = oz;
+                            atk.targetY = 0;
+                            atk.tiltX = 0;
+                            atk.state = 'idle';
+                        }, isClash ? 180 : 80);
+                    }, 210);
+                }, 400 + turn * 1450);
+            }
+        };
+    }
+
+    // 3. 前の「tornado_spin（空中回転）」を無効化し、すべて盤上での鋭い前傾斬撃に統一
+    setInterval(() => {
+        if (opFinished || !opStarted) return;
+        window.op3DObjects.forEach(obj => {
+            if (obj.state === 'tornado_spin' || obj.state === 'flip_attack') {
+                obj.state = 'dash_slash';
+                obj.targetY = 0.15;
+                obj.tiltX = 0.48;
+            }
+        });
+    }, 30);
+})();
 
 </script>
 </body>
