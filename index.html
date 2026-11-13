@@ -5884,6 +5884,353 @@ function initGodFlameShaders() {
         requestAnimationFrame(renderFlameLoop);
     }
 }
+// ==============================================================================
+// 🌐 最大4人同時「複数人乱闘（マルチP2Pスター型）」拡張モジュール【前半】
+// ==============================================================================
+window.multiModeActive = false;
+window.multiConnections = [];
+window.multiPlayers = {};
+window.myMultiSlot = 1;
+
+const SLOT_COLORS = {
+    1: { bg: 'linear-gradient(180deg, #fff3d1 0%, #f3c677 65%, #c88a36 100%)', border: '#00d2ff', label: '1P' },
+    2: { bg: 'linear-gradient(180deg, #ffe299 0%, #f5a642 65%, #b85d19 100%)', border: '#ff3f3f', label: '2P' },
+    3: { bg: 'linear-gradient(180deg, #d4fc79 0%, #96e6a1 65%, #2ecc71 100%)', border: '#2ecc71', label: '3P' },
+    4: { bg: 'linear-gradient(180deg, #e0c3fc 0%, #8ec5fc 65%, #6c5ce7 100%)', border: '#a29bfe', label: '4P' }
+};
+
+function injectMultiBattleLobbyUI() {
+    const roomSection = document.getElementById('custom-room-section');
+    if (!roomSection || document.getElementById('multi-lobby-box')) return;
+
+    const lobbyBox = document.createElement('div');
+    lobbyBox.id = 'multi-lobby-box';
+    lobbyBox.style.cssText = 'margin-top:10px; padding:8px; background:rgba(255, 211, 42, 0.12); border:1px solid #ffd32a; border-radius:6px;';
+    lobbyBox.innerHTML =
+        '<div style="color:#ffd32a; font-weight:bold; font-size:12px; margin-bottom:4px;">👥 複数人乱闘ロビー（最大4人同時バトル）</div>' +
+        '<div style="font-size:11px; color:#d2dae2; margin-bottom:6px;">参加者が上のID入力欄に「ホストのID」を入れて突撃するとロビーに集結します！</div>' +
+        '<div id="multi-member-list" style="background:rgba(0,0,0,0.45); padding:6px; border-radius:4px; font-size:11px; margin-bottom:6px; text-align:left;">' +
+            '・1P (ホスト): ' + (window.myPlayerName || 'あなた') + ' [' + CHAR_DATA[selectedCharKey].name + ']' +
+        '</div>' +
+        '<button type="button" id="btn-start-multi-battle" class="stage-btn" style="background:#eb2f06; border-color:#ffd32a; width:100%; font-size:13px;">🔥 集まったメンバーで複数人乱闘開始！</button>';
+
+    roomSection.appendChild(lobbyBox);
+
+    document.getElementById('btn-start-multi-battle').addEventListener('click', () => {
+        if (window.multiConnections.length === 0) {
+            alert('まだ参加者がいません！他のプレイヤーにあなたのIDを伝えて接続してもらってください。');
+            return;
+        }
+        startMultiBattleAsHost();
+    });
+}
+
+function updateMultiLobbyList() {
+    const listEl = document.getElementById('multi-member-list');
+    if (!listEl) return;
+    let html = '<div>・1P (ホスト): ' + (window.myPlayerName || 'あなた') + ' [' + CHAR_DATA[selectedCharKey].name + ']</div>';
+    window.multiConnections.forEach((c, idx) => {
+        const info = c.playerInfo || {};
+        const cName = CHAR_DATA[info.charKey] ? CHAR_DATA[info.charKey].name : '歩';
+        html += '<div>・' + (idx + 2) + 'P: ' + (info.playerName || 'ゲスト') + ' #' + (info.seqId || '?????') + ' [' + cName + ']</div>';
+    });
+    listEl.innerHTML = html;
+}
+
+const _origInitPeer = initPeerConnection;
+initPeerConnection = function() {
+    _origInitPeer.apply(this, arguments);
+    if (!peer) return;
+
+    peer.off('connection');
+    peer.on('connection', (conn) => {
+        if (window.multiModeActive || isMatched) {
+            conn.on('open', () => {
+                conn.send({ type: 'match_rejected', reason: 'すでに対戦が開始されています' });
+                setTimeout(() => { try { conn.close(); } catch (e) {} }, 200);
+            });
+            return;
+        }
+        conn.on('data', (data) => {
+            if (data.type === 'challenge_request') {
+                if (window.multiConnections.length >= 3) {
+                    conn.send({ type: 'match_rejected', reason: '満員（最大4人）です' });
+                    return;
+                }
+                conn.playerInfo = data;
+                conn.slotNum = window.multiConnections.length + 2;
+                window.multiConnections.push(conn);
+                updateMultiLobbyList();
+
+                const statusTxt = document.getElementById('room-status-text');
+                if (statusTxt) statusTxt.textContent = '👥 ' + data.playerName + ' がロビーに参加！（現在 ' + (window.multiConnections.length + 1) + '人）';
+
+                conn.send({
+                    type: 'multi_lobby_joined',
+                    slot: conn.slotNum,
+                    hostName: window.myPlayerName || 'ホスト',
+                    memberCount: window.multiConnections.length + 1
+                });
+            } else if (data.type === 'multi_state' && window.multiModeActive) {
+                window.multiPlayers[conn.peer] = Object.assign(window.multiPlayers[conn.peer] || {}, data.state);
+                broadcastToAllGuests({ type: 'multi_sync_all', players: window.multiPlayers }, conn.peer);
+            } else if (data.type === 'multi_hit' && window.multiModeActive) {
+                if (data.targetId === peer.id) {
+                    applyIncomingMultiHit(data);
+                } else {
+                    const targetConn = window.multiConnections.find(c => c.peer === data.targetId);
+                    if (targetConn && targetConn.open) targetConn.send(data);
+                }
+            }
+        });
+
+        conn.on('close', () => {
+            window.multiConnections = window.multiConnections.filter(c => c.peer !== conn.peer);
+            delete window.multiPlayers[conn.peer];
+            updateMultiLobbyList();
+        });
+    });
+};
+
+const _origSetupConnMulti = setupConnection;
+setupConnection = function(conn) {
+    _origSetupConnMulti.apply(this, arguments);
+    conn.on('data', (data) => {
+        if (data.type === 'multi_lobby_joined') {
+            window.myMultiSlot = data.slot;
+            const statusTxt = document.getElementById('room-status-text');
+            if (statusTxt) {
+                statusTxt.innerHTML = '🟢 <span style="color:#2ecc71; font-weight:bold;">' + data.hostName + ' の複数人ロビーに参加中（あなたは ' + data.slot + 'P）！</span> ホストの開始を待っています...';
+            }
+        } else if (data.type === 'multi_battle_start') {
+            window.multiModeActive = true;
+            window.myMultiSlot = data.yourSlot;
+            window.multiPlayers = data.players;
+            selectedStage = data.stage || 1;
+            gameMode = 'online';
+            isMatched = true;
+            launchMultiBattleField();
+        } else if (data.type === 'multi_sync_all' && window.multiModeActive) {
+            Object.keys(data.players).forEach(pid => {
+                if (pid !== peer.id) {
+                    window.multiPlayers[pid] = data.players[pid];
+                }
+            });
+            renderAllRemoteFighters();
+        } else if (data.type === 'multi_hit' && window.multiModeActive) {
+            applyIncomingMultiHit(data);
+        }
+    });
+};
+
+function broadcastToAllGuests(payload, excludePeerId = null) {
+    window.multiConnections.forEach(c => {
+        if (c.open && c.peer !== excludePeerId) {
+            c.send(payload);
+        }
+    });
+}
+
+// ==============================================================================
+// 🌐 最大4人同時「複数人乱闘（マルチP2Pスター型）」拡張モジュール【後半】
+// ==============================================================================
+function startMultiBattleAsHost() {
+    window.multiModeActive = true;
+    window.myMultiSlot = 1;
+    gameMode = 'online';
+    isMatched = true;
+
+    const startPositions =;
+    window.multiPlayers = {};
+
+    window.multiPlayers[peer.id] = {
+        peerId: peer.id,
+        slot: 1,
+        name: window.myPlayerName || '1P',
+        charKey: selectedCharKey,
+        x: startPositions[0],
+        y: 196,
+        dmg: 0,
+        stocks: 3,
+        dir: 1
+    };
+
+    window.multiConnections.forEach((c, idx) => {
+        const slot = idx + 2;
+        const info = c.playerInfo || {};
+        window.multiPlayers[c.peer] = {
+            peerId: c.peer,
+            slot: slot,
+            name: info.playerName || (slot + 'P'),
+            charKey: info.charKey || 'pawn',
+            x: startPositions[idx + 1] || 300,
+            y: 196,
+            dmg: 0,
+            stocks: 3,
+            dir: slot % 2 === 0 ? -1 : 1
+        };
+    });
+
+    window.multiConnections.forEach((c, idx) => {
+        if (c.open) {
+            c.send({
+                type: 'multi_battle_start',
+                yourSlot: idx + 2,
+                stage: selectedStage,
+                players: window.multiPlayers
+            });
+        }
+    });
+
+    launchMultiBattleField();
+}
+
+function launchMultiBattleField() {
+    executeGameStart();
+
+    const eEl = document.getElementById('enemy-fighter');
+    if (eEl) eEl.style.display = 'none';
+
+    const myData = window.multiPlayers[peer.id];
+    if (myData) {
+        p.x = myData.x;
+        p.y = myData.y;
+        p.dir = myData.dir;
+    }
+
+    const stage = document.getElementById('battle-stage');
+    document.querySelectorAll('.remote-multi-fighter').forEach(el => el.remove());
+
+    Object.keys(window.multiPlayers).forEach(pid => {
+        if (pid === peer.id) return;
+        const mp = window.multiPlayers[pid];
+        const cInfo = CHAR_DATA[mp.charKey] || CHAR_DATA.pawn;
+        const sColor = SLOT_COLORS[mp.slot] || SLOT_COLORS[2];
+
+        const fEl = document.createElement('div');
+        fEl.id = 'multi-fighter-' + pid;
+        fEl.className = 'piece remote-multi-fighter';
+        fEl.style.cssText =
+            'width:38px; height:44px; left:' + mp.x + 'px; top:' + mp.y + 'px; ' +
+            'background:' + sColor.bg + '; color:#1a1105; font-size:17px; ' +
+            'clip-path:polygon(50% 0%, 100% 24%, 86% 100%, 14% 100%, 0% 24%); z-index:20;';
+        fEl.innerHTML =
+            '<div class="fighter-nametag" style="border-color:' + sColor.border + ';">[' + sColor.label + '] ' + mp.name + '</div>' +
+            '<span>' + cInfo.name + '</span>';
+        stage.appendChild(fEl);
+    });
+
+    rebuildMultiUiBar();
+    triggerCutIn('複数人乱闘 開始！！');
+}
+
+function rebuildMultiUiBar() {
+    const uiBar = document.getElementById('ui-bar');
+    if (!uiBar) return;
+    const sorted = Object.values(window.multiPlayers).sort((a, b) => a.slot - b.slot);
+
+    uiBar.innerHTML = sorted.map(mp => {
+        const sColor = SLOT_COLORS[mp.slot] || SLOT_COLORS[2];
+        const stocksStr = '●'.repeat(Math.max(0, mp.stocks));
+        return (
+            '<div class="ui-box" style="width:130px; border-left:3px solid ' + sColor.border + '; padding-left:4px;">' +
+                '<div style="font-weight:bold; font-size:10px; white-space:nowrap; overflow:hidden;">[' + sColor.label + '] ' + mp.name + '</div>' +
+                '<div id="multi-ui-stocks-' + mp.peerId + '" class="ui-stocks" style="font-size:11px;">' + stocksStr + '</div>' +
+                '<div id="multi-ui-dmg-' + mp.peerId + '" class="ui-dmg" style="font-size:18px;">' + (mp.dmg || 0) + '%</div>' +
+            '</div>'
+        );
+    }).join('');
+}
+
+function renderAllRemoteFighters() {
+    Object.keys(window.multiPlayers).forEach(pid => {
+        const mp = window.multiPlayers[pid];
+        if (pid !== peer.id) {
+            const fEl = document.getElementById('multi-fighter-' + pid);
+            if (fEl) {
+                fEl.style.left = mp.x + 'px';
+                fEl.style.top = mp.y + 'px';
+                fEl.style.display = (mp.stocks > 0) ? 'flex' : 'none';
+            }
+        }
+        const dmgEl = document.getElementById('multi-ui-dmg-' + pid);
+        const stEl = document.getElementById('multi-ui-stocks-' + pid);
+        if (dmgEl) dmgEl.textContent = (mp.dmg || 0) + '%';
+        if (stEl) stEl.textContent = '●'.repeat(Math.max(0, mp.stocks));
+    });
+}
+
+function applyIncomingMultiHit(data) {
+    if (!p || p.invulnTimer > 0 || p.onLift) return;
+    if (p.isGuarding) {
+        handleGuardedHit({ x: data.attackerX || 300 }, false);
+        return;
+    }
+    let dmgFactor = p.silverMode ? 2.0 : (p.goldMode ? 0.5 : 1.0);
+    p.dmg += Math.floor(data.dmgDeal * dmgFactor);
+    p.vx = data.vx;
+    p.vy = data.vy;
+    p.knockbackTimer = data.knockbackTimer;
+    spawnHitVisual(p.x + 18, p.y + 21, p.dmg > 80);
+}
+
+const _origBroadcastMulti = broadcastMultiplayerData;
+broadcastMultiplayerData = function() {
+    if (!window.multiModeActive) {
+        _origBroadcastMulti.apply(this, arguments);
+        return;
+    }
+    if (!peer || !window.multiPlayers[peer.id]) return;
+
+    const me = window.multiPlayers[peer.id];
+    me.x = Math.round(p.x);
+    me.y = Math.round(p.y);
+    me.dmg = p.dmg;
+    me.stocks = p.stocks;
+    me.dir = p.dir;
+
+    if (p.attacking === 11) {
+        let reach = (selectedCharKey === 'rook' && flySpecialActive) ? p.range * 3.5 : p.range;
+        Object.keys(window.multiPlayers).forEach(pid => {
+            if (pid === peer.id) return;
+            const target = window.multiPlayers[pid];
+            if (target.stocks > 0 && Math.abs((p.x + 18) - (target.x + 19)) < reach && Math.abs(p.y - target.y) < 35) {
+                const dmgDeal = Math.floor(10 * p.power);
+                const kb = (4.0 + (target.dmg || 0) * 0.16);
+                const hitPacket = {
+                    type: 'multi_hit',
+                    targetId: pid,
+                    attackerX: p.x,
+                    dmgDeal: dmgDeal,
+                    vx: p.dir * kb,
+                    vy: -(3.0 + (target.dmg || 0) * 0.08),
+                    knockbackTimer: 18
+                };
+                spawnHitVisual(target.x + 19, target.y + 21, (target.dmg || 0) > 80);
+                if (myRole === 'host') {
+                    const tConn = window.multiConnections.find(c => c.peer === pid);
+                    if (tConn && tConn.open) tConn.send(hitPacket);
+                } else if (dataConnection && dataConnection.open) {
+                    dataConnection.send(hitPacket);
+                }
+            }
+        });
+    }
+
+    renderAllRemoteFighters();
+
+    if (myRole === 'host') {
+        broadcastToAllGuests({ type: 'multi_sync_all', players: window.multiPlayers });
+    } else if (dataConnection && dataConnection.open) {
+        dataConnection.send({ type: 'multi_state', state: me });
+    }
+};
+
+const _origInjectLobby = injectOnlineRoomUI;
+injectOnlineRoomUI = function() {
+    _origInjectLobby.apply(this, arguments);
+    injectMultiBattleLobbyUI();
+};
 </script>
 </body>
 </html>
