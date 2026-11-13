@@ -6459,7 +6459,7 @@ injectOnlineRoomUI = function() {
 // ==============================================================================
 // 🎬 完全3D WebGLオープニングエンジン【2 / 4】行列演算＆立体駒メッシュ
 // ==============================================================================
-const opAudio = new Audio('op_theme.mp3');
+const opAudio = new Audio('lv_0_20261113211851.mp3');
 opAudio.volume = 0.75;
 
 let opAnimFrame = null;
@@ -7105,6 +7105,195 @@ acceptNotice = function() {
     _origAcceptNoticeForOp.apply(this, arguments);
     startOpeningSequence();
 };
+// ==============================================================================
+// 🔄 「中央配置 ＆ ぐるっと1秒正面回転キャラ交代」アップグレードパッチ
+// ==============================================================================
+window.opCam.targetAngleY = null; // 正面へ素早く回り込む際の目標角度
+
+// 違和感なくキャラを変える「スピン＆カメラ正面回り込み交代」関数
+function morphOpPieceSmoothly(nextKanji, nextType = 'normal', nextFacing = 0, onReadyCallback = null) {
+    // 1. カメラを約1秒で駒の正面（facingの反対側）へ素早く回り込ませる
+    const desiredCamAngle = -nextFacing;
+    const currentNorm = window.opCam.angleY % (Math.PI * 2);
+    let diff = (desiredCamAngle - currentNorm) % (Math.PI * 2);
+    if (diff < -Math.PI) diff += Math.PI * 2;
+    if (diff > Math.PI) diff -= Math.PI * 2;
+    // 1回転分（2π）を足して「ぐるっと回る」ダイナミックな動きにする
+    window.opCam.targetAngleY = window.opCam.angleY + diff + (diff >= 0 ? Math.PI * 2 : -Math.PI * 2);
+
+    // 2. 今いる駒があれば高速スピンさせ、0.5秒後（回転の頂点）で新しい駒へ違和感なくすり替える
+    const oldObj = window.op3DObjects;
+    if (oldObj) {
+        oldObj.state = 'morph_out';
+        oldObj.morphStart = performance.now();
+    }
+
+    setTimeout(() => {
+        clearOp3DScene();
+        // 将棋盤のド真ん中（x: 0, z: 0）に配置！
+        const newObj = spawn3DPiece('op_center_actor', nextKanji, 0, 0, nextFacing, nextType);
+        newObj.state = 'morph_in';
+        newObj.morphStart = performance.now();
+        spawn3DEffect('ring', 0, 0.25, 0, nextType === 'tokin' ? [1.0, 0.25, 0.25, 0.95] : [1.0, 0.84, 0.2, 0.9], 0.65);
+
+        setTimeout(() => {
+            if (newObj) newObj.state = 'idle';
+            if (onReadyCallback) onReadyCallback(newObj);
+        }, 500);
+    }, 480);
+}
+
+// タイムラインを「全キャラ盤面中央配置＆ぐるっと正面回転交代」仕様に上書き
+OP_TIMELINE.length = 0;
+OP_TIMELINE.push(
+    // 【0:00】イントロ：盤面のド真ん中（0, 0）に「歩」が正面向きで堂々と立つ
+    { time: 0.2, id: 'c3d_intro_1', fn: () => {
+        clearOp3DScene();
+        window.opCam = { angleY: 0.35, targetAngleY: null, spinSpeed: 0.38, pitch: 0.50, dist: 13.5, targetY: 0.85 };
+        spawn3DPiece('op_center_actor', '歩', 0, 0, 0, 'normal');
+    }},
+    { time: 14.0, id: 'c3d_intro_2', fn: () => {
+        window.opCam.dist = 10.8;
+        window.opCam.pitch = 0.42;
+        window.opCam.spinSpeed = 0.55;
+        spawn3DEffect('ring', 0, 0.15, 0, [1.0, 0.84, 0.15, 0.9], 0.75);
+    }},
+
+    // 【0:28】Aメロ：「歩」がぐるっと正面に向きながら「と金」へ違和感なく成金進化！
+    { time: 28.0, id: 'c3d_a_tokin', fn: () => {
+        window.opCam.dist = 10.5;
+        window.opCam.pitch = 0.44;
+        window.opCam.spinSpeed = 0.42;
+        morphOpPieceSmoothly('と', 'tokin', 0, (tokin) => {
+            setTimeout(() => fire3DVoidSpecial(tokin, 'tokin_bomb'), 550);
+        });
+    }},
+
+    // 【0:39】Aメロ後半：ぐるっと1秒で正面に向きながら「弓」へ交代 ➔ 虚空へ極太矢演武
+    { time: 39.0, id: 'c3d_a_bow', fn: () => {
+        window.opCam.spinSpeed = -0.45;
+        morphOpPieceSmoothly('弓', 'normal', 0, (bow) => {
+            setTimeout(() => fire3DVoidSpecial(bow, 'bow_hyper'), 400);
+        });
+    }},
+
+    // 【0:50】Bメロ：桂 ➔ 香 ➔ 角 ➔ 飛 が1秒の正面回転で次々と滑らかにバトンタッチ！
+    { time: 50.0, id: 'c3d_b_knight', fn: () => {
+        window.opCam.spinSpeed = 0.50;
+        morphOpPieceSmoothly('桂', 'normal', 0, (knight) => {
+            setTimeout(() => fire3DVoidSpecial(knight, 'knight_laser'), 250);
+        });
+    }},
+    { time: 53.5, id: 'c3d_b_lance', fn: () => {
+        morphOpPieceSmoothly('香', 'normal', 0, (lance) => {
+            setTimeout(() => fire3DVoidSpecial(lance, 'lance_mist'), 250);
+        });
+    }},
+    { time: 57.0, id: 'c3d_b_bishop', fn: () => {
+        morphOpPieceSmoothly('角', 'normal', 0, (bishop) => {
+            setTimeout(() => fire3DVoidSpecial(bishop, 'bishop_cross'), 250);
+        });
+    }},
+    { time: 60.5, id: 'c3d_b_rook', fn: () => {
+        morphOpPieceSmoothly('飛', 'normal', 0, (rook) => {
+            setTimeout(() => fire3DVoidSpecial(rook, 'rook_slash'), 250);
+        });
+    }},
+
+    // 【1:04】サビ：3D将棋盤の上で王将（中央奥）vs 味方駒の3D立体バトル
+    { time: 64.0, id: 'c3d_chorus_battle', fn: () => {
+        clearOp3DScene();
+        window.opCam = { angleY: window.opCam.angleY, targetAngleY: null, spinSpeed: 0.85, pitch: 0.48, dist: 12.2, targetY: 1.0 };
+
+        const boss = spawn3DPiece('op_boss', '王', 0, -1.6, 0, 'boss');
+        const f1 = spawn3DPiece('op_f1', '飛', -1.8, 2.0, Math.PI, 'normal');
+        const f2 = spawn3DPiece('op_f2', '角', 1.8, 2.0, Math.PI, 'normal');
+        const f3 = spawn3DPiece('op_f3', 'と', 0, 2.5, Math.PI, 'tokin');
+
+        const team = new Array(f1, f2, f3);
+        for (let turn = 0; turn < 10; turn++) {
+            setTimeout(() => {
+                if (opFinished) return;
+                const atk = team[turn % team.length];
+                if (!atk || !boss) return;
+
+                const ox = atk.x, oz = atk.z;
+                atk.state = 'attack';
+                atk.tiltX = 0.45;
+                atk.targetX = 0;
+                atk.targetZ = -0.7;
+                atk.targetY = 0.85;
+
+                setTimeout(() => {
+                    if (typeof playSE === 'function') playSE(turn % 3 === 0 ? 'counter' : 'hit');
+                    spawn3DEffect('ring', 0, 0.7, -1.3, turn % 2 === 0 ? [0.0, 0.82, 1.0, 0.95] : [1.0, 0.25, 0.25, 0.95], 0.6);
+                    boss.state = 'knockback';
+                    boss.tiltX = -0.45;
+                    setTimeout(() => { if (boss) { boss.state = 'idle'; boss.tiltX = 0; } }, 240);
+
+                    atk.targetX = ox;
+                    atk.targetZ = oz;
+                    atk.targetY = 0;
+                    atk.tiltX = 0;
+                    atk.state = 'idle';
+                }, 260);
+            }, 600 + turn * 1650);
+        }
+    }},
+
+    // 【1:23】クライマックス：王将を3D上空へ吹っ飛ばし、3D光柱KOバースト！
+    { time: 83.0, id: 'c3d_chorus_ko', fn: () => {
+        window.opCam.spinSpeed = 1.1;
+        window.opCam.dist = 13.5;
+        const boss = window.op3DObjects.find(o => o.id === 'op_boss');
+        if (boss) {
+            boss.state = 'spin_ko';
+            boss.targetY = 7.5;
+            boss.targetZ = -4.5;
+        }
+        spawn3DEffect('pillar', 0, 0, -1.6, [1.0, 0.25, 0.25, 0.95], 0.85);
+        spawn3DEffect('ring', 0, 0.2, -1.6, [1.0, 0.84, 0.15, 0.95], 0.85);
+        if (typeof playSE === 'function') playSE('burst');
+    }},
+
+    // 【1:30】アウトロ：全8駒が盤面中央を中心に美しく整列フィナーレ
+    { time: 92.0, id: 'c3d_outro', fn: () => {
+        clearOp3DScene();
+        window.opCam = { angleY: window.opCam.angleY, targetAngleY: 0, spinSpeed: 0.35, pitch: 0.50, dist: 12.8, targetY: 0.9 };
+        const frontRow = new Array('歩', '香', '桂', '弓');
+        const backRow  = new Array('飛', '角', '銀', '金');
+        frontRow.forEach((k, i) => spawn3DPiece('out_f_' + i, k, -2.4 + i * 1.6, 1.2, 0, 'normal'));
+        backRow.forEach((k, i)  => spawn3DPiece('out_b_' + i, k, -2.4 + i * 1.6, -1.2, 0, 'normal'));
+    }}
+);
+
+// カメラの「約1秒で素早く正面へ回り込む補間」と「駒の変身スピン」を毎フレーム更新
+setInterval(() => {
+    if (opFinished || !opStarted) return;
+
+    // 目標角度（正面）がセットされている間は、約1秒で素早く正面へ吸い付くように回転
+    if (window.opCam.targetAngleY !== null) {
+        const diff = window.opCam.targetAngleY - window.opCam.angleY;
+        if (Math.abs(diff) < 0.04) {
+            window.opCam.angleY = window.opCam.targetAngleY;
+            window.opCam.targetAngleY = null; // 正面に到達したら通常のゆっくり回転に戻る
+        } else {
+            window.opCam.angleY += diff * 0.11;
+        }
+    }
+
+    // 変身中の駒にシームレスなY軸スピンを加える
+    window.op3DObjects.forEach(obj => {
+        if (obj.state === 'morph_out' || obj.state === 'morph_in') {
+            obj.facing += 0.28;
+        } else if (obj.id === 'op_center_actor' && obj.state === 'idle') {
+            // 変身完了後は盤の辺と平行な正面（0）にピタッと固定
+            obj.facing = 0;
+        }
+    });
+}, 16);
+
+
 
 </script>
 </body>
