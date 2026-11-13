@@ -1212,140 +1212,118 @@
             transition: transform 0.06s ease-out;
         }
 /* ==============================================================================
-   🎬 オープニングアニメーション専用スタイル
+   🎬 フル3D空間・回り込みカメラワーク オープニングMV専用スタイル
    ============================================================================== */
 #opening-screen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at 50% 45%, #1a0b2e 0%, #05050a 80%, #000000 100%);
-    z-index: 150;
-    display: none;
-    overflow: hidden;
-    perspective: 700px;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at 50% 35%, #2b1d4e 0%, #0d0b1e 60%, #030308 100%);
+    z-index: 150; display: none; overflow: hidden;
+    perspective: 850px;
 }
 
 #op-skip-btn {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: rgba(0, 0, 0, 0.65);
-    color: #ffd32a;
-    border: 1px solid #ffd32a;
-    border-radius: 6px;
-    padding: 5px 12px;
-    font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    cursor: pointer;
-    z-index: 200;
-    transition: background 0.15s, transform 0.1s;
+    position: absolute; top: 12px; right: 12px;
+    background: rgba(0, 0, 0, 0.55); color: #ffd32a;
+    border: 1px solid rgba(255, 211, 42, 0.7); border-radius: 6px;
+    padding: 4px 11px; font-size: 11px; font-weight: bold;
+    letter-spacing: 1px; cursor: pointer; z-index: 250;
 }
-#op-skip-btn:hover {
-    background: #ffd32a;
-    color: #000;
+#op-skip-btn:hover { background: #ffd32a; color: #000; }
+
+/* 3Dワールド全体（カメラの回り込み・ズーム・傾きを制御） */
+#op-3d-world {
+    position: absolute; top: 50%; left: 50%;
+    width: 0; height: 0;
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* 3D回転する黄金の81マス将棋盤 */
+/* 3D回転する81マス天空将棋盤（厚みのある立体ボード） */
 #op-3d-board {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 260px;
-    height: 280px;
-    margin-left: -130px;
-    margin-top: -140px;
+    width: 340px; height: 360px;
+    left: -170px; top: -180px;
     background:
-        repeating-linear-gradient(90deg, rgba(255, 211, 42, 0.5) 0px, rgba(255, 211, 42, 0.5) 2px, transparent 2px, transparent 28.8px),
-        repeating-linear-gradient(0deg, rgba(255, 211, 42, 0.5) 0px, rgba(255, 211, 42, 0.5) 2px, transparent 2px, transparent 31.1px),
-        radial-gradient(circle, rgba(255, 165, 2, 0.25) 0%, rgba(10, 10, 25, 0.9) 100%);
-    border: 3px solid #ffd32a;
-    box-shadow: 0 0 40px rgba(255, 211, 42, 0.5), inset 0 0 25px rgba(255, 159, 67, 0.4);
-    transform: rotateX(55deg) rotateZ(0deg) scale(0.4);
-    opacity: 0;
-    transition: opacity 1.5s ease-out;
+        repeating-linear-gradient(90deg, rgba(60, 30, 5, 0.55) 0px, rgba(60, 30, 5, 0.55) 2px, transparent 2px, transparent 37.7px),
+        repeating-linear-gradient(0deg, rgba(60, 30, 5, 0.55) 0px, rgba(60, 30, 5, 0.55) 2px, transparent 2px, transparent 40px),
+        linear-gradient(135deg, #f5cd79 0%, #d49b42 50%, #8c5a20 100%);
+    border: 4px solid #ffd32a;
+    box-shadow: 0 0 50px rgba(255, 211, 42, 0.45), inset 0 0 25px rgba(0, 0, 0, 0.4);
+    transform-style: preserve-3d;
+}
+/* 将棋盤の立体的な厚み（側面） */
+#op-3d-board::after {
+    content: ''; position: absolute;
+    left: -4px; bottom: -22px; width: 348px; height: 22px;
+    background: linear-gradient(180deg, #b88438 0%, #3d250a 80%, #1a0f04 100%);
+    border: 2px solid #ffd32a; box-sizing: border-box;
+    transform-origin: top center; transform: rotateX(-90deg);
 }
 
-/* 演出用キャラクター駒 */
-.op-actor-piece {
+/* 盤面上に垂直に立つ3D立体将棋駒（ビルボード＋多層厚み） */
+.op-3d-piece-anchor {
     position: absolute;
-    width: 68px;
-    height: 78px;
-    background: linear-gradient(180deg, #fff3d1 0%, #f3c677 65%, #c88a36 100%);
+    width: 0; height: 0;
+    transform-style: preserve-3d;
+    transition: left 0.35s ease-out, top 0.35s ease-out;
+}
+.op-3d-piece-body {
+    position: absolute;
+    left: -22px; top: -52px;
+    width: 44px; height: 52px;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 45%, rgba(139, 90, 43, 0.4) 100%),
+        repeating-linear-gradient(90deg, rgba(160, 110, 50, 0.1) 0px, rgba(160, 110, 50, 0.1) 2px, transparent 2px, transparent 5px),
+        linear-gradient(180deg, #fff3d1 0%, #f3c677 65%, #c88a36 100%);
     clip-path: polygon(50% 0%, 100% 24%, 86% 100%, 14% 100%, 0% 24%);
-    color: #1a1105;
-    font-size: 32px;
-    font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    filter: drop-shadow(0 4px 0 #8f5814) drop-shadow(0 0 18px rgba(255, 211, 42, 0.8));
-    opacity: 0;
-    z-index: 20;
+    color: #1a1105; font-size: 20px; font-weight: bold;
+    display: flex; justify-content: center; align-items: center;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.85);
+    filter:
+        drop-shadow(0 1px 0 #b87a28)
+        drop-shadow(0 2px 0 #8f5814)
+        drop-shadow(0 4px 0 #5e3608)
+        drop-shadow(0 8px 10px rgba(0, 0, 0, 0.85));
+    transform-origin: bottom center;
+    transform-style: preserve-3d;
+}
+.op-3d-piece-body.boss {
+    left: -25px; top: -58px; width: 50px; height: 58px; font-size: 23px; color: #8f1111;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 45%, rgba(120, 20, 20, 0.4) 100%),
+        linear-gradient(180deg, #ffe299 0%, #f5a642 65%, #b85d19 100%);
+    filter:
+        drop-shadow(0 1px 0 #a84e10)
+        drop-shadow(0 2px 0 #7a3306)
+        drop-shadow(0 4px 0 #4a1c02)
+        drop-shadow(0 10px 12px rgba(0, 0, 0, 0.9));
+}
+.op-3d-piece-body.tokin {
+    background: linear-gradient(180deg, #ffe3e8 0%, #ff9aa8 65%, #d6455b 100%);
+    color: #8f0b1e;
 }
 
-/* 宿敵・王将巨大駒 */
-#op-boss-piece {
-    position: absolute;
-    top: -140px;
-    left: 50%;
-    margin-left: -52px;
-    width: 104px;
-    height: 120px;
-    background: linear-gradient(180deg, #ffe299 0%, #ff4d4d 65%, #8f1111 100%);
-    clip-path: polygon(50% 0%, 100% 23%, 86% 100%, 14% 100%, 0% 23%);
-    color: #fff;
-    font-size: 48px;
-    font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-shadow: 0 0 12px #000;
-    filter: drop-shadow(0 6px 0 #4a1c02) drop-shadow(0 0 30px #ff3f3f);
-    z-index: 30;
-}
-
-/* 歌詞・キャッチコピー字幕 */
-#op-subtitle {
-    position: absolute;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    text-align: center;
-    font-size: 16px;
-    font-weight: bold;
-    color: #ffffff;
-    letter-spacing: 2px;
-    text-shadow: 0 0 10px #ff3f3f, 2px 2px 0 #000, -2px -2px 0 #000;
-    opacity: 0;
-    transition: opacity 0.35s ease-in-out;
-    z-index: 40;
-}
-
-/* 斜め閃光スラッシュ */
-#op-flash-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #ffffff;
-    opacity: 0;
+/* 3D空間上の立体衝撃波リング・光柱 */
+.op-3d-ring {
+    position: absolute; border-radius: 50%;
+    border: 4px solid #00d2ff;
+    box-shadow: 0 0 25px #00d2ff, inset 0 0 20px #00d2ff;
+    transform: translate(-50%, -50%) scale(0.1);
     pointer-events: none;
-    z-index: 90;
-    transition: opacity 0.15s ease-out;
+    animation: op3dRingExpand 0.65s ease-out forwards;
+}
+@keyframes op3dRingExpand {
+    0%   { transform: translate(-50%, -50%) scale(0.1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+}
+
+#op-flash-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: #ffffff; opacity: 0; pointer-events: none; z-index: 200;
+    transition: opacity 0.14s ease-out;
 }
 
 
-    </style>
-
-    <!-- 💡 socket.ioを消して、サーバー不要で直結できるPeerJSライブラリを読み込みます -->
-   <script>
-const pUrl = ['ht', 'tps', ':/', '/un', 'pkg', '.c', 'om/', 'pe', 'erj', 's@1', '.5.', '4/d', 'ist', '/pe', 'erj', 's.m', 'in.', 'js'].join('');
-document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
 </script>
 
 
@@ -1433,13 +1411,14 @@ document.write('<scr' + 'ipt src="' + pUrl + '"></scr' + 'ipt>');
 <div id="screen-shaker">
     <div id="game-scale-wrapper">
         <div id="game-container">
-            <!-- 🎬 オープニング映像スクリーン -->
+            <!-- 🎬 フル3D空間オープニングスクリーン（字幕・文字なし） -->
             <div id="opening-screen" class="screen">
                 <button type="button" id="op-skip-btn" onclick="skipOpeningToTitle()">SKIP ▶▶</button>
-                <div id="op-3d-board"></div>
-                <div id="op-actors-layer"></div>
-                <div id="op-boss-piece">王</div>
-                <div id="op-subtitle"></div>
+                <div id="op-3d-world">
+                    <div id="op-3d-board">
+                        <div id="op-3d-actors"></div>
+                    </div>
+                </div>
                 <div id="op-flash-overlay"></div>
             </div>
 
@@ -6551,131 +6530,314 @@ injectOnlineRoomUI = function() {
     injectMultiBattleLobbyUI();
 };
 // ==============================================================================
-// 🎬 Suno AI 楽曲シンクロ・オープニングアニメーション制御（約1分59秒フル対応）
+// 🎬 フル3D回転＆虚空スペシャル演武 オープニングエンジン【2 / 3】
 // ==============================================================================
-const opAudio = new Audio('lv_0_20261113211851.mp3'); // ← 保存したMP3ファイル名に合わせて変更できます
-opAudio.volume = 0.7;
+const opAudio = new Audio('lv_0_20261113211851.mp3');
+opAudio.volume = 0.75;
 
 let opAnimFrame = null;
 let opStarted = false;
 let opFinished = false;
 let opTriggeredEvents = {};
 
-// 楽曲の再生秒数（currentTime）に合わせた演出タイムライン
-const OP_TIMELINE = [
-    { time: 0.2,  id: 'intro_board',  fn: () => {
-        const b = document.getElementById('op-3d-board');
-        if (b) { b.style.opacity = '1'; b.style.transform = 'rotateX(55deg) rotateZ(0deg) scale(1)'; }
-        showOpSubtitle('八十一のマスに　魂が宿る――');
-    }},
-    { time: 14.0, id: 'intro_pulse',  fn: () => {
-        flashOpScreen(0.5);
-        showOpSubtitle('天空の将棋盤、開門。');
-    }},
-    { time: 28.0, id: 'verse_pawn',   fn: () => {
-        showOpSubtitle('盤上の宇宙に　鳴り響く鼓動');
-        spawnOpPiece('歩', 266, 150, '#ffd32a', 1.2);
-    }},
-    { time: 39.0, id: 'verse_tokin',  fn: () => {
-        flashOpScreen(0.8);
-        showOpSubtitle('成金の刃が　闇を切り裂く！');
-        clearOpActors();
-        spawnOpPiece('と', 266, 145, '#ff3f3f', 1.45);
-    }},
-    { time: 50.0, id: 'b_knight',     fn: () => {
-        clearOpActors();
-        showOpSubtitle('桂馬が宙を舞い――');
-        spawnOpPiece('桂', 110, 80, '#00d2ff', 1.25);
-    }},
-    { time: 53.5, id: 'b_lance',      fn: () => {
-        showOpSubtitle('香車が駆け抜ける！');
-        spawnOpPiece('香', 420, 170, '#a29bfe', 1.25);
-    }},
-    { time: 57.0, id: 'b_bishop',     fn: () => {
-        showOpSubtitle('角行と飛車が　嵐を巻き起こす！！');
-        spawnOpPiece('角', 160, 210, '#1dd1a1', 1.3);
-        spawnOpPiece('飛', 370, 90, '#ff3f3f', 1.3);
-    }},
-    { time: 64.0, id: 'chorus_boss',  fn: () => {
-        flashOpScreen(1.0);
-        clearOpActors();
-        showOpSubtitle('王手を狙え　限界を超えて！！');
-        const boss = document.getElementById('op-boss-piece');
-        if (boss) {
-            boss.style.transition = 'top 0.5s cubic-bezier(0.1, 0.9, 0.2, 1)';
-            boss.style.top = '55px';
-        }
-        // 全8駒が下から集結
-        const chars = [
-            { t: '歩', x: 55,  y: 230, c: '#ffd700' },
-            { t: '香', x: 120, y: 245, c: '#a29bfe' },
-            { t: '桂', x: 185, y: 230, c: '#00d2ff' },
-            { t: '角', x: 250, y: 245, c: '#1dd1a1' },
-            { t: '弓', x: 315, y: 245, c: '#ff9f43' },
-            { t: '飛', x: 380, y: 230, c: '#ff3f3f' },
-            { t: '銀', x: 445, y: 245, c: '#ff6b81' },
-            { t: '金', x: 505, y: 230, c: '#feca57' }
-        ];
-        chars.forEach((ch, i) => {
-            setTimeout(() => spawnOpPiece(ch.t, ch.x, ch.y, ch.c, 0.95), i * 120);
-        });
-    }},
-    { time: 78.0, id: 'chorus_clash', fn: () => {
-        flashOpScreen(0.9);
-        showOpSubtitle('大乱闘の果てに　頂点を掴め！！');
-        document.querySelectorAll('.op-actor-piece').forEach(el => {
-            el.style.transition = 'all 0.6s ease-in';
-            el.style.left = '266px';
-            el.style.top = '95px';
-            el.style.transform = 'scale(1.4)';
-        });
-    }},
-    { time: 90.0, id: 'outro_logo',   fn: () => {
-        flashOpScreen(1.0);
-        showOpSubtitle('大乱闘スマッシュ将棋 SPECIAL STOCKS');
-    }}
-];
+// カメラ（3Dワールド）の現在角度・ズーム状態
+window.opCam = {
+    rotX: 58,
+    rotZ: 0,
+    spinSpeed: 16,
+    scale: 1.0,
+    panX: 0,
+    panY: 20
+};
 
-function showOpSubtitle(text) {
-    const sub = document.getElementById('op-subtitle');
-    if (!sub) return;
-    sub.style.opacity = '0';
-    setTimeout(() => {
-        sub.textContent = text;
-        sub.style.opacity = '1';
-    }, 180);
-}
-
-function flashOpScreen(intensity = 0.8) {
+function flashOpScreen(intensity = 0.85) {
     const fl = document.getElementById('op-flash-overlay');
     if (!fl) return;
     fl.style.opacity = String(intensity);
-    setTimeout(() => { fl.style.opacity = '0'; }, 160);
+    setTimeout(() => { fl.style.opacity = '0'; }, 140);
 }
 
-function clearOpActors() {
-    const layer = document.getElementById('op-actors-layer');
-    if (layer) layer.innerHTML = '';
+function shakeOpScreen(power = 12, duration = 260) {
+    const scr = document.getElementById('opening-screen');
+    if (!scr) return;
+    let elapsed = 0;
+    const iv = setInterval(() => {
+        elapsed += 25;
+        scr.style.transform = 'translate(' + ((Math.random() - 0.5) * power) + 'px,' + ((Math.random() - 0.5) * power) + 'px)';
+        if (elapsed >= duration) {
+            clearInterval(iv);
+            scr.style.transform = 'translate(0px, 0px)';
+        }
+    }, 25);
 }
 
-function spawnOpPiece(kanji, x, y, glowColor, scale = 1.0) {
-    const layer = document.getElementById('op-actors-layer');
-    if (!layer) return;
-    const el = document.createElement('div');
-    el.className = 'op-actor-piece';
-    el.textContent = kanji;
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-    el.style.filter = 'drop-shadow(0 4px 0 #5e3608) drop-shadow(0 0 20px ' + glowColor + ')';
-    el.style.transform = 'scale(' + (scale * 1.8) + ')';
-    el.style.transition = 'transform 0.35s cubic-bezier(0.15, 0.9, 0.3, 1), opacity 0.25s ease-out';
-    layer.appendChild(el);
-
-    requestAnimationFrame(() => {
-        el.style.opacity = '1';
-        el.style.transform = 'scale(' + scale + ')';
-    });
+function clearOp3DActors() {
+    const box = document.getElementById('op-3d-actors');
+    if (box) box.innerHTML = '';
 }
+
+// 3D将棋盤の上（boardX: 0〜340, boardY: 0〜360）に立体駒を配置
+function spawn3DOpPiece(id, kanji, boardX, boardY, type = 'normal') {
+    const box = document.getElementById('op-3d-actors');
+    if (!box) return null;
+
+    const anchor = document.createElement('div');
+    anchor.id = id;
+    anchor.className = 'op-3d-piece-anchor';
+    anchor.style.left = boardX + 'px';
+    anchor.style.top = boardY + 'px';
+    anchor.dataset.bx = boardX;
+    anchor.dataset.by = boardY;
+    anchor.dataset.state = 'idle'; // idle, dash, jump, attack, knockback
+    anchor.dataset.tilt = '0';
+    anchor.dataset.liftZ = '0';
+
+    const body = document.createElement('div');
+    body.className = 'op-3d-piece-body' + (type === 'boss' ? ' boss' : (type === 'tokin' ? ' tokin' : ''));
+    body.textContent = kanji;
+
+    anchor.appendChild(body);
+    box.appendChild(anchor);
+    return anchor;
+}
+
+// 3D空間上の立体エフェクト（衝撃波リング・3D光柱・3D斬撃）
+function spawn3DRing(bx, by, color = '#00d2ff', size = 140, liftZ = 10) {
+    const box = document.getElementById('op-3d-actors');
+    if (!box) return;
+    const ring = document.createElement('div');
+    ring.className = 'op-3d-ring';
+    ring.style.left = bx + 'px';
+    ring.style.top = by + 'px';
+    ring.style.width = size + 'px';
+    ring.style.height = size + 'px';
+    ring.style.borderColor = color;
+    ring.style.boxShadow = '0 0 25px ' + color + ', inset 0 0 20px ' + color;
+    ring.style.transform = 'translate(-50%, -50%) translateZ(' + liftZ + 'px) scale(0.1)';
+    box.appendChild(ring);
+    setTimeout(() => ring.remove(), 660);
+}
+
+// 盤面から垂直に立ち上がる3Dエネルギー光柱（レーザー・KOビーム用）
+function spawn3DPillarBeam(bx, by, color = '#00d2ff', width = 56) {
+    const box = document.getElementById('op-3d-actors');
+    if (!box) return;
+    const pillar = document.createElement('div');
+    pillar.style.cssText =
+        'position:absolute; left:' + (bx - width / 2) + 'px; top:' + by + 'px; ' +
+        'width:' + width + 'px; height:340px; ' +
+        'background:linear-gradient(90deg, transparent 0%, ' + color + ' 25%, #ffffff 50%, ' + color + ' 75%, transparent 100%); ' +
+        'box-shadow:0 0 35px ' + color + ', 0 0 60px #ffffff; ' +
+        'transform-origin:bottom center; ' +
+        'transform:translateY(-340px) rotateZ(' + (-window.opCam.rotZ) + 'deg) rotateX(' + (-window.opCam.rotX) + 'deg); ' +
+        'transition:opacity 0.35s ease-out; pointer-events:none; z-index:50;';
+    box.appendChild(pillar);
+    setTimeout(() => {
+        pillar.style.opacity = '0';
+        setTimeout(() => pillar.remove(), 360);
+    }, 180);
+}
+
+// 虚空へ向かって放つ3D斬撃＆エネルギー弾演出
+function fire3DVoidSpecial(actorEl, styleType) {
+    if (!actorEl) return;
+    const bx = parseFloat(actorEl.style.left) || 170;
+    const by = parseFloat(actorEl.style.top) || 180;
+
+    // 踏み込み＋伸縮モーション
+    actorEl.dataset.state = 'attack';
+    actorEl.dataset.tilt = '24';
+    setTimeout(() => { actorEl.dataset.state = 'idle'; actorEl.dataset.tilt = '0'; }, 350);
+
+    if (styleType === 'tokin_bomb') {
+        if (typeof playSE === 'function') playSE('burst');
+        for (let i = 0; i < 6; i++) {
+            setTimeout(() => {
+                const tx = bx + 60 + Math.cos(i) * 55;
+                const ty = by - 50 + Math.sin(i) * 55;
+                spawn3DRing(tx, ty, '#ffd700', 110, 25);
+                shakeOpScreen(10, 140);
+            }, i * 160);
+        }
+    } else if (styleType === 'knight_laser') {
+        if (typeof playSE === 'function') playSE('critical');
+        actorEl.dataset.liftZ = '65';
+        setTimeout(() => {
+            spawn3DPillarBeam(bx + 75, by - 40, '#00d2ff', 64);
+            spawn3DRing(bx + 75, by - 40, '#00d2ff', 190, 5);
+            shakeOpScreen(16, 300);
+            actorEl.dataset.liftZ = '0';
+        }, 250);
+    } else if (styleType === 'lance_mist') {
+        if (typeof playSE === 'function') playSE('special_cutin');
+        actorEl.style.left = (bx + 90) + 'px';
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => spawn3DRing(bx + i * 25, by, '#a29bfe', 130, 18), i * 90);
+        }
+    } else if (styleType === 'bishop_cross') {
+        if (typeof playSE === 'function') playSE('critical');
+        for (let i = 0; i < 4; i++) {
+            setTimeout(() => {
+                spawn3DRing(bx + 40, by - 20, '#1dd1a1', 180 + i * 30, 20 + i * 12);
+                shakeOpScreen(12, 160);
+            }, i * 140);
+        }
+    } else if (styleType === 'bow_hyper') {
+        if (typeof playSE === 'function') playSE('critical');
+        flashOpScreen(0.7);
+        for (let i = 0; i < 6; i++) {
+            setTimeout(() => {
+                spawn3DRing(bx + 35 + i * 32, by - i * 12, '#ff9f43', 100 + i * 18, 30);
+            }, i * 70);
+        }
+    } else if (styleType === 'rook_slash') {
+        if (typeof playSE === 'function') playSE('burst');
+        spawn3DRing(bx + 40, by, '#ff3f3f', 240, 15);
+        shakeOpScreen(15, 280);
+    }
+}
+
+// ==============================================================================
+// 🎬 フル3D回転＆虚空スペシャル演武 オープニングエンジン【3 / 3】
+// ==============================================================================
+const OP_TIMELINE = [
+    // 【0:00〜0:28 イントロ】回転する3D将棋盤の上で「歩」が静かに呼吸しながら構える（文字なし）
+    { time: 0.2, id: '3d_intro_1', fn: () => {
+        clearOp3DActors();
+        window.opCam = { rotX: 60, rotZ: 0, spinSpeed: 18, scale: 0.95, panX: 0, panY: 25 };
+        spawn3DOpPiece('op_p_pawn', '歩', 170, 180, 'normal');
+    }},
+    { time: 14.0, id: '3d_intro_2', fn: () => {
+        // カメラがグッと寄りながら回り込み加速
+        window.opCam.scale = 1.18;
+        window.opCam.rotX = 52;
+        window.opCam.spinSpeed = 28;
+        spawn3DRing(170, 180, '#ffd32a', 170, 5);
+    }},
+
+    // 【0:28〜0:50 Aメロ】「歩」が「と金」へ覚醒し、虚空へ金爆撃スペシャルを放つ！
+    { time: 28.0, id: '3d_a_tokin_evo', fn: () => {
+        clearOp3DActors();
+        flashOpScreen(0.85);
+        window.opCam = { rotX: 55, rotZ: window.opCam.rotZ, spinSpeed: 22, scale: 1.22, panX: 0, panY: 20 };
+        const tokin = spawn3DOpPiece('op_p_tokin', 'と', 150, 190, 'tokin');
+        spawn3DRing(150, 190, '#ff3f3f', 200, 10);
+        setTimeout(() => fire3DVoidSpecial(tokin, 'tokin_bomb'), 1200);
+    }},
+    { time: 39.0, id: '3d_a_bow_solo', fn: () => {
+        clearOp3DActors();
+        window.opCam.spinSpeed = -24; // 逆方向へカメラ回り込み
+        const bow = spawn3DOpPiece('op_p_bow', '弓', 110, 210, 'normal');
+        setTimeout(() => fire3DVoidSpecial(bow, 'bow_hyper'), 800);
+    }},
+
+    // 【0:50〜1:04 Bメロ】桂・香・角・飛が次々と現れ、カットインなしで虚空へスペシャル技を連発！
+    { time: 50.0, id: '3d_b_knight', fn: () => {
+        clearOp3DActors();
+        window.opCam = { rotX: 48, rotZ: window.opCam.rotZ, spinSpeed: 30, scale: 1.15, panX: 0, panY: 15 };
+        const knight = spawn3DOpPiece('op_p_knight', '桂', 130, 190, 'normal');
+        setTimeout(() => fire3DVoidSpecial(knight, 'knight_laser'), 450);
+    }},
+    { time: 53.5, id: '3d_b_lance', fn: () => {
+        clearOp3DActors();
+        const lance = spawn3DOpPiece('op_p_lance', '香', 90, 180, 'normal');
+        setTimeout(() => fire3DVoidSpecial(lance, 'lance_mist'), 350);
+    }},
+    { time: 57.0, id: '3d_b_bishop', fn: () => {
+        clearOp3DActors();
+        const bishop = spawn3DOpPiece('op_p_bishop', '角', 150, 180, 'normal');
+        setTimeout(() => fire3DVoidSpecial(bishop, 'bishop_cross'), 350);
+    }},
+    { time: 60.5, id: '3d_b_rook', fn: () => {
+        clearOp3DActors();
+        const rook = spawn3DOpPiece('op_p_rook', '飛', 150, 180, 'normal');
+        setTimeout(() => fire3DVoidSpecial(rook, 'rook_slash'), 350);
+    }},
+
+    // 【1:04〜1:30 サビ】3D将棋盤の上でカメラが激しく回り込みながら3Dバトル勃発！
+    { time: 64.0, id: '3d_chorus_battle', fn: () => {
+        clearOp3DActors();
+        flashOpScreen(1.0);
+        window.opCam = { rotX: 54, rotZ: window.opCam.rotZ, spinSpeed: 42, scale: 1.12, panX: 0, panY: 20 };
+
+        const boss = spawn3DOpPiece('op_b_king', '王', 170, 130, 'boss');
+        const f1 = spawn3DOpPiece('op_f1', '飛', 90, 230, 'normal');
+        const f2 = spawn3DOpPiece('op_f2', '角', 250, 230, 'normal');
+        const f3 = spawn3DOpPiece('op_f3', 'と', 170, 260, 'tokin');
+
+        // 3D盤上を飛び交う連続攻防（1.4秒ごとに高速交差＆3D衝撃波）
+        const fighters = new Array(f1, f2, f3);
+        for (let turn = 0; turn < 10; turn++) {
+            setTimeout(() => {
+                if (opFinished) return;
+                const attacker = fighters[turn % fighters.length];
+                if (!attacker || !boss) return;
+
+                const origX = attacker.dataset.bx;
+                const origY = attacker.dataset.by;
+                attacker.dataset.state = 'dash';
+                attacker.dataset.tilt = '25';
+                attacker.dataset.liftZ = '35';
+                attacker.style.left = '170px';
+                attacker.style.top = '155px';
+
+                setTimeout(() => {
+                    if (typeof playSE === 'function') playSE(turn % 3 === 0 ? 'counter' : 'hit');
+                    spawn3DRing(170, 140, turn % 2 === 0 ? '#00d2ff' : '#ff3f3f', 160, 25);
+                    shakeOpScreen(12, 180);
+
+                    // 王将の被弾スクワッシュ＆反撃
+                    boss.dataset.state = 'knockback';
+                    setTimeout(() => { boss.dataset.state = 'idle'; }, 240);
+
+                    // 攻撃者が元の陣形へ跳躍帰還
+                    attacker.style.left = origX + 'px';
+                    attacker.style.top = origY + 'px';
+                    attacker.dataset.liftZ = '0';
+                    attacker.dataset.tilt = '0';
+                    attacker.dataset.state = 'idle';
+                }, 260);
+            }, 600 + turn * 1650);
+        }
+    }},
+
+    // 【1:23 サビクライマックス】王将を3D空間の上空へ吹っ飛ばし、3D光柱KOバースト！
+    { time: 83.0, id: '3d_chorus_ko', fn: () => {
+        flashOpScreen(1.0);
+        shakeOpScreen(22, 550);
+        window.opCam.spinSpeed = 55;
+        window.opCam.scale = 1.05;
+
+        const boss = document.getElementById('op_b_king');
+        if (boss) {
+            boss.dataset.state = 'spin_ko';
+            boss.dataset.liftZ = '260';
+        }
+        spawn3DPillarBeam(170, 130, '#ff3f3f', 75);
+        spawn3DRing(170, 130, '#ffd32a', 260, 20);
+        if (typeof playSE === 'function') playSE('burst');
+    }},
+
+    // 【1:30〜1:59 アウトロ】全8駒が3D将棋盤の上に円陣を組んでゆっくり回り込みフィナーレ
+    { time: 92.0, id: '3d_outro', fn: () => {
+        clearOp3DActors();
+        flashOpScreen(0.85);
+        window.opCam = { rotX: 58, rotZ: window.opCam.rotZ, spinSpeed: 15, scale: 1.02, panX: 0, panY: 20 };
+
+        const ringChars = [
+            { t: '歩', tp: 'normal' }, { t: '香', tp: 'normal' },
+            { t: '桂', tp: 'normal' }, { t: '角', tp: 'normal' },
+            { t: '弓', tp: 'normal' }, { t: '飛', tp: 'normal' },
+            { t: '銀', tp: 'normal' }, { t: '金', tp: 'normal' }
+        ];
+        ringChars.forEach((ch, idx) => {
+            const ang = (idx / ringChars.length) * Math.PI * 2;
+            const bx = 170 + Math.cos(ang) * 105;
+            const by = 180 + Math.sin(ang) * 105;
+            spawn3DOpPiece('op_out_' + idx, ch.t, bx, by, ch.tp);
+        });
+    }}
+];
 
 function startOpeningSequence() {
     if (opStarted) return;
@@ -6689,24 +6851,66 @@ function startOpeningSequence() {
     if (opScr) opScr.style.display = 'block';
 
     opAudio.currentTime = 0;
-    opAudio.play().catch(err => console.log('OP音声再生エラー:', err));
+    opAudio.play().catch(err => console.log('OP音声再生待機:', err));
 
-    const startFallback = performance.now();
+    let lastTs = performance.now();
+    const startFallback = lastTs;
 
     function updateOpeningLoop(now) {
         if (opFinished) return;
-        // 音声が再生されていれば音声の現在秒数を使用、未読み込み時は経過時間を使用
+        const dt = Math.min(0.05, (now - lastTs) * 0.001);
+        lastTs = now;
+
         const t = (!opAudio.paused && opAudio.currentTime > 0)
             ? opAudio.currentTime
             : (now - startFallback) * 0.001;
 
-        // 3D将棋盤のゆっくり回転
-        const board = document.getElementById('op-3d-board');
-        if (board && board.style.opacity === '1') {
-            board.style.transform = 'rotateX(55deg) rotateZ(' + (t * 12).toFixed(1) + 'deg) scale(1)';
+        // 1. 3Dワールド全体の回転・傾き・ズーム更新（盤面ごと回り込む）
+        window.opCam.rotZ = (window.opCam.rotZ + window.opCam.spinSpeed * dt) % 360;
+        const world = document.getElementById('op-3d-world');
+        if (world) {
+            world.style.transform =
+                'translate(' + window.opCam.panX + 'px, ' + window.opCam.panY + 'px) ' +
+                'scale(' + window.opCam.scale + ') ' +
+                'rotateX(' + window.opCam.rotX + 'deg) ' +
+                'rotateZ(' + window.opCam.rotZ.toFixed(2) + 'deg)';
         }
 
-        // タイムラインイベントの発火
+        // 2. 盤上の全3D駒を「盤面と一緒に回転しつつ、常にカメラへ正対」させ、呼吸・伸縮モーションを適用
+        const anchors = document.querySelectorAll('.op-3d-piece-anchor');
+        anchors.forEach((anc, idx) => {
+            const liftZ = parseFloat(anc.dataset.liftZ || '0');
+            // 盤面の回転（rotZ・rotX）を打ち消す逆回転をアンカーにかけることで、3D空間上で垂直に立ち続ける
+            anc.style.transform =
+                'translateZ(' + liftZ + 'px) ' +
+                'rotateZ(' + (-window.opCam.rotZ).toFixed(2) + 'deg) ' +
+                'rotateX(' + (-window.opCam.rotX).toFixed(2) + 'deg)';
+
+            const body = anc.querySelector('.op-3d-piece-body');
+            if (!body) return;
+
+            const st = anc.dataset.state || 'idle';
+            const tilt = parseFloat(anc.dataset.tilt || '0');
+
+            if (st === 'spin_ko') {
+                const spin = (now * 0.9) % 360;
+                body.style.transform = 'rotate(' + spin + 'deg) scale(1.25)';
+            } else if (st === 'knockback') {
+                // 被弾時のグッと潰れるスクワッシュ伸縮
+                body.style.transform = 'rotate(-18deg) scale(1.24, 0.76)';
+            } else if (st === 'attack' || st === 'dash') {
+                // 踏み込み＆攻撃時の前傾＋縦伸び
+                body.style.transform = 'rotate(' + tilt + 'deg) scale(0.92, 1.14)';
+            } else {
+                // 待機中のリアルな呼吸モーション（ゆっくり上下に伸縮）
+                const breath = Math.sin(now * 0.0055 + idx * 1.1) * 0.045;
+                const sx = (1 - breath * 0.65).toFixed(3);
+                const sy = (1 + breath).toFixed(3);
+                body.style.transform = 'scale(' + sx + ', ' + sy + ')';
+            }
+        });
+
+        // 3. タイムライン発火
         OP_TIMELINE.forEach(ev => {
             if (!opTriggeredEvents[ev.id] && t >= ev.time) {
                 opTriggeredEvents[ev.id] = true;
@@ -6714,7 +6918,6 @@ function startOpeningSequence() {
             }
         });
 
-        // 曲の終了（約118秒）または再生完了で自動的にタイトル画面へ
         if (opAudio.ended || t >= 118.5) {
             skipOpeningToTitle();
             return;
@@ -6737,16 +6940,11 @@ function skipOpeningToTitle() {
     if (titleScr) titleScr.style.display = 'flex';
 }
 
-// 「同意してゲーム開始」を押した直後にオープニングを自動再生するようフック
 const _origAcceptNoticeForOp = acceptNotice;
 acceptNotice = function() {
     _origAcceptNoticeForOp.apply(this, arguments);
     startOpeningSequence();
 };
-
-
 </script>
 </body>
 </html>
-
-
