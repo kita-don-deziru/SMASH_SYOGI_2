@@ -1348,10 +1348,6 @@
                 <canvas id="op-3d-canvas" width="600" height="450"></canvas>
                 <div id="op-flash-overlay"></div>
             </div>
-                </div>
-                <div id="op-flash-overlay"></div>
-            </div>
-
 
            <!-- ✨ こう書き換えてください -->
             <div id="title-screen" class="screen" style="display: flex;" onclick="goToSelectScreen()">
@@ -6484,7 +6480,7 @@ window.opCam = {
 
 // --- 4x4 3D行列演算ヘルパー ---
 const M4 = {
-    identity: () =>,
+    identity: () => new Array(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
     perspective: (fov, aspect, near, far) => {
         const f = 1.0 / Math.tan(fov / 2), nf = 1 / (near - far);
         return [f/aspect,0,0,0, 0,f,0,0, 0,0,(far+near)*nf,-1, 0,0,(2*far*near)*nf,0];
@@ -6653,7 +6649,6 @@ const u3 = topFace ? new Array(1, 0) : new Array(0.02, 0.02);
 // 🎬 完全3D WebGLオープニングエンジン【3 / 4】テクスチャ＆3D描画ループ
 // ==============================================================================
 // 2回目の行列・UV定義の補完
-M4.identity = () =>;
 
 // 漢字入り木目テクスチャ＆81マス将棋盤テクスチャをCanvasから動的生成
 function getOpWebGLTexture(ctxObj, key, kanji, isBoss = false, isTokin = false) {
