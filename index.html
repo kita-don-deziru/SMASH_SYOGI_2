@@ -10047,6 +10047,358 @@ window.opBoardState.flipX += (window.opBoardState.targetFlipX - window.opBoardSt
         _prevPlaySEWithTitleAudio.apply(this, arguments);
     };
 })();
+// ==============================================================================
+// 🔊 必殺技（SP技）発動時の専用オーディオ再生パッチ
+// ==============================================================================
+(function() {
+    // 必殺技用の音声ファイル名（実際のファイル名に合わせて書き換えてください）
+    const specialCutinAudio = new Audio('ステータス上昇魔法1.mp3');
+    specialCutinAudio.volume = 0.9;
+
+    const _prevPlaySEWithSpecialAudio = playSE;
+    playSE = function(type) {
+        // オープニング再生中は無音のまま維持
+        const opScr = document.getElementById('opening-screen');
+        if (opScr && opScr.style.display !== 'none' && !opFinished) {
+            return;
+        }
+
+        if (type === 'special_cutin') {
+            specialCutinAudio.currentTime = 0;
+            specialCutinAudio.play().catch(err => {
+                console.log('必殺技音声再生待機:', err);
+            });
+            return; // 元の電子音は鳴らさずに終了
+        }
+        _prevPlaySEWithSpecialAudio.apply(this, arguments);
+    };
+})();
+// ==============================================================================
+// 🛡️💥 シールドブレイク MP3再生パッチ（カットインなし版）
+// ==============================================================================
+(function() {
+    // シールドブレイク用のMP3ファイル名（実際のファイル名に合わせて書き換えてください）
+    const shieldBreakAudio = new Audio('ロボットを強く殴る3.mp3');
+    shieldBreakAudio.volume = 0.9;
+
+    // 1. playSE('shield_break') でMP3を再生
+    const _prevPlaySEWithShieldMp3 = playSE;
+    playSE = function(type) {
+        if (type === 'shield_break') {
+            shieldBreakAudio.currentTime = 0;
+            shieldBreakAudio.play().catch(err => {
+                console.log('シールドブレイク音声再生待機:', err);
+            });
+            return;
+        }
+        _prevPlaySEWithShieldMp3.apply(this, arguments);
+    };
+
+    // 2. 「シールドブレイク！！」のカットイン文字は表示せず、MP3音と揺れだけを発生させる
+    const _prevCutInNoShieldText = triggerCutIn;
+    triggerCutIn = function(txt) {
+        if (txt && txt.indexOf('シールドブレイク') !== -1) {
+            playSE('shield_break');
+            if (typeof triggerCameraShake === 'function') triggerCameraShake();
+            return; // カットイン文字・斜め演出は一切表示しない
+        }
+        _prevCutInNoShieldText.apply(this, arguments);
+    };
+})();
+// ==============================================================================
+// 💥🌟 撃墜（バースト）音 MP3再生パッチ
+// ==============================================================================
+(function() {
+    // 撃墜用のMP3ファイル名（実際のファイル名に合わせて書き換えてください）
+    const koBurstAudio = new Audio('ビーム砲1.mp3');
+    koBurstAudio.volume = 0.95;
+
+    const _prevPlaySEWithKoMp3 = playSE;
+    playSE = function(type) {
+        // オープニング再生中は無音のまま維持
+        const opScr = document.getElementById('opening-screen');
+        if (opScr && opScr.style.display !== 'none' && !opFinished) {
+            return;
+        }
+
+        if (type === 'burst') {
+            koBurstAudio.currentTime = 0;
+            koBurstAudio.play().catch(err => {
+                console.log('撃墜音声再生待機:', err);
+            });
+            return; // 元の電子音は鳴らさずに終了
+        }
+        _prevPlaySEWithKoMp3.apply(this, arguments);
+    };
+})();
+// ==============================================================================
+// ⚔️💥 攻撃ヒット音 MP3再生パッチ（連撃対応版）
+// ==============================================================================
+(function() {
+    // 攻撃ヒット用のMP3ファイル名（実際のファイル名に合わせて書き換えてください）
+    const normalHitAudio = new Audio('hit.mp3');
+    normalHitAudio.volume = 0.85;
+
+    // 強攻撃・クリティカルヒット用のMP3ファイル名（同じ音でよければ 'hit.mp3' のままでOK）
+    const criticalHitAudio = new Audio('剣で斬る2.mp3');
+    criticalHitAudio.volume = 0.95;
+
+    const _prevPlaySEWithHitMp3 = playSE;
+    playSE = function(type) {
+        // オープニング再生中は無音のまま維持
+        const opScr = document.getElementById('opening-screen');
+        if (opScr && opScr.style.display !== 'none' && !opFinished) {
+            return;
+        }
+
+        if (type === 'hit') {
+            // 連撃で連続ヒットしても音が途切れないように複製して再生
+            const sound = normalHitAudio.cloneNode(true);
+            sound.volume = normalHitAudio.volume;
+            sound.play().catch(err => {
+                console.log('通常ヒット音声再生待機:', err);
+            });
+            return;
+        }
+
+        if (type === 'critical') {
+            const sound = criticalHitAudio.cloneNode(true);
+            sound.volume = criticalHitAudio.volume;
+            sound.play().catch(err => {
+                console.log('強ヒット音声再生待機:', err);
+            });
+            return;
+        }
+
+        _prevPlaySEWithHitMp3.apply(this, arguments);
+    };
+})();
+// ==============================================================================
+// ⚔️⚡ クライマックス「3人同時・居合切り貫通 ➔ 0.5秒後爆発」演出パッチ【1回目 / 2】
+// ==============================================================================
+(function() {
+    const chorusEv = OP_TIMELINE.find(e => e.id === 'guaranteed_chorus_battle');
+    if (chorusEv) {
+        chorusEv.fn = () => {
+            window.clearAllOpTimers();
+            window.opIsBossExploded = false;
+            clearOp3DScene();
+
+            window.opBgMode = 3;
+            flashOpScreen(0.95);
+            window.opCam.spinSpeed = 0.55;
+            window.opCam.targetPitch = 0.46;
+            window.opCam.targetDist = 11.4;
+
+            const boss = spawn3DPiece('op_boss', '王', 0, -1.7, 0, 'boss');
+            const f1 = spawn3DPiece('op_f1', '飛', -1.8, 1.9, Math.PI, 'normal');
+            const f2 = spawn3DPiece('op_f2', '角', 1.8, 1.9, Math.PI, 'normal');
+            const f3 = spawn3DPiece('op_f3', 'と', 0, 2.4, Math.PI, 'tokin');
+
+            spawn3DEffect('ring', 0, 0.5, -1.1, [1.0, 0.84, 0.15, 1.0], 0.85);
+            spawn3DSparks(0, 0.8, -1.1, [1.0, 0.9, 0.3, 1.0], 40, 6.0, false);
+
+            const team = new Array(f1, f2, f3);
+            for (let turn = 0; turn !== 11; turn++) {
+                window.addOpTimer(() => {
+                    if (opFinished || window.opIsBossExploded) return;
+                    const activeBoss = window.op3DObjects.find(o => o.id === 'op_boss');
+                    if (!activeBoss) return;
+
+                    const atk = team[turn % team.length];
+                    if (!atk) return;
+
+                    const ox = atk.x, oz = atk.z;
+                    const isClash = (turn % 3 === 2);
+
+                    atk.state = 'dash_slash';
+                    atk.tiltX = 0.55;
+                    atk.targetX = 0;
+                    atk.targetZ = -0.85;
+                    atk.targetY = 0.15;
+
+                    spawn3DSparks(atk.x, 0.4, atk.z, isClash ? [1.0, 0.84, 0.2, 1.0] : [0.0, 0.85, 1.0, 1.0], 12, 3.0, false);
+
+                    if (isClash) {
+                        activeBoss.state = 'dash_slash';
+                        activeBoss.tiltX = 0.45;
+                        activeBoss.targetZ = -1.25;
+                    }
+
+                    window.addOpTimer(() => {
+                        if (opFinished || window.opIsBossExploded) return;
+                        const stillBoss = window.op3DObjects.find(o => o.id === 'op_boss');
+                        if (!stillBoss) return;
+
+                        const hitCol = isClash ? [1.0, 0.84, 0.15, 1.0] : [0.0, 0.85, 1.0, 1.0];
+                        spawn3DEffect('ring', 0, 0.55, -1.1, hitCol, 0.65);
+                        spawn3DSparks(0, 0.7, -1.1, hitCol, isClash ? 45 : 25, isClash ? 6.5 : 4.5, false);
+
+                        if (isClash) {
+                            flashOpScreen(0.55);
+                            stillBoss.state = 'knockback';
+                            stillBoss.tiltX = -0.38;
+                            stillBoss.targetZ = -2.6;
+                            atk.targetZ = 1.4;
+                            atk.tiltX = -0.38;
+                            window.addOpTimer(() => {
+                                if (!window.opIsBossExploded && stillBoss) {
+                                    stillBoss.targetZ = -1.7; stillBoss.tiltX = 0; stillBoss.state = 'idle';
+                                }
+                            }, 320);
+                        } else {
+                            stillBoss.state = 'knockback';
+                            stillBoss.tiltX = -0.50;
+                            stillBoss.targetZ = -2.35;
+                            window.addOpTimer(() => {
+                                if (!window.opIsBossExploded && stillBoss) {
+                                    stillBoss.targetZ = -1.7; stillBoss.tiltX = 0; stillBoss.state = 'idle';
+                                }
+                            }, 260);
+                        }
+
+                        window.addOpTimer(() => {
+                            if (!window.opIsBossExploded && atk) {
+                                atk.targetX = ox; atk.targetZ = oz; atk.targetY = 0; atk.tiltX = 0; atk.state = 'idle';
+                            }
+                        }, isClash ? 180 : 90);
+                    }, 210);
+                }, 300 + turn * 1450);
+            }
+
+            // 80.5秒：3人同時・居合切り貫通シーケンス！
+            window.addOpTimer(() => {
+                if (opFinished || window.opIsBossExploded) return;
+
+                window.opCam.targetDist = 11.8;
+                window.opCam.spinSpeed = 0.85;
+
+                // ① 構え：王将を中央に据え、3人が三角形のスタート位置へ展開
+                boss.state = 'idle'; boss.tiltX = 0;
+                boss.targetX = 0; boss.targetZ = 0; boss.targetY = 0.1;
+
+                f1.targetX = -2.4; f1.targetZ =  1.8; f1.targetY = 0.3; f1.facing = Math.atan2(4.9, -3.7);
+                f2.targetX =  2.4; f2.targetZ =  1.8; f2.targetY = 0.3; f2.facing = Math.atan2(-4.9, -3.7);
+                f3.targetX =  0.0; f3.targetZ = -2.7; f3.targetY = 0.4; f3.facing = 0;
+
+                spawn3DEffect('pillar', -2.4, 0,  1.8, [1.0, 0.2, 0.25, 1.0], 0.8);
+                spawn3DEffect('pillar',  2.4, 0,  1.8, [0.1, 0.9, 0.65, 1.0], 0.8);
+                spawn3DEffect('pillar',  0.0, 0, -2.7, [1.0, 0.85, 0.1, 1.0], 0.8);
+
+                // ② 1.0秒後（81.5秒時点）：王将を真っ直ぐ突き抜け、対角の盤端まで一閃居合切り！
+                window.addOpTimer(() => {
+                    if (opFinished || window.opIsBossExploded) return;
+                    flashOpScreen(0.95);
+                    window.opCamShake = 1.25;
+
+                    f1.state = 'dash_slash'; f1.tiltX = 0.58;
+                    f1.targetX =  2.5; f1.targetZ = -1.9; f1.targetY = 0.0;
+
+                    f2.state = 'dash_slash'; f2.tiltX = 0.58;
+                    f2.targetX = -2.5; f2.targetZ = -1.9; f2.targetY = 0.0;
+
+                    f3.state = 'dash_slash'; f3.tiltX = 0.58;
+                    f3.targetX =  0.0; f3.targetZ =  2.8; f3.targetY = 0.0;
+
+                    const trioCols = new Array(
+                        [1.0, 0.2, 0.25, 1.0],
+                        [0.1, 0.9, 0.65, 1.0],
+                        [1.0, 0.85, 0.1, 1.0]
+                    );
+                    trioCols.forEach((col, idx) => {
+                        window.op3DEffects.push({
+                            kind: 'slash', x: 0, y: 0.75, z: 0, color: col,
+                            age: 0, maxLife: 1.1, rotY: idx * 2.09, rotZ: 0.45
+                        });
+                        spawn3DEffect('ring', 0, 0.3 + idx * 0.2, 0, col, 1.0);
+                        spawn3DSparks(0, 0.75, 0, col, 40, 7.5, false);
+                    });
+
+                    boss.state = 'knockback';
+                    boss.tiltX = -0.45;
+                    boss.targetY = 0.35;
+
+                    // ③ 0.45秒後（81.95秒時点）：盤の端に到着した3人が静止ポーズ！
+                    window.addOpTimer(() => {
+                        if (opFinished || window.opIsBossExploded) return;
+                        [f1, f2, f3].forEach(hero => {
+                            hero.state = 'idle';
+                            hero.tiltX = 0;
+                            hero.targetY = 0;
+                        });
+                    }, 450);
+                }, 1000);
+            }, 16700);
+        };
+    }
+})();
+// ==============================================================================
+// ⚔️⚡ クライマックス「3人同時・居合切り貫通 ➔ 0.5秒後爆発」演出パッチ【2回目 / 2】
+// ==============================================================================
+(function() {
+    // 王将爆発イベント（83.0秒）：3人が盤端で0.5秒静止した直後、王将が吹き飛んで大爆発！
+    // （時間は元の 83.0秒発火 ➔ 0.75秒後爆発 のまま一切変わりません）
+    const koEv = OP_TIMELINE.find(e => e.id === 'sync_chorus_ko');
+    if (koEv) {
+        koEv.fn = () => {
+            window.opIsBossExploded = true;
+            window.clearAllOpTimers();
+
+            window.opCam.spinSpeed = 0.95;
+            window.opCam.targetDist = 11.4;
+
+            // 盤の端で静止していた3人はそのまま見届ける
+            window.op3DObjects.forEach(o => {
+                if (o.id !== 'op_boss') {
+                    o.state = 'idle';
+                    o.tiltX = 0;
+                    o.targetY = 0;
+                }
+            });
+
+            const boss = window.op3DObjects.find(o => o.id === 'op_boss');
+            if (boss) {
+                boss.state = 'spin_ko';
+                boss.targetY = 4.3;
+                boss.targetZ = -2.2;
+            }
+
+            // 0.75秒後（83.75秒時点）：王将が空中で超新星爆発！！
+            window.addOpTimer(() => {
+                if (opFinished) return;
+
+                window.op3DObjects = window.op3DObjects.filter(o => o.id !== 'op_boss');
+                flashOpScreen(1.0);
+                window.opCam.targetDist = 14.8;
+
+                const bx = 0, by = 3.8, bz = -2.1;
+                spawn3DEffect('pillar', bx, 0, bz, [1.0, 0.25, 0.1, 1.0], 1.15);
+                spawn3DEffect('pillar', bx, 0, bz, [1.0, 0.85, 0.2, 1.0], 0.95);
+                spawn3DEffect('pillar', bx, 0, bz, [1.0, 1.0, 1.0, 1.0], 0.75);
+
+                spawn3DSparks(bx, by, bz, [1.0, 0.3, 0.1, 1.0], 50, 8.5, false);
+                spawn3DSparks(bx, by, bz, [1.0, 0.9, 0.3, 1.0], 50, 7.0, false);
+                spawn3DSparks(bx, by, bz, [1.0, 1.0, 1.0, 1.0], 40, 9.5, false);
+
+                const boomColors = new Array(
+                    [1.0, 0.2, 0.1, 1.0],
+                    [1.0, 0.65, 0.0, 1.0],
+                    [1.0, 0.95, 0.3, 1.0],
+                    [1.0, 1.0, 1.0, 1.0]
+                );
+
+                for (let i = 0; i !== 10; i++) {
+                    window.addOpTimer(() => {
+                        const offX = (Math.random() - 0.5) * 1.6;
+                        const offY = by + (Math.random() - 0.5) * 1.6;
+                        const offZ = bz + (Math.random() - 0.5) * 1.6;
+                        spawn3DEffect('ring', offX, offY, offZ, boomColors[i % boomColors.length], 0.85);
+                    }, i * 60);
+                }
+            }, 750);
+        };
+    }
+})();
 
 </script>
 </body>
