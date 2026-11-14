@@ -7272,7 +7272,128 @@ morphOpPieceSmoothly = function(nextKanji, nextType = 'normal', onReady = null) 
     }, 450);
 };
 
+// ==============================================================================
+// 💥 王将吹っ飛びフィニッシュ「空中特大爆発」演出パッチ
+// ==============================================================================
+(function() {
+    const koEv = OP_TIMELINE.find(e => e.id === 'sync_chorus_ko');
+    if (koEv) {
+        koEv.fn = () => {
+            window.opCam.spinSpeed = 0.85;
+            window.opCam.targetDist = 11.5;
 
+            const boss = window.op3DObjects.find(o => o.id === 'op_boss');
+            if (boss) {
+                boss.state = 'spin_ko';
+                boss.targetY = 4.2;   // 画面内に収まる高さまで吹っ飛ぶ
+                boss.targetZ = -2.5;
+            }
+            if (typeof playSE === 'function') playSE('critical');
+
+            // 0.75秒後（吹っ飛びの頂点）で王将が大爆発して消滅！
+            setTimeout(() => {
+                if (opFinished) return;
+
+                // 1. 王将をシーンから消去（爆散）
+                window.op3DObjects = window.op3DObjects.filter(o => o.id !== 'op_boss');
+
+                // 2. 画面真っ白フラッシュ＆爆発重低音SE
+                flashOpScreen(1.0);
+                if (typeof playSE === 'function') playSE('burst');
+                window.opCam.targetDist = 14.5; // 爆発の衝撃でカメラが少し引く
+
+                // 3. 3D空間上に特大の爆発光柱＆多重衝撃波リングを連続発生！
+                const bx = 0, by = 3.8, bz = -2.4;
+                spawn3DEffect('pillar', bx, 0, bz, new Array(1.0, 0.3, 0.1, 1.0), 0.9);
+                spawn3DEffect('pillar', bx, 0, bz, new Array(1.0, 0.9, 0.4, 1.0), 0.7);
+
+                const boomColors = new Array(
+                    new Array(1.0, 0.2, 0.1, 1.0),   // 紅蓮の赤
+                    new Array(1.0, 0.65, 0.0, 1.0),  // 灼熱のオレンジ
+                    new Array(1.0, 0.95, 0.3, 1.0),  // 閃光の黄金
+                    new Array(1.0, 1.0, 1.0, 1.0)    // 純白の衝撃波
+                );
+
+                for (let i = 0; i < 8; i++) {
+                    setTimeout(() => {
+                        const offX = (Math.random() - 0.5) * 1.4;
+                        const offY = by + (Math.random() - 0.5) * 1.4;
+                        const offZ = bz + (Math.random() - 0.5) * 1.4;
+                        spawn3DEffect('ring', offX, offY, offZ, boomColors[i % boomColors.length], 0.75);
+                    }, i * 65);
+                }
+            }, 750);
+        };
+    }
+})();
+// ==============================================================================
+// 🌪️ 歌詞シンクロ「角行と桂馬（＆飛車）が嵐を巻き起こす」3D竜巻演出パッチ
+// ==============================================================================
+(function() {
+    // 60.5秒の単独切替を削除し、57.0秒〜64.0秒を丸ごと「嵐の竜巻シーン」にする
+    const idxRook = OP_TIMELINE.findIndex(e => e.id === 'sync_rook');
+    if (idxRook !== -1) OP_TIMELINE.splice(idxRook, 1);
+
+    const stormEv = OP_TIMELINE.find(e => e.id === 'sync_bishop');
+    if (stormEv) {
+        stormEv.fn = () => {
+            clearOp3DScene();
+            if (typeof playSE === 'function') playSE('special_cutin');
+
+            // カメラを少し引いて旋回スピードを加速（嵐の渦を表現）
+            window.opCam.targetDist = 13.0;
+            window.opCam.targetPitch = 0.52;
+            window.opCam.spinSpeed = 1.25;
+
+            // 角行（エメラルド）と桂馬（雷光シアン）が盤上に対角配置で同時登場！
+            const bishop = spawn3DPiece('storm_bishop', '角', -1.6, 0, Math.PI / 2, 'normal');
+            const knight = spawn3DPiece('storm_knight', '桂',  1.6, 0, -Math.PI / 2, 'normal');
+
+            // 1. 2体が高速で盤上を旋回（公転）しながら竜巻を巻き起こす（約4.5秒間）
+            let stormTick = 0;
+            const stormIv = setInterval(() => {
+                if (opFinished || stormTick > 42) {
+                    clearInterval(stormIv);
+                    return;
+                }
+                stormTick++;
+                const angle = stormTick * 0.28;
+                const radius = 1.65 - (stormTick * 0.015); // 徐々に中心へ渦を巻く
+
+                if (bishop) {
+                    bishop.targetX = Math.cos(angle) * radius;
+                    bishop.targetZ = Math.sin(angle) * radius;
+                    bishop.targetY = Math.min(1.6, stormTick * 0.035);
+                    bishop.facing = -angle;
+                    bishop.tiltX = 0.42;
+                }
+                if (knight) {
+                    knight.targetX = Math.cos(angle + Math.PI) * radius;
+                    knight.targetZ = Math.sin(angle + Math.PI) * radius;
+                    knight.targetY = Math.min(1.6, stormTick * 0.035);
+                    knight.facing = -(angle + Math.PI);
+                    knight.tiltX = 0.42;
+                }
+
+                // 螺旋状に立ち昇る3D竜巻リング（エメラルド＆雷光ブルー）を生成
+                if (stormTick % 2 === 0) {
+                    const heightY = (stormTick % 10) * 0.42;
+                    const col = (stormTick % 4 === 0)
+                        ? new Array(0.11, 0.85, 0.65, 0.9)  // 角行の翠嵐カラー
+                        : new Array(0.0, 0.78, 1.0, 0.9);   // 桂馬の雷嵐カラー
+                    spawn3DEffect('ring', 0, heightY, 0, col, 0.55);
+                }
+
+                // 竜巻のピーク（中盤）で中心に巨大な嵐の光柱が立ち昇る！
+                if (stormTick === 18 || stormTick === 30) {
+                    if (typeof playSE === 'function') playSE('burst');
+                    flashOpScreen(0.65);
+                    spawn3DEffect('pillar', 0, 0, 0, new Array(0.2, 0.95, 0.8, 0.95), 0.75);
+                }
+            }, 95);
+        };
+    }
+})();
 
 </script>
 </body>
