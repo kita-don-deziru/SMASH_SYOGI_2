@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>大乱闘スマッシュ将棋 SPECIAL STOCKS - LV9 CPU EDITION</title>
+    <title>超将棋乱舞〜成金無双〜</title>
     
 
 <style>
@@ -1263,7 +1263,7 @@
 <body>
 <div id="notice-screen" style="display: flex;">
    <div class="notice-container">
-       <div class="notice-title">大乱闘スマッシュ将棋 SPECIAL STOCKS</div>
+       <div class="notice-title">超将棋乱舞〜成金無双〜</div>
        <div class="notice-text">
                <strong>【二次配布・無断転載の禁止】</strong><br>
                本ゲームプログラムのソースコード、およびゲームアセットの無断転用・不特定多数への二次配布行為は一切お控えください。<br><br>
@@ -1352,53 +1352,19 @@
            <!-- ✨ こう書き換えてください -->
             <div id="title-screen" class="screen" style="display: flex;" onclick="goToSelectScreen()">
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <img id="title-img" src="将棋.png" alt="大乱闘スマッシュ将棋 SPECIAL">
-                <div id="press-any-button">PRESS ANY BUTTON TO START</div>
+            <div id="title-screen" class="screen" style="display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle at 50% 40%, #2c1e4a 0%, #0d0b1a 70%, #000000 100%); cursor: pointer;" onclick="goToSelectScreen()">
+                <!-- 背後の黄金の将棋盤シルエット -->
+                <div style="position:absolute; width:260px; height:260px; border:3px solid rgba(255,211,42,0.35); transform:rotate(45deg); box-shadow:0 0 40px rgba(255,211,42,0.2); pointer-events:none;"></div>
+                
+                <!-- 中央の立体3D将棋駒エンブレム -->
+                <div style="width:76px; height:90px; background:linear-gradient(180deg, #fff3d1 0%, #f3c677 65%, #c88a36 100%); clip-path:polygon(50% 0%, 100% 24%, 86% 100%, 14% 100%, 0% 24%); display:flex; justify-content:center; align-items:center; font-size:40px; font-weight:bold; color:#8f1111; filter:drop-shadow(0 4px 0 #5e3608) drop-shadow(0 0 25px rgba(255,211,42,0.85)); margin-bottom:14px; z-index:5;">王</div>
+                
+                <!-- オリジナルタイトルロゴ（テキスト＆CSS装飾） -->
+                <div style="font-size:13px; font-weight:bold; color:#00d2ff; letter-spacing:4px; text-shadow:0 0 8px #00d2ff; margin-bottom:4px; z-index:5;">天空盤上アクション</div>
+                <div style="font-size:34px; font-weight:900; color:#ffd32a; letter-spacing:2px; text-shadow:0 3px 0 #b85d19, 0 0 20px rgba(255,63,63,0.9), 2px 2px 0 #000; z-index:5; text-align:center; line-height:1.2;">超将棋乱舞〜成金無双〜</div>
+                
+                <div id="press-any-button" style="position:static; transform:none; margin-top:28px;">TAP OR PRESS TO START</div>
             </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
