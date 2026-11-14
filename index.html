@@ -6456,9 +6456,9 @@ injectOnlineRoomUI = function() {
     _cleanInjectLobby.apply(this, arguments);
     injectMultiBattleLobbyUI();
 };
-// ==============================================================================
-// 🎬 完全3D WebGLオープニングエンジン【2 / 4】行列演算＆立体駒メッシュ
-// ==============================================================================
+// ============================================================================== 
+// 🎬 完全3D WebGLオープニング（消滅バグ根絶＆歌シンクロ版 1-A） 
+//============================================================================== 
 const opAudio = new Audio('lv_0_20261113211851.mp3');
 opAudio.volume = 0.75;
 
@@ -6467,23 +6467,33 @@ let opStarted = false;
 let opFinished = false;
 let opTriggeredEvents = {};
 
-// 3D空間上の駒・エフェクト管理リスト
 window.op3DObjects = [];
 window.op3DEffects = [];
+window.opBgMode = 0; // 0:漆黒, 1:夕焼け星雲, 2:虹の天空, 3:満月の夜空
+
+// カメラ状態（最初は「暗い中、真上から光る将棋盤を見下ろす」アングル）
 window.opCam = {
-    angleY: 0,      // 盤面の水平回り込み角度（ラジアン）
-    spinSpeed: 0.45,// 回転速度
-    pitch: 0.58,    // カメラの俯瞰角度（見下ろし角）
-    dist: 13.5,     // カメラ距離（小さいほどズームイン）
-    targetY: 1.2    // 注視点の高さ
+    angleY: 0,
+    targetAngleY: null,
+    spinSpeed: 0.55,
+    pitch: 1.38,       // 真上からの見下ろし角度
+    targetPitch: 1.38,
+    dist: 13.8,
+    targetDist: 13.8,
+    targetY: 0.0,
+    targetLookY: 0.0
 };
 
-// --- 4x4 3D行列演算ヘルパー ---
 const M4 = {
-    identity: () => new Array(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1),
+    identity: () => new Array(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1),
     perspective: (fov, aspect, near, far) => {
         const f = 1.0 / Math.tan(fov / 2), nf = 1 / (near - far);
-        return [f/aspect,0,0,0, 0,f,0,0, 0,0,(far+near)*nf,-1, 0,0,(2*far*near)*nf,0];
+        return new Array(
+            f / aspect, 0, 0, 0,
+            0, f, 0, 0,
+            0, 0, (far + near) * nf, -1,
+            0, 0, (2 * far * near) * nf, 0
+        );
     },
     multiply: (a, b) => {
         const out = new Array(16);
@@ -6494,27 +6504,78 @@ const M4 = {
         }
         return out;
     },
-    translate: (m, x, y, z) => M4.multiply(m, [1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]),
+    translate: (m, x, y, z) => M4.multiply(m, new Array(1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1)),
     rotateX: (m, rad) => {
         const c = Math.cos(rad), s = Math.sin(rad);
-        return M4.multiply(m, [1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1]);
+        return M4.multiply(m, new Array(1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1));
     },
     rotateY: (m, rad) => {
         const c = Math.cos(rad), s = Math.sin(rad);
-        return M4.multiply(m, [c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1]);
+        return M4.multiply(m, new Array(c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1));
     },
-    rotateZ: (m, rad) => {
-        const c = Math.cos(rad), s = Math.sin(rad);
-        return M4.multiply(m, [c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1]);
-    },
-    scale: (m, x, y, z) => M4.multiply(m, [x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1])
+    scale: (m, x, y, z) => M4.multiply(m, new Array(x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1))
 };
 
-// WebGLコンテキスト＆シェーダー初期化
+// 3種類の背景グラデーションをWebGL用テクスチャとして生成（絶対に消えない仕組み）
+function createOpBgTexture(gl, mode) {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext('2d');
+
+    if (mode === 0) {
+        ctx.fillStyle = '#030308';
+        ctx.fillRect(0, 0, 512, 512);
+    } else if (mode === 1) {
+        const g = ctx.createLinearGradient(0, 512, 512, 0);
+        g.addColorStop(0.04, '#2d4796'); g.addColorStop(0.25, '#5f5ba5');
+        g.addColorStop(0.52, '#b956e6'); g.addColorStop(0.77, '#f5963b');
+        g.addColorStop(0.95, '#d8af68');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
+        const sun = ctx.createRadialGradient(256, 128, 10, 256, 128, 220);
+        sun.addColorStop(0, 'rgba(255,255,255,0.95)');
+        sun.addColorStop(0.25, 'rgba(255,255,255,0.15)');
+        sun.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = sun; ctx.fillRect(0, 0, 512, 512);
+    } else if (mode === 2) {
+        const g = ctx.createLinearGradient(0, 0, 512, 512);
+        g.addColorStop(0, '#bdfpec'); g.addColorStop(0.5, '#71dbff'); g.addColorStop(1, '#38d3b9');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
+        const colors = new Array('#ff3f3f', '#ff9f43', '#ffe641', '#00e3ff', '#5700ff');
+        colors.forEach((col, i) => {
+            ctx.strokeStyle = col; ctx.lineWidth = 10;
+            ctx.beginPath(); ctx.arc(256, 260, 175 - i * 14, 0, Math.PI * 2); ctx.stroke();
+        });
+    } else {
+        const g = ctx.createLinearGradient(0, 512, 0, 0);
+        g.addColorStop(0, '#2200a3'); g.addColorStop(1, '#391000');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
+        const moon = ctx.createRadialGradient(75, 220, 15, 75, 220, 150);
+        moon.addColorStop(0, 'rgba(255,247,255,0.95)');
+        moon.addColorStop(0.45, 'rgba(237,209,238,0.35)');
+        moon.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = moon; ctx.fillRect(0, 0, 512, 512);
+        ctx.fillStyle = '#ffffff';
+        for (let s = 0; s < 35; s++) {
+            ctx.beginPath();
+            ctx.arc((s * 97) % 512, (s * 53) % 380, (s % 3) + 1.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    return tex;
+}
+// ==============================================================================
+// 🎬 完全3D WebGLオープニング（消滅バグ根絶＆歌シンクロ版 1-B）
+// ==============================================================================
 function initOpWebGL() {
     const canvas = document.getElementById('op-3d-canvas');
     if (!canvas) return null;
-    const gl = canvas.getContext('webgl', { antialias: true });
+    const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
     if (!gl) return null;
 
     const vs = `
@@ -6537,12 +6598,18 @@ function initOpWebGL() {
         varying vec2 vUv;
         uniform sampler2D uTex;
         uniform int uUseTex;
+        uniform int uUnlit;
+        uniform float uGlow;
         uniform vec4 uColor;
         void main() {
+            vec4 base = (uUseTex == 1) ? texture2D(uTex, vUv) : uColor;
+            if (uUnlit == 1) {
+                gl_FragColor = base;
+                return;
+            }
             vec3 lightDir = normalize(vec3(0.45, 0.85, 0.55));
             float diff = max(dot(normalize(vNorm), lightDir), 0.0);
-            float shade = 0.42 + diff * 0.68;
-            vec4 base = (uUseTex == 1) ? texture2D(uTex, vUv) : uColor;
+            float shade = (0.45 + diff * 0.65) + uGlow;
             gl_FragColor = vec4(base.rgb * shade, base.a);
         }
     `;
@@ -6558,53 +6625,70 @@ function initOpWebGL() {
     gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
     gl.linkProgram(prog);
     gl.useProgram(prog);
-
     gl.enable(gl.DEPTH_TEST);
 
-    // 本物の「くさび形3D将棋駒（下底が分厚く、先端が薄い五角柱）」の頂点データ生成
+    // くさび形3D将棋駒メッシュ
     const wBottom = 0.58, wShoulder = 0.48, hTop = 1.45, hShoulder = 1.08;
-    const zBot = 0.24, zTop = 0.07; // 底面は分厚く(0.48)、先端は薄い(0.14)くさび形状！
-
-    // 5つの輪郭点 (x, y, z厚み半分)
-    const pts = [
-        { x: 0,          y: hTop,      z: zTop }, // 0: 頂点
-        { x: wShoulder,  y: hShoulder, z: zTop * 1.3 }, // 1: 右肩
-        { x: wBottom,    y: 0,         z: zBot }, // 2: 右下
-        { x: -wBottom,   y: 0,         z: zBot }, // 3: 左下
-        { x: -wShoulder, y: hShoulder, z: zTop * 1.3 }  // 4: 左肩
-    ];
-
+    const zBot = 0.24, zTop = 0.07;
+    const pts = new Array(
+        { x: 0, y: hTop, z: zTop },
+        { x: wShoulder, y: hShoulder, z: zTop * 1.3 },
+        { x: wBottom, y: 0, z: zBot },
+        { x: -wBottom, y: 0, z: zBot },
+        { x: -wShoulder, y: hShoulder, z: zTop * 1.3 }
+    );
     const pos = [], norm = [], uvs = [];
     const pushTri = (p1, p2, p3, nx, ny, nz, uv1, uv2, uv3) => {
         pos.push(p1[0],p1[1],p1[2], p2[0],p2[1],p2[2], p3[0],p3[1],p3[2]);
         norm.push(nx,ny,nz, nx,ny,nz, nx,ny,nz);
         uvs.push(uv1[0],uv1[1], uv2[0],uv2[1], uv3[0],uv3[1]);
     };
-
-    const toUv = (p) => [(p.x / (wBottom * 2)) + 0.5, 1.0 - (p.y / hTop)];
-
-    // 正面（漢字が描かれる面: +Z）
-    const fPts = pts.map(p => [p.x, p.y, p.z]);
+    const toUv = (p) => new Array((p.x / (wBottom * 2)) + 0.5, 1.0 - (p.y / hTop));
+    const fPts = pts.map(p => new Array(p.x, p.y, p.z));
     const fUvs = pts.map(toUv);
-    pushTri(fPts[0], fPts[4], fPts[3], 0, 0.1, 1, fUvs[0], fUvs[4], fUvs[3]);
-    pushTri(fPts[0], fPts[3], fPts[2], 0, 0.1, 1, fUvs[0], fUvs[3], fUvs[2]);
-    pushTri(fPts[0], fPts[2], fPts[1], 0, 0.1, 1, fUvs[0], fUvs[2], fUvs[1]);
+    pushTri(fPts[0], fPts[1], fPts[4], 0, 0.1, 1, fUvs[0], fUvs[1], fUvs[4]);
+    pushTri(fPts[1], fPts[2], fPts[4], 0, 0.1, 1, fUvs[1], fUvs[2], fUvs[4]);
+    pushTri(fPts[2], fPts[3], fPts[4], 0, 0.1, 1, fUvs[2], fUvs[3], fUvs[4]);
 
-    // 背面（-Z）
-    const bPts = pts.map(p => [p.x, p.y, -p.z]);
-    const bUv = [0.02, 0.02];
-    pushTri(bPts[0], bPts[1], bPts[2], 0, 0.1, -1, bUv, bUv, bUv);
-    pushTri(bPts[0], bPts[2], bPts[3], 0, 0.1, -1, bUv, bUv, bUv);
-    pushTri(bPts[0], bPts[3], bPts[4], 0, 0.1, -1, bUv, bUv, bUv);
+    const bPts = pts.map(p => new Array(p.x, p.y, -p.z));
+    const bUv = new Array(0.02, 0.02);
+    pushTri(bPts[0], bPts[4], bPts[1], 0, 0.1, -1, bUv, bUv, bUv);
+    pushTri(bPts[1], bPts[4], bPts[2], 0, 0.1, -1, bUv, bUv, bUv);
+    pushTri(bPts[2], bPts[4], bPts[3], 0, 0.1, -1, bUv, bUv, bUv);
 
-    // 5つの側面（厚み部分）
-    const sideNormals = [[0.6,0.8,0], [1,-0.1,0], [0,-1,0], [-1,-0.1,0], [-0.6,0.8,0]];
+    const sideNormals = new Array(
+        new Array(0.6,0.8,0), new Array(1,-0.1,0), new Array(0,-1,0),
+        new Array(-1,-0.1,0), new Array(-0.6,0.8,0)
+    );
     for (let i = 0; i < 5; i++) {
         const next = (i + 1) % 5;
         const n = sideNormals[i];
-        pushTri(fPts[i], fPts[next], bPts[next], n[0], n[1], n[2], bUv, bUv, bUv);
-        pushTri(fPts[i], bPts[next], bPts[i],    n[0], n[1], n[2], bUv, bUv, bUv);
+        pushTri(fPts[i], fPts[next], bPts[next], n[0],n[1],n[2], bUv, bUv, bUv);
+        pushTri(fPts[i], bPts[next], bPts[i],    n[0],n[1],n[2], bUv, bUv, bUv);
     }
+
+    // 3D将棋盤メッシュ
+    const bw = 4.6, bh = 0.75, bd = 5.0;
+    const boxPos = [], boxNorm = [], boxUv = [];
+    const addQuad = (v0, v1, v2, v3, nx, ny, nz, topFace = false) => {
+        const u0 = topFace ? new Array(0,0) : new Array(0.02,0.02);
+        const u1 = topFace ? new Array(0,1) : new Array(0.02,0.02);
+        const u2 = topFace ? new Array(1,1) : new Array(0.02,0.02);
+        const u3 = topFace ? new Array(1,0) : new Array(0.02,0.02);
+        boxPos.push(...v0,...v1,...v2, ...v0,...v2,...v3);
+        for(let k=0;k<6;k++) boxNorm.push(nx,ny,nz);
+        boxUv.push(...u0,...u1,...u2, ...u0,...u2,...u3);
+    };
+    addQuad(new Array(-bw,0,-bd), new Array(-bw,0,bd), new Array(bw,0,bd), new Array(bw,0,-bd), 0,1,0, true);
+    addQuad(new Array(-bw,-bh,bd), new Array(bw,-bh,bd), new Array(bw,0,bd), new Array(-bw,0,bd), 0,0,1);
+    addQuad(new Array(bw,-bh,-bd), new Array(-bw,-bh,-bd), new Array(-bw,0,-bd), new Array(bw,0,-bd), 0,0,-1);
+    addQuad(new Array(bw,-bh,bd), new Array(bw,-bh,-bd), new Array(bw,0,-bd), new Array(bw,0,bd), 1,0,0);
+    addQuad(new Array(-bw,-bh,-bd), new Array(-bw,-bh,bd), new Array(-bw,0,bd), new Array(-bw,0,-bd), -1,0,0);
+
+    // 全画面背景用プレートメッシュ
+    const bgPos = new Array(-1,-1,0, 1,-1,0, 1,1,0, -1,-1,0, 1,1,0, -1,1,0);
+    const bgNorm = new Array(0,0,1, 0,0,1, 0,0,1, 0,0,1, 0,0,1, 0,0,1);
+    const bgUv = new Array(0,1, 1,1, 1,0, 0,1, 1,0, 0,0);
 
     const createBuf = (arr) => {
         const b = gl.createBuffer();
@@ -6612,24 +6696,6 @@ function initOpWebGL() {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
         return b;
     };
-
-    // 3D将棋盤（直方体ボックス）の頂点データ生成
-    const bw = 4.6, bh = 0.75, bd = 5.0;
-    const boxPos = [], boxNorm = [], boxUv = [];
-    const addQuad = (v0, v1, v2, v3, nx, ny, nz, topFace = false) => {
-const u0 = topFace ? new Array(0, 0) : new Array(0.02, 0.02);
-const u1 = topFace ? new Array(0, 1) : new Array(0.02, 0.02);
-const u2 = topFace ? new Array(1, 1) : new Array(0.02, 0.02);
-const u3 = topFace ? new Array(1, 0) : new Array(0.02, 0.02);
-        boxPos.push(...v0,...v1,...v2, ...v0,...v2,...v3);
-        for(let k=0;k<6;k++) boxNorm.push(nx,ny,nz);
-        boxUv.push(...u0,...u1,...u2, ...u0,...u2,...u3);
-    };
-    addQuad([-bw,0,-bd], [-bw,0,bd], [bw,0,bd], [bw,0,-bd], 0,1,0, true); // 天面（81マス）
-    addQuad([-bw,-bh,bd], [bw,-bh,bd], [bw,0,bd], [-bw,0,bd], 0,0,1); // 手前側面
-    addQuad([bw,-bh,-bd], [-bw,-bh,-bd], [-bw,0,-bd], [bw,0,-bd], 0,0,-1); // 奥側面
-    addQuad([bw,-bh,bd], [bw,-bh,-bd], [bw,0,-bd], [bw,0,bd], 1,0,0); // 右側面
-    addQuad([-bw,-bh,-bd], [-bw,-bh,bd], [-bw,0,bd], [-bw,0,-bd], -1,0,0); // 左側面
 
     return {
         gl, prog,
@@ -6639,18 +6705,24 @@ const u3 = topFace ? new Array(1, 0) : new Array(0.02, 0.02);
         uMvp: gl.getUniformLocation(prog, 'uMvp'),
         uModel: gl.getUniformLocation(prog, 'uModel'),
         uUseTex: gl.getUniformLocation(prog, 'uUseTex'),
+        uUnlit: gl.getUniformLocation(prog, 'uUnlit'),
+        uGlow: gl.getUniformLocation(prog, 'uGlow'),
         uColor: gl.getUniformLocation(prog, 'uColor'),
         pieceMesh: { pos: createBuf(pos), norm: createBuf(norm), uv: createBuf(uvs), count: pos.length / 3 },
         boardMesh: { pos: createBuf(boxPos), norm: createBuf(boxNorm), uv: createBuf(boxUv), count: boxPos.length / 3 },
+        bgMesh: { pos: createBuf(bgPos), norm: createBuf(bgNorm), uv: createBuf(bgUv), count: 6 },
+        bgTextures: new Array(
+            createOpBgTexture(gl, 0),
+            createOpBgTexture(gl, 1),
+            createOpBgTexture(gl, 2),
+            createOpBgTexture(gl, 3)
+        ),
         textures: {}
     };
 }
 // ==============================================================================
-// 🎬 完全3D WebGLオープニングエンジン【3 / 4】テクスチャ＆3D描画ループ
+// 🎬 完全3D WebGLオープニング（消滅バグ根絶＆歌シンクロ版 2-A）
 // ==============================================================================
-// 2回目の行列・UV定義の補完
-
-// 漢字入り木目テクスチャ＆81マス将棋盤テクスチャをCanvasから動的生成
 function getOpWebGLTexture(ctxObj, key, kanji, isBoss = false, isTokin = false) {
     if (ctxObj.textures[key]) return ctxObj.textures[key];
     const gl = ctxObj.gl;
@@ -6659,25 +6731,24 @@ function getOpWebGLTexture(ctxObj, key, kanji, isBoss = false, isTokin = false) 
     const ctx = c.getContext('2d');
 
     if (key === 'board') {
-        // 黄金の81マス将棋盤テクスチャ
         const grad = ctx.createLinearGradient(0, 0, 256, 256);
-        grad.addColorStop(0, '#f5cd79');
-        grad.addColorStop(0.5, '#d49b42');
-        grad.addColorStop(1, '#8c5a20');
+        grad.addColorStop(0, '#fff0b3');
+        grad.addColorStop(0.5, '#e6ac45');
+        grad.addColorStop(1, '#9e6622');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, 256, 256);
 
+        ctx.strokeStyle = '#ffd32a';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(3, 3, 250, 250);
         ctx.strokeStyle = '#3d2005';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(4, 4, 248, 248);
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
         for (let i = 1; i < 9; i++) {
             const p = 4 + (248 / 9) * i;
             ctx.beginPath(); ctx.moveTo(p, 4); ctx.lineTo(p, 252); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(4, p); ctx.lineTo(252, p); ctx.stroke();
         }
     } else {
-        // 本物の木目調将棋駒テクスチャ
         const grad = ctx.createLinearGradient(0, 0, 0, 256);
         if (isTokin) {
             grad.addColorStop(0, '#ffe3e8'); grad.addColorStop(0.6, '#ff9aa8'); grad.addColorStop(1, '#d6455b');
@@ -6689,11 +6760,9 @@ function getOpWebGLTexture(ctxObj, key, kanji, isBoss = false, isTokin = false) 
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, 256, 256);
 
-        // 木目ライン
         ctx.fillStyle = 'rgba(140, 80, 20, 0.08)';
         for (let x = 0; x < 256; x += 6) ctx.fillRect(x, 0, 2, 256);
 
-        // 彫り込み漢字
         ctx.fillStyle = isTokin ? '#8f0b1e' : (isBoss ? '#7a0b0b' : '#1a1105');
         ctx.font = 'bold 122px serif';
         ctx.textAlign = 'center';
@@ -6710,88 +6779,162 @@ function getOpWebGLTexture(ctxObj, key, kanji, isBoss = false, isTokin = false) 
     return tex;
 }
 
-// 3D空間上の駒・エフェクト操作関数（将棋盤の辺と平行な向きで固定）
 function clearOp3DScene() {
     window.op3DObjects = [];
     window.op3DEffects = [];
 }
 
-// facing: 0(奥向き/+Z), Math.PI(手前向き/-Z), Math.PI/2(右向き), -Math.PI/2(左向き) → 常に盤の辺と平行！
 function spawn3DPiece(id, kanji, x, z, facing = 0, type = 'normal') {
     const obj = {
         id, kanji, x, y: 0, z,
         targetX: x, targetY: 0, targetZ: z,
-        facing,
-        type, // 'normal', 'boss', 'tokin'
-        state: 'idle', // 'idle', 'attack', 'knockback', 'spin_ko'
-        tiltX: 0,
-        spinAngle: 0
+        facing, type, state: 'idle', tiltX: 0, spinAngle: 0
     };
     window.op3DObjects.push(obj);
     return obj;
 }
 
-// 3D空間上の立体リング・光柱・破片エフェクト生成
 function spawn3DEffect(kind, x, y, z, color, maxLife = 0.65) {
     window.op3DEffects.push({ kind, x, y, z, color, age: 0, maxLife });
 }
 
-// 虚空へ向かって放つ3Dスペシャル演武（カットインなし）
+function morphOpPieceSmoothly(nextKanji, nextType = 'normal', onReady = null) {
+    const currentNorm = window.opCam.angleY % (Math.PI * 2);
+    let diff = (-currentNorm) % (Math.PI * 2);
+    if (diff < -Math.PI) diff += Math.PI * 2;
+    if (diff > Math.PI) diff -= Math.PI * 2;
+    window.opCam.targetAngleY = window.opCam.angleY + diff + (diff >= 0 ? Math.PI * 2 : -Math.PI * 2);
+
+    const oldObj = window.op3DObjects;
+    if (oldObj) oldObj.state = 'morph_out';
+
+    setTimeout(() => {
+        clearOp3DScene();
+        const newObj = spawn3DPiece('op_center_actor', nextKanji, 0, 0, 0, nextType);
+        newObj.state = 'morph_in';
+        spawn3DEffect('ring', 0, 0.25, 0, new Array(1.0, 0.84, 0.2, 0.95), 0.7);
+        setTimeout(() => {
+            if (newObj) { newObj.state = 'idle'; newObj.facing = 0; }
+            if (onReady) onReady(newObj);
+        }, 480);
+    }, 450);
+}
+
 function fire3DVoidSpecial(actor, styleType) {
     if (!actor) return;
-    actor.state = 'attack';
-    actor.tiltX = 0.42;
-    setTimeout(() => { if (actor) { actor.state = 'idle'; actor.tiltX = 0; } }, 350);
-
-    const fx = actor.x + Math.sin(actor.facing) * 1.6;
-    const fz = actor.z + Math.cos(actor.facing) * 1.6;
+    window.opCam.targetDist = 9.2;
+    setTimeout(() => { window.opCam.targetDist = 11.4; }, 650);
 
     if (styleType === 'tokin_bomb') {
         if (typeof playSE === 'function') playSE('burst');
+        actor.state = 'dash_slash'; actor.tiltX = 0.45;
         for (let i = 0; i < 6; i++) {
             setTimeout(() => {
-                spawn3DEffect('ring', fx + Math.cos(i)*1.3, 0.3, fz + Math.sin(i)*1.3, [1.0, 0.84, 0.0, 0.9], 0.6);
-            }, i * 150);
+                const a = (i / 6) * Math.PI * 2;
+                spawn3DEffect('ring', Math.cos(a)*1.6, 0.3, Math.sin(a)*1.6, new Array(1.0, 0.84, 0.0, 0.95), 0.55);
+            }, i * 110);
         }
+        setTimeout(() => { if (actor) { actor.state = 'idle'; actor.tiltX = 0; } }, 650);
     } else if (styleType === 'knight_laser') {
-        if (typeof playSE === 'function') playSE('critical');
-        actor.targetY = 1.8;
+        if (typeof playSE === 'function') playSE('jump');
+        actor.targetY = 3.2;
         setTimeout(() => {
-            if (actor) actor.targetY = 0;
-            spawn3DEffect('pillar', fx, 0, fz, [0.0, 0.82, 1.0, 0.95], 0.55);
-            spawn3DEffect('ring', fx, 0.1, fz, [0.0, 0.82, 1.0, 0.9], 0.7);
-        }, 260);
+            if (!actor) return;
+            if (typeof playSE === 'function') playSE('critical');
+            actor.targetY = 0;
+            spawn3DEffect('pillar', 0, 0, 1.5, new Array(0.0, 0.82, 1.0, 1.0), 0.65);
+            spawn3DEffect('ring', 0, 0.1, 1.5, new Array(0.0, 0.82, 1.0, 0.95), 0.75);
+        }, 350);
     } else if (styleType === 'lance_mist') {
         if (typeof playSE === 'function') playSE('special_cutin');
-        actor.targetX = actor.x + Math.sin(actor.facing) * 2.5;
-        actor.targetZ = actor.z + Math.cos(actor.facing) * 2.5;
+        actor.state = 'dash_slash'; actor.tiltX = 0.55; actor.targetZ = 2.4;
         for (let i = 0; i < 5; i++) {
-            setTimeout(() => spawn3DEffect('ring', actor.x, 0.4, actor.z, [0.64, 0.6, 1.0, 0.85], 0.65), i * 85);
+            setTimeout(() => spawn3DEffect('ring', 0, 0.4, -1.5 + i*0.8, new Array(0.64, 0.6, 1.0, 0.9), 0.6), i * 70);
         }
-    } else if (styleType === 'bishop_cross') {
+        setTimeout(() => { if (actor) { actor.targetZ = 0; actor.tiltX = 0; actor.state = 'idle'; } }, 450);
+    } else if (styleType === 'bishop_cross' || styleType === 'rook_slash') {
         if (typeof playSE === 'function') playSE('critical');
+        actor.state = 'dash_slash'; actor.tiltX = 0.45;
+        const col = (styleType === 'bishop_cross') ? new Array(0.11, 0.82, 0.63, 0.95) : new Array(1.0, 0.25, 0.25, 0.95);
         for (let i = 0; i < 4; i++) {
-            setTimeout(() => spawn3DEffect('ring', fx, 0.4 + i*0.25, fz, [0.11, 0.82, 0.63, 0.9], 0.6), i * 130);
+            setTimeout(() => spawn3DEffect('ring', 0, 0.3 + i*0.3, 0, col, 0.6), i * 110);
         }
+        setTimeout(() => { if (actor) { actor.tiltX = 0; actor.state = 'idle'; } }, 500);
     } else if (styleType === 'bow_hyper') {
         if (typeof playSE === 'function') playSE('critical');
-        for (let i = 0; i < 6; i++) {
-            setTimeout(() => {
-                spawn3DEffect('ring', actor.x + Math.sin(actor.facing)*(1 + i*0.65), 0.7, actor.z + Math.cos(actor.facing)*(1 + i*0.65), [1.0, 0.62, 0.26, 0.95], 0.45);
-            }, i * 65);
-        }
-    } else if (styleType === 'rook_slash') {
-        if (typeof playSE === 'function') playSE('burst');
-        spawn3DEffect('ring', fx, 0.5, fz, [1.0, 0.25, 0.25, 0.95], 0.75);
+        actor.tiltX = -0.4;
+        setTimeout(() => {
+            if (!actor) return;
+            actor.tiltX = 0.25; actor.targetZ = -1.4;
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => spawn3DEffect('ring', 0, 0.7, -0.4 + i*0.65, new Array(1.0, 0.62, 0.26, 0.95), 0.45), i * 50);
+            }
+            setTimeout(() => { if (actor) { actor.targetZ = 0; actor.tiltX = 0; } }, 400);
+        }, 220);
     }
 }
-// ==============================================================================
-// 🎬 完全3D WebGLオープニングエンジン【4 / 4 - 前半】タイムライン
-// ==============================================================================
-M4.identity = function() {
-    return new Array(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
-};
 
+// 楽曲の展開と秒数に完全シンクロしたタイムライン
+const OP_TIMELINE = [
+    // 【0:00】最初は暗い中、真上から「光って回転する将棋盤」だけを見下ろす（駒なし）
+    { time: 0.1, id: 'sync_top_board', fn: () => {
+        clearOp3DScene();
+        window.opBgMode = 0; // 漆黒背景
+        window.opCam = {
+            angleY: 0, targetAngleY: null, spinSpeed: 0.65,
+            pitch: 1.38, targetPitch: 1.38, // 真上見下ろし
+            dist: 13.5, targetDist: 13.5,
+            targetY: 0.0, targetLookY: 0.0
+        };
+    }},
+    // 【0:24.5】歌パートが始まる3秒前に、カメラが真上から今の斜め画角へと降りてくる！
+    { time: 24.5, id: 'sync_cam_descend', fn: () => {
+        window.opCam.targetPitch = 0.48;
+        window.opCam.targetDist = 11.4;
+        window.opCam.targetLookY = 0.95;
+        window.opCam.spinSpeed = 0.45;
+    }},
+    // 【0:27.5】歌パート開始の瞬間！背景が夕焼け星雲に変わり、光エフェクトとともに「歩」が登場！
+    { time: 27.5, id: 'sync_vocal_pawn', fn: () => {
+        window.opBgMode = 1; // 1個目の背景へ
+        flashOpScreen(0.85);
+        const pawn = spawn3DPiece('op_center_actor', '歩', 0, 0, 0, 'normal');
+        pawn.state = 'morph_in';
+        spawn3DEffect('pillar', 0, 0, 0, new Array(1.0, 0.84, 0.2, 0.9), 0.65);
+        spawn3DEffect('ring', 0, 0.2, 0, new Array(1.0, 0.84, 0.2, 1.0), 0.85);
+        if (typeof playSE === 'function') playSE('counter');
+        setTimeout(() => { if (pawn) pawn.state = 'idle'; }, 450);
+    }},
+    // 【0:39.0】「成金の刃が〜」に合わせてぐるっと1秒回転で「と金」へ覚醒！
+    { time: 39.0, id: 'sync_tokin', fn: () => {
+        morphOpPieceSmoothly('と', 'tokin', (tokin) => {
+            setTimeout(() => fire3DVoidSpecial(tokin, 'tokin_bomb'), 400);
+        });
+    }},
+    // 【0:45.0】2個目の背景（虹の天空）へ切替＆「弓」演武
+    { time: 45.0, id: 'sync_bow', fn: () => {
+        window.opBgMode = 2;
+        morphOpPieceSmoothly('弓', 'normal', (bow) => {
+            setTimeout(() => fire3DVoidSpecial(bow, 'bow_hyper'), 300);
+        });
+    }},
+    // 【0:50.0〜1:00】Bメロ：桂・香・角・飛の虚空スペシャル連発
+    { time: 50.0, id: 'sync_knight', fn: () => {
+        morphOpPieceSmoothly('桂', 'normal', (k) => setTimeout(() => fire3DVoidSpecial(k, 'knight_laser'), 250));
+    }},
+    { time: 53.5, id: 'sync_lance', fn: () => {
+        morphOpPieceSmoothly('香', 'normal', (l) => setTimeout(() => fire3DVoidSpecial(l, 'lance_mist'), 250));
+    }},
+    { time: 57.0, id: 'sync_bishop', fn: () => {
+        morphOpPieceSmoothly('角', 'normal', (b) => setTimeout(() => fire3DVoidSpecial(b, 'bishop_cross'), 250));
+    }},
+    { time: 60.5, id: 'sync_rook', fn: () => {
+        morphOpPieceSmoothly('飛', 'normal', (r) => setTimeout(() => fire3DVoidSpecial(r, 'rook_slash'), 250));
+    }}
+];
+// ==============================================================================
+// 🎬 完全3D WebGLオープニング（消滅バグ根絶＆歌シンクロ版 2-B 前半）
+// ==============================================================================
 function buildOpEffectMeshes(gl) {
     const ringPos = [], ringNorm = [], ringUv = [];
     const seg = 32, rIn = 0.72, rOut = 1.0;
@@ -6807,10 +6950,10 @@ function buildOpEffectMeshes(gl) {
         for (let k = 0; k < 6; k++) { ringNorm.push(0, 1, 0); ringUv.push(0.5, 0.5); }
     }
 
-    const pilPos = [
+    const pilPos = new Array(
         -0.45,0,0,  0.45,0,0,  0.45,7.5,0,  -0.45,0,0,  0.45,7.5,0,  -0.45,7.5,0,
         0,0,-0.45,  0,0,0.45,  0,7.5,0.45,  0,0,-0.45,  0,7.5,0.45,  0,7.5,-0.45
-    ];
+    );
     const pilNorm = [], pilUv = [];
     for (let k = 0; k < 12; k++) { pilNorm.push(0, 1, 0); pilUv.push(0.5, 0.5); }
 
@@ -6826,115 +6969,108 @@ function buildOpEffectMeshes(gl) {
     };
 }
 
-const OP_TIMELINE = [
-    { time: 0.2, id: 'w3d_intro_1', fn: () => {
+// サビ（1:04〜1:59）のタイムラインを追加（3個目の背景＋盤上での重厚な剣戟バトル）
+OP_TIMELINE.push(
+    { time: 64.0, id: 'sync_chorus_battle', fn: () => {
         clearOp3DScene();
-        window.opCam = { angleY: 0.3, spinSpeed: 0.38, pitch: 0.52, dist: 14.2, targetY: 0.8 };
-        spawn3DPiece('op_p1', '歩', 0, 1.2, Math.PI, 'normal');
-    }},
-    { time: 14.0, id: 'w3d_intro_2', fn: () => {
-        window.opCam.dist = 11.2;
-        window.opCam.pitch = 0.42;
+        window.opBgMode = 3; // 3個目の背景（満月と星空の夜空）
+        flashOpScreen(0.95);
         window.opCam.spinSpeed = 0.55;
-        spawn3DEffect('ring', 0, 0.1, 1.2, [1.0, 0.84, 0.15, 0.9], 0.75);
-    }},
-    { time: 28.0, id: 'w3d_a_tokin', fn: () => {
-        clearOp3DScene();
-        window.opCam = { angleY: window.opCam.angleY, spinSpeed: 0.48, pitch: 0.46, dist: 11.0, targetY: 0.9 };
-        const tokin = spawn3DPiece('op_tokin', 'と', 0, 1.5, Math.PI, 'tokin');
-        spawn3DEffect('ring', 0, 0.15, 1.5, [1.0, 0.25, 0.25, 0.95], 0.7);
-        setTimeout(() => fire3DVoidSpecial(tokin, 'tokin_bomb'), 1100);
-    }},
-    { time: 39.0, id: 'w3d_a_bow', fn: () => {
-        clearOp3DScene();
-        window.opCam.spinSpeed = -0.52;
-        const bow = spawn3DPiece('op_bow', '弓', -1.8, 0, Math.PI / 2, 'normal');
-        setTimeout(() => fire3DVoidSpecial(bow, 'bow_hyper'), 750);
-    }},
-    { time: 50.0, id: 'w3d_b_knight', fn: () => {
-        clearOp3DScene();
-        window.opCam = { angleY: window.opCam.angleY, spinSpeed: 0.58, pitch: 0.44, dist: 11.5, targetY: 1.0 };
-        const knight = spawn3DPiece('op_knight', '桂', 0, 1.6, Math.PI, 'normal');
-        setTimeout(() => fire3DVoidSpecial(knight, 'knight_laser'), 400);
-    }},
-    { time: 53.5, id: 'w3d_b_lance', fn: () => {
-        clearOp3DScene();
-        const lance = spawn3DPiece('op_lance', '香', -2.2, 0, Math.PI / 2, 'normal');
-        setTimeout(() => fire3DVoidSpecial(lance, 'lance_mist'), 350);
-    }},
-    { time: 57.0, id: 'w3d_b_bishop', fn: () => {
-        clearOp3DScene();
-        const bishop = spawn3DPiece('op_bishop', '角', 0, -1.5, 0, 'normal');
-        setTimeout(() => fire3DVoidSpecial(bishop, 'bishop_cross'), 350);
-    }},
-    { time: 60.5, id: 'w3d_b_rook', fn: () => {
-        clearOp3DScene();
-        const rook = spawn3DPiece('op_rook', '飛', 2.0, 0, -Math.PI / 2, 'normal');
-        setTimeout(() => fire3DVoidSpecial(rook, 'rook_slash'), 350);
-    }},
-    { time: 64.0, id: 'w3d_chorus_battle', fn: () => {
-        clearOp3DScene();
-        window.opCam = { angleY: window.opCam.angleY, spinSpeed: 0.85, pitch: 0.48, dist: 12.2, targetY: 1.0 };
+        window.opCam.targetPitch = 0.46;
+        window.opCam.targetDist = 11.4;
 
-        const boss = spawn3DPiece('op_boss', '王', 0, -1.8, 0, 'boss');
-        const f1 = spawn3DPiece('op_f1', '飛', -1.8, 2.2, Math.PI, 'normal');
-        const f2 = spawn3DPiece('op_f2', '角', 1.8, 2.2, Math.PI, 'normal');
-        const f3 = spawn3DPiece('op_f3', 'と', 0, 2.8, Math.PI, 'tokin');
+        const boss = spawn3DPiece('op_boss', '王', 0, -1.7, 0, 'boss');
+        const f1 = spawn3DPiece('op_f1', '飛', -1.8, 1.9, Math.PI, 'normal');
+        const f2 = spawn3DPiece('op_f2', '角', 1.8, 1.9, Math.PI, 'normal');
+        const f3 = spawn3DPiece('op_f3', 'と', 0, 2.4, Math.PI, 'tokin');
 
         const team = new Array(f1, f2, f3);
-        for (let turn = 0; turn < 10; turn++) {
+        for (let turn = 0; turn < 11; turn++) {
             setTimeout(() => {
                 if (opFinished) return;
                 const atk = team[turn % team.length];
                 if (!atk || !boss) return;
 
                 const ox = atk.x, oz = atk.z;
-                atk.state = 'attack';
-                atk.tiltX = 0.45;
+                const isClash = (turn % 3 === 2);
+
+                atk.state = 'dash_slash';
+                atk.tiltX = 0.52;
                 atk.targetX = 0;
-                atk.targetZ = -0.9;
-                atk.targetY = 0.9;
+                atk.targetZ = -0.85;
+                atk.targetY = 0.12;
+
+                if (isClash) {
+                    boss.state = 'dash_slash';
+                    boss.tiltX = 0.42;
+                    boss.targetZ = -1.25;
+                }
 
                 setTimeout(() => {
-                    if (typeof playSE === 'function') playSE(turn % 3 === 0 ? 'counter' : 'hit');
-                    spawn3DEffect('ring', 0, 0.7, -1.4, turn % 2 === 0 ? [0.0, 0.82, 1.0, 0.95] : [1.0, 0.25, 0.25, 0.95], 0.6);
-                    boss.state = 'knockback';
-                    boss.tiltX = -0.45;
-                    setTimeout(() => { if (boss) { boss.state = 'idle'; boss.tiltX = 0; } }, 240);
+                    if (!atk || !boss) return;
+                    if (typeof playSE === 'function') playSE(isClash ? 'counter' : 'hit');
+                    spawn3DEffect(
+                        'ring', 0, 0.45, -1.1,
+                        isClash ? new Array(1.0, 0.84, 0.15, 1.0) : new Array(0.0, 0.82, 1.0, 0.95),
+                        0.55
+                    );
 
-                    atk.targetX = ox;
-                    atk.targetZ = oz;
-                    atk.targetY = 0;
-                    atk.tiltX = 0;
-                    atk.state = 'idle';
-                }, 260);
-            }, 600 + turn * 1650);
+                    if (isClash) {
+                        boss.state = 'knockback';
+                        boss.tiltX = -0.35;
+                        boss.targetZ = -2.6;
+                        atk.targetZ = 1.4;
+                        atk.tiltX = -0.35;
+                        setTimeout(() => {
+                            if (boss) { boss.targetZ = -1.7; boss.tiltX = 0; boss.state = 'idle'; }
+                        }, 320);
+                    } else {
+                        boss.state = 'knockback';
+                        boss.tiltX = -0.48;
+                        boss.targetZ = -2.3;
+                        setTimeout(() => {
+                            if (boss) { boss.targetZ = -1.7; boss.tiltX = 0; boss.state = 'idle'; }
+                        }, 260);
+                    }
+
+                    setTimeout(() => {
+                        if (!atk) return;
+                        atk.targetX = ox;
+                        atk.targetZ = oz;
+                        atk.targetY = 0;
+                        atk.tiltX = 0;
+                        atk.state = 'idle';
+                    }, isClash ? 180 : 80);
+                }, 210);
+            }, 400 + turn * 1450);
         }
     }},
-    { time: 83.0, id: 'w3d_chorus_ko', fn: () => {
-        window.opCam.spinSpeed = 1.1;
-        window.opCam.dist = 13.5;
+    { time: 83.0, id: 'sync_chorus_ko', fn: () => {
+        window.opCam.spinSpeed = 0.95;
+        window.opCam.targetDist = 13.0;
         const boss = window.op3DObjects.find(o => o.id === 'op_boss');
         if (boss) {
             boss.state = 'spin_ko';
             boss.targetY = 7.5;
             boss.targetZ = -4.5;
         }
-        spawn3DEffect('pillar', 0, 0, -1.8, [1.0, 0.25, 0.25, 0.95], 0.85);
-        spawn3DEffect('ring', 0, 0.2, -1.8, [1.0, 0.84, 0.15, 0.95], 0.85);
+        spawn3DEffect('pillar', 0, 0, -1.6, new Array(1.0, 0.25, 0.25, 0.95), 0.85);
+        spawn3DEffect('ring', 0, 0.2, -1.6, new Array(1.0, 0.84, 0.15, 0.95), 0.85);
         if (typeof playSE === 'function') playSE('burst');
     }},
-    { time: 92.0, id: 'w3d_outro', fn: () => {
+    { time: 92.0, id: 'sync_outro', fn: () => {
         clearOp3DScene();
-        window.opCam = { angleY: window.opCam.angleY, spinSpeed: 0.35, pitch: 0.52, dist: 13.0, targetY: 0.9 };
+        window.opCam.spinSpeed = 0.35;
+        window.opCam.targetPitch = 0.50;
+        window.opCam.targetDist = 12.8;
         const frontRow = new Array('歩', '香', '桂', '弓');
         const backRow  = new Array('飛', '角', '銀', '金');
-        frontRow.forEach((k, i) => spawn3DPiece('out_f_' + i, k, -2.4 + i * 1.6, 1.3, Math.PI, 'normal'));
-        backRow.forEach((k, i)  => spawn3DPiece('out_b_' + i, k, -2.4 + i * 1.6, -1.3, Math.PI, 'normal'));
+        frontRow.forEach((k, i) => spawn3DPiece('out_f_' + i, k, -2.4 + i * 1.6, 1.2, 0, 'normal'));
+        backRow.forEach((k, i)  => spawn3DPiece('out_b_' + i, k, -2.4 + i * 1.6, -1.2, 0, 'normal'));
     }}
-];
+);
 // ==============================================================================
-// 🎬 完全3D WebGLオープニングエンジン【4 / 4 - 後半】描画ループ＆制御
+// 🎬 完全3D WebGLオープニング（消滅バグ根絶＆歌シンクロ版 2-B 後半）
 // ==============================================================================
 function startOpeningSequence() {
     if (opStarted) return;
@@ -6972,22 +7108,30 @@ function startOpeningSequence() {
             }
         });
 
-        window.opCam.angleY += window.opCam.spinSpeed * dt;
+        // カメラ俯瞰角度・距離・回転の滑らかな補間
+        window.opCam.pitch += (window.opCam.targetPitch - window.opCam.pitch) * 0.06;
+        window.opCam.dist  += (window.opCam.targetDist - window.opCam.dist) * 0.06;
+        window.opCam.targetY += (window.opCam.targetLookY - window.opCam.targetY) * 0.06;
+
+        if (window.opCam.targetAngleY !== null) {
+            const diff = window.opCam.targetAngleY - window.opCam.angleY;
+            if (Math.abs(diff) < 0.04) {
+                window.opCam.angleY = window.opCam.targetAngleY;
+                window.opCam.targetAngleY = null;
+            } else {
+                window.opCam.angleY += diff * 0.11;
+            }
+        } else {
+            window.opCam.angleY += window.opCam.spinSpeed * dt;
+        }
 
         if (wgl && fxMeshes) {
             const gl = wgl.gl;
             gl.viewport(0, 0, 600, 450);
-            gl.clearColor(0.04, 0.04, 0.09, 1.0);
+            gl.clearColor(0.02, 0.02, 0.05, 1.0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            const proj = M4.perspective(Math.PI / 4, 600 / 450, 0.1, 100.0);
-            let view = M4.identity();
-            view = M4.translate(view, 0, -window.opCam.targetY, -window.opCam.dist);
-            view = M4.rotateX(view, window.opCam.pitch);
-            view = M4.rotateY(view, window.opCam.angleY);
-            const vp = M4.multiply(proj, view);
-
-            const drawMesh = (mesh, modelMat, tex, colorArr) => {
+            const drawMesh = (mesh, mvpMat, modelMat, tex, colorArr, unlit = 0, glow = 0.0) => {
                 gl.bindBuffer(gl.ARRAY_BUFFER, mesh.pos);
                 gl.enableVertexAttribArray(wgl.aPos);
                 gl.vertexAttribPointer(wgl.aPos, 3, gl.FLOAT, false, 0, 0);
@@ -7000,9 +7144,10 @@ function startOpeningSequence() {
                 gl.enableVertexAttribArray(wgl.aUv);
                 gl.vertexAttribPointer(wgl.aUv, 2, gl.FLOAT, false, 0, 0);
 
-                const mvp = M4.multiply(vp, modelMat);
-                gl.uniformMatrix4fv(wgl.uMvp, false, new Float32Array(mvp));
+                gl.uniformMatrix4fv(wgl.uMvp, false, new Float32Array(mvpMat));
                 gl.uniformMatrix4fv(wgl.uModel, false, new Float32Array(modelMat));
+                gl.uniform1i(wgl.uUnlit, unlit);
+                gl.uniform1f(wgl.uGlow, glow);
 
                 if (tex) {
                     gl.activeTexture(gl.TEXTURE0);
@@ -7015,13 +7160,33 @@ function startOpeningSequence() {
                 gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
             };
 
-            const boardTex = getOpWebGLTexture(wgl, 'board', '');
-            drawMesh(wgl.boardMesh, M4.identity(), boardTex, null);
+            // 0. WebGL内背景プレートを最背面に描画（透明抜けによる消失を100%防止）
+            gl.disable(gl.DEPTH_TEST);
+            const bgTex = wgl.bgTextures[window.opBgMode || 0];
+            drawMesh(wgl.bgMesh, M4.identity(), M4.identity(), bgTex, null, 1, 0.0);
+            gl.enable(gl.DEPTH_TEST);
 
+            const proj = M4.perspective(Math.PI / 4, 600 / 450, 0.1, 100.0);
+            let view = M4.identity();
+            view = M4.translate(view, 0, -window.opCam.targetY, -window.opCam.dist);
+            view = M4.rotateX(view, window.opCam.pitch);
+            view = M4.rotateY(view, window.opCam.angleY);
+            const vp = M4.multiply(proj, view);
+
+            // 1. 3D将棋盤（イントロ中は黄金に鼓動するように発光）
+            const boardGlow = (window.opBgMode === 0) ? (0.28 + Math.sin(now * 0.008) * 0.18) : 0.05;
+            const boardTex = getOpWebGLTexture(wgl, 'board', '');
+            drawMesh(wgl.boardMesh, vp, M4.identity(), boardTex, null, 0, boardGlow);
+
+            // 2. 3D将棋駒の描画
             window.op3DObjects.forEach((obj, idx) => {
                 obj.x += (obj.targetX - obj.x) * 0.22;
                 obj.y += (obj.targetY - obj.y) * 0.22;
                 obj.z += (obj.targetZ - obj.z) * 0.22;
+
+                if (obj.state === 'morph_out' || obj.state === 'morph_in') {
+                    obj.facing += 0.28;
+                }
 
                 let sx = 1.0, sy = 1.0, sz = 1.0;
                 if (obj.state === 'spin_ko') {
@@ -7029,10 +7194,12 @@ function startOpeningSequence() {
                     sx = 1.25; sy = 1.25; sz = 1.25;
                 } else if (obj.state === 'knockback') {
                     sx = 1.24; sy = 0.76; sz = 1.24;
-                } else if (obj.state === 'attack') {
+                } else if (obj.state === 'dash_slash') {
                     sx = 0.90; sy = 1.16; sz = 0.90;
                 } else {
-                    const breath = Math.sin(now * 0.0055 + idx * 1.1) * 0.045;
+                    const bounce = (obj.id === 'op_center_actor') ? Math.abs(Math.sin(now * 0.009)) * 0.22 : 0;
+                    obj.y = obj.targetY + bounce;
+                    const breath = Math.sin(now * 0.006 + idx) * 0.045;
                     sx = 1 - breath * 0.65;
                     sy = 1 + breath;
                     sz = 1 - breath * 0.65;
@@ -7047,9 +7214,10 @@ function startOpeningSequence() {
 
                 const texKey = obj.kanji + '_' + obj.type;
                 const pTex = getOpWebGLTexture(wgl, texKey, obj.kanji, obj.type === 'boss', obj.type === 'tokin');
-                drawMesh(wgl.pieceMesh, m, pTex, null);
+                drawMesh(wgl.pieceMesh, M4.multiply(vp, m), m, pTex, null, 0, 0.08);
             });
 
+            // 3. 3Dエフェクト（リング・光柱）
             gl.enable(gl.BLEND);
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
             for (let i = window.op3DEffects.length - 1; i >= 0; i--) {
@@ -7061,18 +7229,18 @@ function startOpeningSequence() {
                 }
                 const prog = fx.age / fx.maxLife;
                 const alpha = 1.0 - prog;
-                const col = new Array(fx.color[0], fx.color[1], fx.color[2], alpha);
+                const col = new Array(fx.color, fx.color, fx.color, alpha);
 
                 let fm = M4.identity();
                 fm = M4.translate(fm, fx.x, fx.y, fx.z);
                 if (fx.kind === 'ring') {
                     const rScale = 0.3 + prog * 2.5;
                     fm = M4.scale(fm, rScale, 1.0, rScale);
-                    drawMesh(fxMeshes.ring, fm, null, col);
+                    drawMesh(fxMeshes.ring, M4.multiply(vp, fm), fm, null, col, 1, 0.0);
                 } else if (fx.kind === 'pillar') {
                     const pScale = 1.2 - prog * 0.8;
                     fm = M4.scale(fm, pScale, 1.0, pScale);
-                    drawMesh(fxMeshes.pillar, fm, null, col);
+                    drawMesh(fxMeshes.pillar, M4.multiply(vp, fm), fm, null, col, 1, 0.0);
                 }
             }
             gl.disable(gl.BLEND);
@@ -7105,581 +7273,9 @@ acceptNotice = function() {
     _origAcceptNoticeForOp.apply(this, arguments);
     startOpeningSequence();
 };
-// ==============================================================================
-// 🔄 「中央配置 ＆ ぐるっと1秒正面回転キャラ交代」アップグレードパッチ
-// ==============================================================================
-window.opCam.targetAngleY = null; // 正面へ素早く回り込む際の目標角度
 
-// 違和感なくキャラを変える「スピン＆カメラ正面回り込み交代」関数
-function morphOpPieceSmoothly(nextKanji, nextType = 'normal', nextFacing = 0, onReadyCallback = null) {
-    // 1. カメラを約1秒で駒の正面（facingの反対側）へ素早く回り込ませる
-    const desiredCamAngle = -nextFacing;
-    const currentNorm = window.opCam.angleY % (Math.PI * 2);
-    let diff = (desiredCamAngle - currentNorm) % (Math.PI * 2);
-    if (diff < -Math.PI) diff += Math.PI * 2;
-    if (diff > Math.PI) diff -= Math.PI * 2;
-    // 1回転分（2π）を足して「ぐるっと回る」ダイナミックな動きにする
-    window.opCam.targetAngleY = window.opCam.angleY + diff + (diff >= 0 ? Math.PI * 2 : -Math.PI * 2);
-
-    // 2. 今いる駒があれば高速スピンさせ、0.5秒後（回転の頂点）で新しい駒へ違和感なくすり替える
-    const oldObj = window.op3DObjects;
-    if (oldObj) {
-        oldObj.state = 'morph_out';
-        oldObj.morphStart = performance.now();
-    }
-
-    setTimeout(() => {
-        clearOp3DScene();
-        // 将棋盤のド真ん中（x: 0, z: 0）に配置！
-        const newObj = spawn3DPiece('op_center_actor', nextKanji, 0, 0, nextFacing, nextType);
-        newObj.state = 'morph_in';
-        newObj.morphStart = performance.now();
-        spawn3DEffect('ring', 0, 0.25, 0, nextType === 'tokin' ? [1.0, 0.25, 0.25, 0.95] : [1.0, 0.84, 0.2, 0.9], 0.65);
-
-        setTimeout(() => {
-            if (newObj) newObj.state = 'idle';
-            if (onReadyCallback) onReadyCallback(newObj);
-        }, 500);
-    }, 480);
-}
-
-// タイムラインを「全キャラ盤面中央配置＆ぐるっと正面回転交代」仕様に上書き
-OP_TIMELINE.length = 0;
-OP_TIMELINE.push(
-    // 【0:00】イントロ：盤面のド真ん中（0, 0）に「歩」が正面向きで堂々と立つ
-    { time: 0.2, id: 'c3d_intro_1', fn: () => {
-        clearOp3DScene();
-        window.opCam = { angleY: 0.35, targetAngleY: null, spinSpeed: 0.38, pitch: 0.50, dist: 13.5, targetY: 0.85 };
-        spawn3DPiece('op_center_actor', '歩', 0, 0, 0, 'normal');
-    }},
-    { time: 14.0, id: 'c3d_intro_2', fn: () => {
-        window.opCam.dist = 10.8;
-        window.opCam.pitch = 0.42;
-        window.opCam.spinSpeed = 0.55;
-        spawn3DEffect('ring', 0, 0.15, 0, [1.0, 0.84, 0.15, 0.9], 0.75);
-    }},
-
-    // 【0:28】Aメロ：「歩」がぐるっと正面に向きながら「と金」へ違和感なく成金進化！
-    { time: 28.0, id: 'c3d_a_tokin', fn: () => {
-        window.opCam.dist = 10.5;
-        window.opCam.pitch = 0.44;
-        window.opCam.spinSpeed = 0.42;
-        morphOpPieceSmoothly('と', 'tokin', 0, (tokin) => {
-            setTimeout(() => fire3DVoidSpecial(tokin, 'tokin_bomb'), 550);
-        });
-    }},
-
-    // 【0:39】Aメロ後半：ぐるっと1秒で正面に向きながら「弓」へ交代 ➔ 虚空へ極太矢演武
-    { time: 39.0, id: 'c3d_a_bow', fn: () => {
-        window.opCam.spinSpeed = -0.45;
-        morphOpPieceSmoothly('弓', 'normal', 0, (bow) => {
-            setTimeout(() => fire3DVoidSpecial(bow, 'bow_hyper'), 400);
-        });
-    }},
-
-    // 【0:50】Bメロ：桂 ➔ 香 ➔ 角 ➔ 飛 が1秒の正面回転で次々と滑らかにバトンタッチ！
-    { time: 50.0, id: 'c3d_b_knight', fn: () => {
-        window.opCam.spinSpeed = 0.50;
-        morphOpPieceSmoothly('桂', 'normal', 0, (knight) => {
-            setTimeout(() => fire3DVoidSpecial(knight, 'knight_laser'), 250);
-        });
-    }},
-    { time: 53.5, id: 'c3d_b_lance', fn: () => {
-        morphOpPieceSmoothly('香', 'normal', 0, (lance) => {
-            setTimeout(() => fire3DVoidSpecial(lance, 'lance_mist'), 250);
-        });
-    }},
-    { time: 57.0, id: 'c3d_b_bishop', fn: () => {
-        morphOpPieceSmoothly('角', 'normal', 0, (bishop) => {
-            setTimeout(() => fire3DVoidSpecial(bishop, 'bishop_cross'), 250);
-        });
-    }},
-    { time: 60.5, id: 'c3d_b_rook', fn: () => {
-        morphOpPieceSmoothly('飛', 'normal', 0, (rook) => {
-            setTimeout(() => fire3DVoidSpecial(rook, 'rook_slash'), 250);
-        });
-    }},
-
-    // 【1:04】サビ：3D将棋盤の上で王将（中央奥）vs 味方駒の3D立体バトル
-    { time: 64.0, id: 'c3d_chorus_battle', fn: () => {
-        clearOp3DScene();
-        window.opCam = { angleY: window.opCam.angleY, targetAngleY: null, spinSpeed: 0.85, pitch: 0.48, dist: 12.2, targetY: 1.0 };
-
-        const boss = spawn3DPiece('op_boss', '王', 0, -1.6, 0, 'boss');
-        const f1 = spawn3DPiece('op_f1', '飛', -1.8, 2.0, Math.PI, 'normal');
-        const f2 = spawn3DPiece('op_f2', '角', 1.8, 2.0, Math.PI, 'normal');
-        const f3 = spawn3DPiece('op_f3', 'と', 0, 2.5, Math.PI, 'tokin');
-
-        const team = new Array(f1, f2, f3);
-        for (let turn = 0; turn < 10; turn++) {
-            setTimeout(() => {
-                if (opFinished) return;
-                const atk = team[turn % team.length];
-                if (!atk || !boss) return;
-
-                const ox = atk.x, oz = atk.z;
-                atk.state = 'attack';
-                atk.tiltX = 0.45;
-                atk.targetX = 0;
-                atk.targetZ = -0.7;
-                atk.targetY = 0.85;
-
-                setTimeout(() => {
-                    if (typeof playSE === 'function') playSE(turn % 3 === 0 ? 'counter' : 'hit');
-                    spawn3DEffect('ring', 0, 0.7, -1.3, turn % 2 === 0 ? [0.0, 0.82, 1.0, 0.95] : [1.0, 0.25, 0.25, 0.95], 0.6);
-                    boss.state = 'knockback';
-                    boss.tiltX = -0.45;
-                    setTimeout(() => { if (boss) { boss.state = 'idle'; boss.tiltX = 0; } }, 240);
-
-                    atk.targetX = ox;
-                    atk.targetZ = oz;
-                    atk.targetY = 0;
-                    atk.tiltX = 0;
-                    atk.state = 'idle';
-                }, 260);
-            }, 600 + turn * 1650);
-        }
-    }},
-
-    // 【1:23】クライマックス：王将を3D上空へ吹っ飛ばし、3D光柱KOバースト！
-    { time: 83.0, id: 'c3d_chorus_ko', fn: () => {
-        window.opCam.spinSpeed = 1.1;
-        window.opCam.dist = 13.5;
-        const boss = window.op3DObjects.find(o => o.id === 'op_boss');
-        if (boss) {
-            boss.state = 'spin_ko';
-            boss.targetY = 7.5;
-            boss.targetZ = -4.5;
-        }
-        spawn3DEffect('pillar', 0, 0, -1.6, [1.0, 0.25, 0.25, 0.95], 0.85);
-        spawn3DEffect('ring', 0, 0.2, -1.6, [1.0, 0.84, 0.15, 0.95], 0.85);
-        if (typeof playSE === 'function') playSE('burst');
-    }},
-
-    // 【1:30】アウトロ：全8駒が盤面中央を中心に美しく整列フィナーレ
-    { time: 92.0, id: 'c3d_outro', fn: () => {
-        clearOp3DScene();
-        window.opCam = { angleY: window.opCam.angleY, targetAngleY: 0, spinSpeed: 0.35, pitch: 0.50, dist: 12.8, targetY: 0.9 };
-        const frontRow = new Array('歩', '香', '桂', '弓');
-        const backRow  = new Array('飛', '角', '銀', '金');
-        frontRow.forEach((k, i) => spawn3DPiece('out_f_' + i, k, -2.4 + i * 1.6, 1.2, 0, 'normal'));
-        backRow.forEach((k, i)  => spawn3DPiece('out_b_' + i, k, -2.4 + i * 1.6, -1.2, 0, 'normal'));
-    }}
-);
-
-// カメラの「約1秒で素早く正面へ回り込む補間」と「駒の変身スピン」を毎フレーム更新
-setInterval(() => {
-    if (opFinished || !opStarted) return;
-
-    // 目標角度（正面）がセットされている間は、約1秒で素早く正面へ吸い付くように回転
-    if (window.opCam.targetAngleY !== null) {
-        const diff = window.opCam.targetAngleY - window.opCam.angleY;
-        if (Math.abs(diff) < 0.04) {
-            window.opCam.angleY = window.opCam.targetAngleY;
-            window.opCam.targetAngleY = null; // 正面に到達したら通常のゆっくり回転に戻る
-        } else {
-            window.opCam.angleY += diff * 0.11;
-        }
-    }
-
-    // 変身中の駒にシームレスなY軸スピンを加える
-    window.op3DObjects.forEach(obj => {
-        if (obj.state === 'morph_out' || obj.state === 'morph_in') {
-            obj.facing += 0.28;
-        } else if (obj.id === 'op_center_actor' && obj.state === 'idle') {
-            // 変身完了後は盤の辺と平行な正面（0）にピタッと固定
-            obj.facing = 0;
-        }
-    });
-}, 16);
-// ==============================================================================
-// 🔥 「超激しい3Dアクション・モーション＆空中コンボ」強化パッチ
-// ==============================================================================
-window.opCam.baseDist = 11.5;
-window.opCam.basePitch = 0.48;
-
-// 1. 虚空スペシャル演武を「宙返り・超高空跳躍・超高速突進」の激しいモーションに上書き
-fire3DVoidSpecial = function(actor, styleType) {
-    if (!actor) return;
-
-    // カメラも技に合わせてグッとズームイン！
-    window.opCam.dist = 8.8;
-    setTimeout(() => { window.opCam.dist = window.opCam.baseDist; }, 650);
-
-    if (styleType === 'tokin_bomb') {
-        // と金：前転宙返り（フロントフリップ）しながら金爆撃を乱射！
-        if (typeof playSE === 'function') playSE('burst');
-        actor.state = 'flip_attack';
-        actor.targetY = 2.4;
-        setTimeout(() => { if (actor) actor.targetY = 0; }, 380);
-        for (let i = 0; i < 7; i++) {
-            setTimeout(() => {
-                const ang = (i / 7) * Math.PI * 2;
-                spawn3DEffect('ring', Math.cos(ang) * 1.8, 0.3 + (i % 3) * 0.4, Math.sin(ang) * 1.8, [1.0, 0.84, 0.0, 0.95], 0.55);
-                shakeOpScreen(14, 150);
-            }, i * 110);
-        }
-        setTimeout(() => { if (actor) { actor.state = 'idle'; actor.tiltX = 0; } }, 750);
-
-    } else if (styleType === 'knight_laser') {
-        // 桂：超高空大ジャンプ ➔ 急降下叩きつけレーザー！
-        if (typeof playSE === 'function') playSE('jump');
-        actor.state = 'high_jump';
-        actor.targetY = 3.8;
-        setTimeout(() => {
-            if (!actor) return;
-            if (typeof playSE === 'function') playSE('critical');
-            actor.targetY = 0;
-            actor.state = 'squash_land';
-            spawn3DEffect('pillar', 0, 0, 1.4, [0.0, 0.82, 1.0, 1.0], 0.65);
-            spawn3DEffect('ring', 0, 0.1, 1.4, [0.0, 0.82, 1.0, 0.95], 0.75);
-            shakeOpScreen(22, 350);
-            setTimeout(() => { if (actor) actor.state = 'idle'; }, 280);
-        }, 360);
-
-    } else if (styleType === 'lance_mist') {
-        // 香：後方へ溜めてから弾丸のように超高速ダッシュ突進！
-        if (typeof playSE === 'function') playSE('special_cutin');
-        actor.targetZ = -2.6;
-        actor.tiltX = -0.35;
-        setTimeout(() => {
-            if (!actor) return;
-            actor.state = 'dash_rush';
-            actor.tiltX = 0.58; // 猛烈な前傾姿勢！
-            actor.targetZ = 2.8;
-            for (let i = 0; i < 6; i++) {
-                setTimeout(() => spawn3DEffect('ring', 0, 0.4, -2.0 + i * 0.85, [0.64, 0.6, 1.0, 0.9], 0.6), i * 65);
-            }
-            setTimeout(() => {
-                if (!actor) return;
-                actor.targetZ = 0;
-                actor.tiltX = 0;
-                actor.state = 'squash_land';
-                setTimeout(() => { if (actor) actor.state = 'idle'; }, 220);
-            }, 450);
-        }, 200);
-
-    } else if (styleType === 'bishop_cross' || styleType === 'rook_slash') {
-        // 角・飛：大跳躍トルネード連続回転斬り！
-        if (typeof playSE === 'function') playSE('critical');
-        actor.state = 'tornado_spin';
-        actor.targetY = 1.9;
-        const col = (styleType === 'bishop_cross') ? [0.11, 0.82, 0.63, 0.95] : [1.0, 0.25, 0.25, 0.95];
-        for (let i = 0; i < 5; i++) {
-            setTimeout(() => {
-                spawn3DEffect('ring', 0, 0.4 + i * 0.35, 0, col, 0.65);
-                shakeOpScreen(15, 160);
-            }, i * 110);
-        }
-        setTimeout(() => {
-            if (!actor) return;
-            actor.targetY = 0;
-            actor.state = 'squash_land';
-            setTimeout(() => { if (actor) actor.state = 'idle'; }, 240);
-        }, 550);
-
-    } else if (styleType === 'bow_hyper') {
-        // 弓：大きく後ろへ反り返ってチャージ ➔ 反動バックステップ発射！
-        if (typeof playSE === 'function') playSE('critical');
-        actor.tiltX = -0.45;
-        setTimeout(() => {
-            if (!actor) return;
-            actor.tiltX = 0.25;
-            actor.targetZ = -1.8;
-            flashOpScreen(0.75);
-            shakeOpScreen(18, 300);
-            for (let i = 0; i < 7; i++) {
-                setTimeout(() => {
-                    spawn3DEffect('ring', 0, 0.7, -0.5 + i * 0.65, [1.0, 0.62, 0.26, 0.95], 0.45);
-                }, i * 50);
-            }
-            setTimeout(() => {
-                if (actor) { actor.targetZ = 0; actor.tiltX = 0; actor.state = 'idle'; }
-            }, 420);
-        }, 240);
-    }
-};
-
-// 2. サビの3Dバトルを「打ち上げ空中コンボ＆地面叩きつけ」の激闘に差し替え
-const chorusEv = OP_TIMELINE.find(e => e.id === 'c3d_chorus_battle');
-if (chorusEv) {
-    chorusEv.fn = () => {
-        clearOp3DScene();
-        window.opCam = { angleY: window.opCam.angleY, targetAngleY: null, spinSpeed: 1.05, pitch: 0.44, dist: 11.2, targetY: 1.2 };
-
-        const boss = spawn3DPiece('op_boss', '王', 0, -1.5, 0, 'boss');
-        const f1 = spawn3DPiece('op_f1', '飛', -2.0, 2.0, Math.PI, 'normal');
-        const f2 = spawn3DPiece('op_f2', '角', 2.0, 2.0, Math.PI, 'normal');
-        const f3 = spawn3DPiece('op_f3', 'と', 0, 2.5, Math.PI, 'tokin');
-
-        const team = new Array(f1, f2, f3);
-        for (let turn = 0; turn < 12; turn++) {
-            setTimeout(() => {
-                if (opFinished) return;
-                const atk = team[turn % team.length];
-                if (!atk || !boss) return;
-
-                const ox = atk.x, oz = atk.z;
-                const isAirCombo = (turn % 2 === 1); // 奇数ターンは空中打ち上げコンボ！
-
-                atk.state = isAirCombo ? 'tornado_spin' : 'dash_rush';
-                atk.tiltX = 0.55;
-                atk.targetX = 0;
-                atk.targetZ = -1.0;
-                atk.targetY = isAirCombo ? 2.6 : 0.6;
-
-                // カメラも攻撃の瞬間にズームイン！
-                window.opCam.dist = isAirCombo ? 9.4 : 10.2;
-
-                setTimeout(() => {
-                    if (typeof playSE === 'function') playSE(turn % 3 === 0 ? 'counter' : 'hit');
-                    const hitY = isAirCombo ? 2.5 : 0.6;
-                    spawn3DEffect('ring', 0, hitY, -1.5, turn % 2 === 0 ? [0.0, 0.82, 1.0, 1.0] : [1.0, 0.25, 0.25, 1.0], 0.55);
-                    shakeOpScreen(16, 200);
-
-                    // 王将が大きく吹っ飛び＆バウンド！
-                    boss.state = 'knockback';
-                    boss.tiltX = -0.65;
-                    boss.targetY = isAirCombo ? 3.2 : 1.4;
-                    setTimeout(() => {
-                        if (boss) {
-                            boss.targetY = 0;
-                            boss.state = 'squash_land';
-                            boss.tiltX = 0;
-                            setTimeout(() => { if (boss) boss.state = 'idle'; }, 200);
-                        }
-                    }, 320);
-
-                    // 攻撃者も華麗にバックステップ帰還
-                    atk.targetX = ox;
-                    atk.targetZ = oz;
-                    atk.targetY = 0;
-                    atk.tiltX = 0;
-                    atk.state = 'idle';
-                    window.opCam.dist = 11.4;
-                }, 230);
-            }, 400 + turn * 1350);
-        }
-    };
-}
-
-// 3. 毎フレームの激しい伸縮・フリップ・戦闘ステップアニメーション計算
-setInterval(() => {
-    if (opFinished || !opStarted) return;
-    const now = performance.now();
-    window.op3DObjects.forEach((obj, idx) => {
-        if (obj.state === 'flip_attack') {
-            obj.tiltX += 0.38; // 猛スピードで前転宙返り！
-        } else if (obj.state === 'tornado_spin') {
-            obj.facing += 0.45; // 竜巻のように高速回転斬り！
-        } else if (obj.state === 'high_jump') {
-            obj.tiltX = -0.25;
-        } else if (obj.state === 'squash_land') {
-            obj.tiltX = 0;
-        } else if (obj.state === 'idle' && obj.id === 'op_center_actor') {
-            // 待機中も戦闘リズムに合わせて激しく弾むステップ！
-            const bounce = Math.abs(Math.sin(now * 0.009 + idx)) * 0.28;
-            obj.y = bounce;
-        }
-    });
-}, 16);
-
-// ==============================================================================
-// 🌌 オープニング3段階グラデーション背景（だんだんクロスフェード切替）パッチ
-// ==============================================================================
-(function() {
-    const OP_BG_STYLES = [
-        // 1個目の背景（夕焼け星雲）
-        "radial-gradient(circle closest-corner at 6% 52%, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0) 4%), radial-gradient(circle closest-corner at 2% 87%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 15%), radial-gradient(circle farthest-side at 50% 25%, rgba(254, 254, 254, 1) 13%, rgba(255, 255, 255, 0) 14%, rgba(254, 254, 254, 0.45) 73% 78%, rgba(254, 254, 254, 0.46) 84%), radial-gradient(circle closest-corner at 11% 65%, rgba(254, 254, 254, 1), rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-corner at 5% 67%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-corner at 3% 61%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-corner at 10% 79%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-corner at 3% 76%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-side at 13% 84%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-side at 15% 77%, rgba(254, 254, 254, 1) 3%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle closest-corner at 22% 93%, rgba(254, 254, 254, 1) 2%, rgba(255, 255, 255, 0) 2%), linear-gradient(40deg, rgba(45, 71, 150, 1) 4%, rgba(95, 91, 165, 1) 23%, rgba(143, 106, 174, 1) 40%, rgba(185, 86, 230, 1) 52%, rgba(219, 111, 150, 1) 67%, rgba(245, 150, 59, 1) 77%, rgba(247, 165, 103, 1) 84%, rgba(216, 175, 104, 1) 94%)",
-        // 2個目の背景（虹の天空光輪）
-        "radial-gradient(circle farthest-side at 26% 77%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 21% 65%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 31% 77%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 22% 79%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 17% 75%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 27% 67%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 69% 80%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 80% 76%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 78% 69%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 72% 72%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 84% 74%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), radial-gradient(circle farthest-side at 74% 80%, rgba(255, 255, 255, 1) 4%, rgba(255, 255, 255, 0) 6%), linear-gradient(0deg, rgba(113, 219, 255, 1) 12%, rgba(56, 211, 185, 0.25)), radial-gradient(circle at 50% 53%, rgba(58, 201, 255, 1) 33%, rgba(255, 255, 255, 0) 35%), radial-gradient(circle, rgba(87, 0, 255, 1) 37%, rgba(255, 255, 255, 0) 39%), radial-gradient(circle at 50% 51%, rgba(0, 227, 255, 1) 43%, rgba(255, 255, 255, 0) 46%), radial-gradient(circle at 50% 49%, rgba(255, 230, 65, 1) 48%, rgba(255, 255, 255, 0) 51%), radial-gradient(circle, rgba(255, 93, 0, 1) 51%, rgba(255, 255, 255, 0) 52%), radial-gradient(circle at 50% 48%, rgba(38, 128, 255, 1) 46%, rgba(255, 255, 255, 0) 52%), radial-gradient(circle, rgba(255, 0, 0, 0.73) 53%, rgba(255, 255, 255, 0) 56%), linear-gradient(90deg, rgba(189, 255, 236, 0.73), rgba(123, 255, 255, 1))",
-        // 3個目の背景（満月と星空の夜空）
-        "conic-gradient(from 241deg at 22% 40%, rgba(0, 0, 0, 0) 8deg), radial-gradient(circle farthest-side at 13% 9%, rgba(217, 204, 221, 0.59), rgba(217, 204, 221, 0.23) 9%), radial-gradient(circle closest-side at 15% 47%, rgba(116, 103, 116, 0.34) 55%, rgba(0, 0, 0, 0)), radial-gradient(circle closest-corner at 13% 11%, rgb(236, 222, 237) 2%, rgba(0, 0, 0, 0) 11%), radial-gradient(circle closest-corner at 18% 43%, rgba(106, 97, 106, 0.37), rgba(0, 0, 0, 0) 99%), radial-gradient(circle closest-corner at 14% 14%, rgb(237, 209, 238), rgba(0, 0, 0, 0) 11%), radial-gradient(circle closest-corner at 13% 18%, rgb(237, 209, 238) 2%, rgba(0, 0, 0, 0) 11%), radial-gradient(circle closest-corner at 13% 23%, rgb(237, 209, 238) 4%, rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 11% 26%, rgb(237, 209, 238) 2%, rgba(0, 0, 0, 0) 27%), radial-gradient(circle closest-corner at 12% 29%, rgb(237, 209, 238), rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 10% 30%, rgba(237, 221, 238, 0.84), rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 15% 20%, rgb(237, 209, 238), rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 16% 24%, rgb(237, 209, 238), rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 11% 10%, rgb(237, 209, 238), rgba(0, 0, 0, 0) 25%), radial-gradient(circle closest-corner at 13% 32%, rgb(237, 209, 238) 4%, rgba(0, 0, 0, 0) 28%), radial-gradient(circle closest-corner at 6% 35%, rgb(237, 209, 238) 7%, rgb(237, 209, 238) 8%, rgba(0, 0, 0, 0) 28%), radial-gradient(circle closest-corner at 12% 49%, rgb(237, 209, 238) 7%, rgba(0, 0, 0, 0) 28%), radial-gradient(circle closest-corner at 19% 62%, rgb(237, 209, 238) 8%, rgba(0, 0, 0, 0) 28%), radial-gradient(circle closest-corner at 14% 45%, rgb(255, 247, 255) 65%, rgba(0, 0, 0, 0) 67%), radial-gradient(circle closest-corner at 14% 66%, rgb(206, 203, 220) 38%, rgba(0, 0, 0, 0) 61%), radial-gradient(circle at 15% 47%, rgb(254, 244, 255) 18%, rgba(0, 0, 0, 0) 26%), radial-gradient(circle closest-corner at 50% 43%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 56% 34%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 66% 46%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 80% 26%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 40% 24%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 86% 16%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 64% 20%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 39% 61%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 81% 61%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 65% 64%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), radial-gradient(circle closest-corner at 57% 70%, rgb(255, 255, 255), rgba(0, 0, 0, 0) 2%), linear-gradient(0deg, rgb(34, 0, 163), rgb(57, 16, 0))"
-    ];
-
-    // 3枚の背景レイヤーを自動生成して滑らかなクロスフェード（3.5秒かけて変化）を準備
-    function ensureOpBgLayers() {
-        const opScr = document.getElementById('opening-screen');
-        const canvas = document.getElementById('op-3d-canvas');
-        if (!opScr || !canvas) return;
-        opScr.style.background = '#000';
-        canvas.style.zIndex = '10';
-
-        for (let i = 0; i < 3; i++) {
-            if (!document.getElementById('op-bg-layer-' + i)) {
-                const layer = document.createElement('div');
-                layer.id = 'op-bg-layer-' + i;
-                layer.style.cssText =
-                    'position:absolute; top:0; left:0; width:100%; height:100%; ' +
-                    'background:' + OP_BG_STYLES[i] + '; ' +
-                    'opacity:' + (i === 0 ? '1' : '0') + '; ' +
-                    'transition:opacity 3.5s ease-in-out; pointer-events:none; z-index:' + (i + 1) + ';';
-                opScr.insertBefore(layer, canvas);
-            }
-        }
-    }
-
-    function switchOpBgLayer(idx) {
-        for (let i = 0; i < 3; i++) {
-            const el = document.getElementById('op-bg-layer-' + i);
-            if (el) el.style.opacity = (i === idx) ? '1' : '0';
-        }
-    }
-
-    // 1. WebGLの背景を透明化してCSS背景が透けるようにフック
-    const _origInitWebGL = initOpWebGL;
-    initOpWebGL = function() {
-        ensureOpBgLayers();
-        const res = _origInitWebGL.apply(this, arguments);
-        if (res && res.gl) {
-            const gl = res.gl;
-            const _origClearColor = gl.clearColor.bind(gl);
-            gl.clearColor = function(r, g, b, a) {
-                // 不透明な黒塗りつぶしを透明(0,0,0,0)に置き換える
-                _origClearColor(0, 0, 0, 0);
-            };
-        }
-        return res;
-    };
-
-    // 2. 既存のタイムラインに背景切替タイミングを注入（0秒:1個目 → 39秒:2個目 → 64秒:3個目）
-    const evIntro = OP_TIMELINE.find(e => e.time < 1);
-    if (evIntro) {
-        const origFn = evIntro.fn;
-        evIntro.fn = function() { switchOpBgLayer(0); origFn.apply(this, arguments); };
-    }
-    const evBow = OP_TIMELINE.find(e => e.time === 39.0);
-    if (evBow) {
-        const origFn = evBow.fn;
-        evBow.fn = function() { switchOpBgLayer(1); origFn.apply(this, arguments); };
-    }
-    const evChorus = OP_TIMELINE.find(e => e.time === 64.0);
-    if (evChorus) {
-        const origFn = evChorus.fn;
-        evChorus.fn = function() { switchOpBgLayer(2); origFn.apply(this, arguments); };
-    }
-})();
-// ==============================================================================
-// 🛡️ 3D描画消滅バグ完全修正 ＆ 王将戦・重厚剣戟アクション刷新パッチ
-// ==============================================================================
-(function() {
-    // 1. 駒と将棋盤が一瞬消えるバグを防止（alpha:true と preserveDrawingBuffer:true を強制）
-    const origGetContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function(type, attrs) {
-        if (this.id === 'op-3d-canvas' && (type === 'webgl' || type === 'experimental-webgl')) {
-            attrs = Object.assign({}, attrs, {
-                antialias: true,
-                alpha: true,
-                premultipliedAlpha: false,
-                preserveDrawingBuffer: true
-            });
-        }
-        return origGetContext.call(this, type, attrs);
-    };
-
-    // 2. サビ（1:04〜）の王将戦を「盤上での重厚な踏み込み斬り＆鍔迫り合い」に完全刷新
-    const chorusEv = OP_TIMELINE.find(e => e.time === 64.0);
-    if (chorusEv) {
-        chorusEv.fn = () => {
-            clearOp3DScene();
-            window.opCam = {
-                angleY: window.opCam.angleY,
-                targetAngleY: null,
-                spinSpeed: 0.55,
-                pitch: 0.46,
-                dist: 11.4,
-                targetY: 0.95
-            };
-
-            // 王将（中央奥） vs 飛・角・と（手前陣形）— 盤の辺と平行に配置
-            const boss = spawn3DPiece('op_boss', '王', 0, -1.7, 0, 'boss');
-            const f1 = spawn3DPiece('op_f1', '飛', -1.8, 1.9, Math.PI, 'normal');
-            const f2 = spawn3DPiece('op_f2', '角', 1.8, 1.9, Math.PI, 'normal');
-            const f3 = spawn3DPiece('op_f3', 'と', 0, 2.4, Math.PI, 'tokin');
-
-            const team = new Array(f1, f2, f3);
-
-            for (let turn = 0; turn < 11; turn++) {
-                setTimeout(() => {
-                    if (opFinished) return;
-                    const atk = team[turn % team.length];
-                    if (!atk || !boss) return;
-
-                    const ox = atk.x, oz = atk.z;
-                    const isClash = (turn % 3 === 2); // 3回に1回は王将との激しい正面衝突（鍔迫り合い）
-
-                    // ① 盤面を蹴って低く鋭い前傾姿勢で高速ダッシュ突進（上でくるくる回らない）
-                    atk.state = 'dash_slash';
-                    atk.tiltX = 0.52;
-                    atk.targetX = 0;
-                    atk.targetZ = -0.85;
-                    atk.targetY = 0.12; // 盤面スレスレの低い軌道
-
-                    if (isClash) {
-                        // 王将も迎え撃つように前へ踏み込む！
-                        boss.state = 'dash_slash';
-                        boss.tiltX = 0.42;
-                        boss.targetZ = -1.25;
-                    }
-
-                    setTimeout(() => {
-                        if (!atk || !boss) return;
-                        if (typeof playSE === 'function') playSE(isClash ? 'counter' : 'hit');
-                        spawn3DEffect(
-                            'ring', 0, 0.45, -1.1,
-                            isClash ? [1.0, 0.84, 0.15, 1.0] : [0.0, 0.82, 1.0, 0.95],
-                            0.55
-                        );
-                        shakeOpScreen(isClash ? 18 : 12, 180);
-
-                        if (isClash) {
-                            // 鍔迫り合いで両者が大きく後方へ弾き飛ばされる！
-                            boss.state = 'knockback';
-                            boss.tiltX = -0.35;
-                            boss.targetZ = -2.6;
-                            atk.targetZ = 1.4;
-                            atk.tiltX = -0.35;
-                            setTimeout(() => {
-                                if (boss) { boss.targetZ = -1.7; boss.tiltX = 0; boss.state = 'idle'; }
-                            }, 320);
-                        } else {
-                            // ヒット時の王将の仰け反り（ノックバック）と即座の体勢立て直し
-                            boss.state = 'knockback';
-                            boss.tiltX = -0.48;
-                            boss.targetZ = -2.3;
-                            setTimeout(() => {
-                                if (boss) { boss.targetZ = -1.7; boss.tiltX = 0; boss.state = 'idle'; }
-                            }, 260);
-                        }
-
-                        // 攻撃者がシュッと元の陣形へバックステップで戻る
-                        setTimeout(() => {
-                            if (!atk) return;
-                            atk.targetX = ox;
-                            atk.targetZ = oz;
-                            atk.targetY = 0;
-                            atk.tiltX = 0;
-                            atk.state = 'idle';
-                        }, isClash ? 180 : 80);
-                    }, 210);
-                }, 400 + turn * 1450);
-            }
-        };
-    }
-
-    // 3. 前の「tornado_spin（空中回転）」を無効化し、すべて盤上での鋭い前傾斬撃に統一
-    setInterval(() => {
-        if (opFinished || !opStarted) return;
-        window.op3DObjects.forEach(obj => {
-            if (obj.state === 'tornado_spin' || obj.state === 'flip_attack') {
-                obj.state = 'dash_slash';
-                obj.targetY = 0.15;
-                obj.tiltX = 0.48;
-            }
-        });
-    }, 30);
-})();
 
 </script>
 </body>
 </html>
+
