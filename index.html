@@ -7324,7 +7324,7 @@ morphOpPieceSmoothly = function(nextKanji, nextType = 'normal', onReady = null) 
     }
 })();
 // ==============================================================================
-// 🌪️ 歌詞シンクロ「角行と桂馬（＆飛車）が嵐を巻き起こす」3D竜巻演出パッチ
+// 🌪️ 歌詞シンクロ「角行と飛車（＆飛車）が嵐を巻き起こす」3D竜巻演出パッチ
 // ==============================================================================
 (function() {
     // 60.5秒の単独切替を削除し、57.0秒〜64.0秒を丸ごと「嵐の竜巻シーン」にする
@@ -7344,7 +7344,7 @@ morphOpPieceSmoothly = function(nextKanji, nextType = 'normal', onReady = null) 
 
             // 角行（エメラルド）と桂馬（雷光シアン）が盤上に対角配置で同時登場！
             const bishop = spawn3DPiece('storm_bishop', '角', -1.6, 0, Math.PI / 2, 'normal');
-            const knight = spawn3DPiece('storm_knight', '桂',  1.6, 0, -Math.PI / 2, 'normal');
+            const knight = spawn3DPiece('storm_knight', '飛',  1.6, 0, -Math.PI / 2, 'normal');
 
             // 1. 2体が高速で盤上を旋回（公転）しながら竜巻を巻き起こす（約4.5秒間）
             let stormTick = 0;
@@ -7377,7 +7377,7 @@ morphOpPieceSmoothly = function(nextKanji, nextType = 'normal', onReady = null) 
                     const heightY = (stormTick % 10) * 0.42;
                     const col = (stormTick % 4 === 0)
                         ? new Array(0.11, 0.85, 0.65, 0.9)  // 角行の翠嵐カラー
-                        : new Array(0.0, 0.78, 1.0, 0.9);   // 桂馬の雷嵐カラー
+                        : new Array(0.0, 0.78, 1.0, 0.9);   // 飛車の雷嵐カラー
                     spawn3DEffect('ring', 0, heightY, 0, col, 0.55);
                 }
 
@@ -7770,6 +7770,240 @@ morphOpPieceSmoothly = function(nextKanji, nextType = 'normal', onReady = null) 
         }
     });
 })();
+// ==============================================================================
+// ✨ オープニング超豪華3Dエフェクト拡張パック【1回目 / 2】
+// ==============================================================================
+window.op3DParticles = [];
+window.opLuxMeshes = null;
+
+function createLuxuryFxMeshes(gl) {
+    const makeBuf = (arr) => {
+        const b = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, b);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
+        return b;
+    };
+
+    // ① 螺旋（ヘリックス・リボン）メッシュ
+    const helPos = [], helNorm = [], helUv = [];
+    const turns = 3, steps = 72;
+    for (let i = 0; i < steps; i++) {
+        const t0 = i / steps, t1 = (i + 1) / steps;
+        const a0 = t0 * Math.PI * 2 * turns, a1 = t1 * Math.PI * 2 * turns;
+        const r0 = 0.6 + t0 * 1.4, r1 = 0.6 + t1 * 1.4;
+        const y0 = t0 * 5.2, y1 = t1 * 5.2;
+        const w = 0.22;
+
+        const p0 = [Math.cos(a0) * r0, y0, Math.sin(a0) * r0];
+        const p1 = [Math.cos(a0) * (r0 + w), y0 + 0.15, Math.sin(a0) * (r0 + w)];
+        const p2 = [Math.cos(a1) * r1, y1, Math.sin(a1) * r1];
+        const p3 = [Math.cos(a1) * (r1 + w), y1 + 0.15, Math.sin(a1) * (r1 + w)];
+
+        helPos.push(...p0, ...p1, ...p2, ...p1, ...p3, ...p2);
+        for (let k = 0; k < 6; k++) { helNorm.push(0, 1, 0); helUv.push(0.5, 0.5); }
+    }
+
+    // ② 3D立体剣閃（三日月型の弧）メッシュ
+    const slPos = [], slNorm = [], slUv = [];
+    const slSeg = 24;
+    for (let i = 0; i < slSeg; i++) {
+        const t0 = i / slSeg, t1 = (i + 1) / slSeg;
+        const a0 = -Math.PI * 0.65 + t0 * Math.PI * 1.3;
+        const a1 = -Math.PI * 0.65 + t1 * Math.PI * 1.3;
+        const thick0 = Math.sin(t0 * Math.PI) * 0.45;
+        const thick1 = Math.sin(t1 * Math.PI) * 0.45;
+        const rOut = 2.2;
+
+        const v0 = [Math.cos(a0) * (rOut - thick0), 0, Math.sin(a0) * (rOut - thick0)];
+        const v1 = [Math.cos(a0) * rOut, 0.08, Math.sin(a0) * rOut];
+        const v2 = [Math.cos(a1) * (rOut - thick1), 0, Math.sin(a1) * (rOut - thick1)];
+        const v3 = [Math.cos(a1) * rOut, 0.08, Math.sin(a1) * rOut];
+
+        slPos.push(...v0, ...v1, ...v2, ...v1, ...v3, ...v2);
+        for (let k = 0; k < 6; k++) { slNorm.push(0, 1, 0); slUv.push(0.5, 0.5); }
+    }
+
+    // ③ 放射スターバースト（12方向へ伸びる光の針）メッシュ
+    const rayPos = [], rayNorm = [], rayUv = [];
+     const rayDirs = [, [-1,0,0], [0,1,0], [0,-0.4,0], [0,0,1], [0,0,-1],
+        [0.7,0.7,0], [-0.7,0.7,0], [0,0.7,0.7], [0,0.7,-0.7], [0.7,0.4,0.7], [-0.7,0.4,-0.7]
+    ];
+    rayDirs.forEach(d => {
+        const len = 4.2, w = 0.09;
+        const tip = [d[0]*len, d[1]*len, d[2]*len];
+        rayPos.push(
+            -w, 0, -w,  w, 0, w,  tip[0], tip[1], tip[2],
+            -w, 0, w,   w, 0, -w, tip[0], tip[1], tip[2]
+        );
+        for (let k = 0; k < 6; k++) { rayNorm.push(0, 1, 0); rayUv.push(0.5, 0.5); }
+    });
+
+    // ④ 立体ダイヤモンド光粒メッシュ
+    const spkPos = [
+        0,0.18,0, -0.1,0,0.1, 0.1,0,0.1,
+        0,0.18,0, 0.1,0,0.1, 0.1,0,-0.1,
+        0,0.18,0, 0.1,0,-0.1, -0.1,0,-0.1,
+        0,0.18,0, -0.1,0,-0.1, -0.1,0,0.1,
+        0,-0.18,0, 0.1,0,0.1, -0.1,0,0.1,
+        0,-0.18,0, 0.1,0,-0.1, 0.1,0,0.1,
+        0,-0.18,0, -0.1,0,-0.1, 0.1,0,-0.1,
+        0,-0.18,0, -0.1,0,0.1, -0.1,0,-0.1
+    ];
+    const spkNorm = [], spkUv = [];
+    for (let k = 0; k < 24; k++) { spkNorm.push(0, 1, 0); spkUv.push(0.5, 0.5); }
+
+    return {
+        helix: { pos: makeBuf(helPos), norm: makeBuf(helNorm), uv: makeBuf(helUv), count: helPos.length / 3 },
+        slash: { pos: makeBuf(slPos), norm: makeBuf(slNorm), uv: makeBuf(slUv), count: slPos.length / 3 },
+        burst: { pos: makeBuf(rayPos), norm: makeBuf(rayNorm), uv: makeBuf(rayUv), count: rayPos.length / 3 },
+        spark: { pos: makeBuf(spkPos), norm: makeBuf(spkNorm), uv: makeBuf(spkUv), count: spkPos.length / 3 }
+    };
+}
+
+// ==============================================================================
+// ✨ オープニング超豪華3Dエフェクト拡張パック【2回目 / 2】
+// ==============================================================================
+window.spawn3DSparks = function(x, y, z, color, count = 28, speed = 4.5, upward = false) {
+    for (let i = 0; i < count; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = upward ? (Math.random() * 0.6) : ((Math.random() - 0.3) * Math.PI);
+        const spd = (0.4 + Math.random() * 0.8) * speed;
+        window.op3DParticles.push({
+            x: x + (Math.random() - 0.5) * 0.5,
+            y: y + (Math.random() - 0.5) * 0.3,
+            z: z + (Math.random() - 0.5) * 0.5,
+            vx: Math.cos(theta) * Math.cos(phi) * spd,
+            vy: upward ? (1.5 + Math.random() * speed) : (Math.sin(phi) * spd + 1.8),
+            vz: Math.sin(theta) * Math.cos(phi) * spd,
+            color: color,
+            age: 0,
+            maxLife: 0.55 + Math.random() * 0.55,
+            scale: 0.6 + Math.random() * 1.1,
+            gravity: upward ? 0.2 : 5.5
+        });
+    }
+};
+
+(function() {
+    const _origSpawn3DEffect = spawn3DEffect;
+    spawn3DEffect = function(kind, x, y, z, color, maxLife = 0.65) {
+        _origSpawn3DEffect.apply(this, arguments);
+
+        if (kind === 'ring') {
+            window.op3DEffects.push({
+                kind: 'slash', x, y: y + 0.35, z, color, age: 0, maxLife: maxLife * 0.85,
+                rotY: Math.random() * Math.PI * 2,
+                rotZ: (Math.random() - 0.5) * 1.1
+            });
+            spawn3DSparks(x, y + 0.2, z, color, 16, 4.2, false);
+        } else if (kind === 'pillar') {
+            window.op3DEffects.push({
+                kind: 'helix', x, y, z, color, age: 0, maxLife: maxLife * 1.25,
+                rotY: Math.random() * Math.PI
+            });
+            window.op3DEffects.push({
+                kind: 'burst', x, y: y + 0.8, z, color: [1.0, 1.0, 1.0, 1.0], age: 0, maxLife: maxLife * 0.75,
+                rotY: Math.random() * Math.PI
+            });
+            spawn3DSparks(x, y + 0.4, z, color, 26, 5.2, true);
+        }
+    };
+
+    let ambientTicker = null;
+    const _origStartOp = startOpeningSequence;
+    startOpeningSequence = function() {
+        window.op3DParticles = [];
+        window.opLuxMeshes = null;
+        _origStartOp.apply(this, arguments);
+
+        if (ambientTicker) clearInterval(ambientTicker);
+        ambientTicker = setInterval(() => {
+            if (opFinished) { clearInterval(ambientTicker); return; }
+            const col = Math.random()  {
+                    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.pos);
+                    gl.enableVertexAttribArray(wgl.aPos);
+                    gl.vertexAttribPointer(wgl.aPos, 3, gl.FLOAT, false, 0, 0);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.norm);
+                    gl.enableVertexAttribArray(wgl.aNorm);
+                    gl.vertexAttribPointer(wgl.aNorm, 3, gl.FLOAT, false, 0, 0);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.uv);
+                    gl.enableVertexAttribArray(wgl.aUv);
+                    gl.vertexAttribPointer(wgl.aUv, 2, gl.FLOAT, false, 0, 0);
+
+                    gl.uniformMatrix4fv(wgl.uMvp, false, new Float32Array(M4.multiply(vp, modelMat)));
+                    gl.uniformMatrix4fv(wgl.uModel, false, new Float32Array(modelMat));
+                    gl.uniform1i(wgl.uUnlit, 1);
+                    gl.uniform1i(wgl.uUseTex, 0);
+                    gl.uniform1f(wgl.uGlow, 0.0);
+                    gl.uniform4fv(wgl.uColor, new Float32Array(col));
+                    gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
+                };
+
+                window.op3DEffects.forEach(fx => {
+                    const prog = fx.age / fx.maxLife;
+                    if (prog >= 1.0) return;
+                    const alpha = Math.pow(1.0 - prog, 1.3);
+                    const col = [fx.color[0], fx.color[1], fx.color[2], alpha];
+
+                    if (fx.kind === 'helix') {
+                        let m = M4.identity();
+                        m = M4.translate(m, fx.x, fx.y, fx.z);
+                        m = M4.rotateY(m, (fx.rotY || 0) + prog * 9.0);
+                        const s = 0.7 + prog * 1.1;
+                        m = M4.scale(m, s, 0.6 + prog * 0.8, s);
+                        drawLux(window.opLuxMeshes.helix, m, col);
+                    } else if (fx.kind === 'slash') {
+                        let m = M4.identity();
+                        m = M4.translate(m, fx.x, fx.y, fx.z);
+                        m = M4.rotateY(m, (fx.rotY || 0) + prog * 2.2);
+                        m = M4.rotateX(m, fx.rotZ || 0.4);
+                        const s = 0.65 + prog * 1.35;
+                        m = M4.scale(m, s, s, s);
+                        drawLux(window.opLuxMeshes.slash, m, [1.0, 1.0, 1.0, alpha]);
+                        drawLux(window.opLuxMeshes.slash, M4.scale(m, 1.12, 1.12, 1.12), col);
+                    } else if (fx.kind === 'burst') {
+                        let m = M4.identity();
+                        m = M4.translate(m, fx.x, fx.y, fx.z);
+                        m = M4.rotateY(m, (fx.rotY || 0) + prog * 1.5);
+                        const s = 0.2 + prog * 1.8;
+                        m = M4.scale(m, s, s, s);
+                        drawLux(window.opLuxMeshes.burst, m, col);
+                    }
+                });
+
+                for (let i = window.op3DParticles.length - 1; i >= 0; i--) {
+                    const pt = window.op3DParticles[i];
+                    pt.age += dt;
+                    if (pt.age >= pt.maxLife) {
+                        window.op3DParticles.splice(i, 1);
+                        continue;
+                    }
+                    pt.vy -= pt.gravity * dt;
+                    pt.x += pt.vx * dt;
+                    pt.y += pt.vy * dt;
+                    pt.z += pt.vz * dt;
+
+                    const alpha = 1.0 - (pt.age / pt.maxLife);
+                    let pm = M4.identity();
+                    pm = M4.translate(pm, pt.x, pt.y, pt.z);
+                    pm = M4.rotateY(pm, pt.age * 8.0);
+                    pm = M4.scale(pm, pt.scale * alpha, pt.scale * alpha, pt.scale * alpha);
+                    drawLux(window.opLuxMeshes.spark, pm, [pt.color[0], pt.color[1], pt.color[2], alpha]);
+                }
+
+                gl.depthMask(true);
+                gl.disable(gl.BLEND);
+            }
+            requestAnimationFrame(renderLuxuryPass);
+        }
+        requestAnimationFrame(renderLuxuryPass);
+        return wgl;
+    };
+})();
+
+
 </script>
 </body>
 </html>
