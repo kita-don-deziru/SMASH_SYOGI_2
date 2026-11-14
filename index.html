@@ -8044,6 +8044,765 @@ window.spawn3DSparks = function(x, y, z, color, count = 28, speed = 4.5, upward 
         return wgl;
     };
 })();
+// ==============================================================================
+// 🌟✨ バトル＆3Dオープニング 極限豪華エフェクト拡張パック（安全設計版）
+// ==============================================================================
+(function() {
+    // 1. バトル中のヒット演出を極限まで豪華にアップグレード
+    const _prevHitVisual = spawnHitVisual;
+    spawnHitVisual = function(x, y, isSuper = false, silent = false) {
+        _prevHitVisual.apply(this, arguments);
+
+        const stage = document.getElementById('battle-stage');
+        if (!stage) return;
+
+        // ① 衝撃波リング（2重波紋）
+        const ringCount = isSuper ? 3 : 1;
+        for (let r = 0; r !== ringCount; r++) {
+            setTimeout(() => {
+                const ring = document.createElement('div');
+                const size = isSuper ? (70 + r * 35) : 45;
+                const col = isSuper ? '#ff3f3f' : '#ffd32a';
+                ring.style.cssText =
+                    'position:absolute; left:' + x + 'px; top:' + y + 'px; ' +
+                    'width:' + size + 'px; height:' + size + 'px; ' +
+                    'border:3px solid ' + col + '; border-radius:50%; ' +
+                    'box-shadow:0 0 18px ' + col + ', inset 0 0 12px #ffffff; ' +
+                    'transform:translate(-50%, -50%) scale(0.2); opacity:1; ' +
+                    'transition:transform 0.28s cubic-bezier(0.1, 0.8, 0.2, 1), opacity 0.28s ease-out; ' +
+                    'pointer-events:none; z-index:42;';
+                stage.appendChild(ring);
+
+                requestAnimationFrame(() => {
+                    ring.style.transform = 'translate(-50%, -50%) scale(' + (isSuper ? 2.4 : 1.7) + ')';
+                    ring.style.opacity = '0';
+                });
+                setTimeout(() => ring.remove(), 300);
+            }, r * 55);
+        }
+
+        // ② 強攻撃・クリティカル時の「擬音漢字エフェクト」＆閃光フラッシュ
+        if (isSuper && !silent) {
+            const onomatopoeia = new Array('轟！', '砕！', '裂！', '絶！', '滅！');
+            const word = onomatopoeia[Math.floor(Math.random() * onomatopoeia.length)];
+            const pop = document.createElement('div');
+            pop.textContent = word;
+            pop.style.cssText =
+                'position:absolute; left:' + (x + (Math.random() - 0.5) * 40) + 'px; ' +
+                'top:' + (y - 25) + 'px; font-size:28px; font-weight:900; color:#ffffff; ' +
+                'text-shadow:0 0 12px #ff3f3f, 0 0 24px #ffd32a, 2px 2px 0 #000; ' +
+                'transform:translate(-50%, -50%) scale(0.4) rotate(-12deg); ' +
+                'transition:transform 0.22s ease-out, opacity 0.25s ease-out; ' +
+                'pointer-events:none; z-index:48;';
+            stage.appendChild(pop);
+
+            requestAnimationFrame(() => {
+                pop.style.transform = 'translate(-50%, -80%) scale(1.35) rotate(6deg)';
+                setTimeout(() => { pop.style.opacity = '0'; }, 160);
+            });
+            setTimeout(() => pop.remove(), 420);
+
+            // 一瞬のインパクト閃光
+            const flash = document.createElement('div');
+            flash.style.cssText =
+                'position:absolute; top:0; left:0; width:600px; height:380px; ' +
+                'background:radial-gradient(circle at ' + x + 'px ' + y + 'px, rgba(255,255,255,0.55) 0%, rgba(255,63,63,0.18) 45%, transparent 75%); ' +
+                'pointer-events:none; z-index:41;';
+            stage.appendChild(flash);
+            setTimeout(() => flash.remove(), 75);
+        }
+    };
+
+    // 2. 撃墜（バースト）時の超新星爆発＆星屑シャワー演出
+    const _prevKoBeam = spawnKoBeam;
+    spawnKoBeam = function(x, dir) {
+        _prevKoBeam.apply(this, arguments);
+
+        const stage = document.getElementById('battle-stage');
+        if (!stage) return;
+
+        const safeX = Math.max(40, Math.min(560, x));
+        const starColors = new Array('#ffd32a', '#00d2ff', '#ff3f3f', '#ffffff', '#a29bfe', '#1dd1a1');
+
+        // 45個の星屑パーティクルが画面全体に放射状に降り注ぐ
+        for (let i = 0; i !== 45; i++) {
+            const star = document.createElement('div');
+            const sz = 4 + Math.random() * 7;
+            const col = starColors[i % starColors.length];
+            star.style.cssText =
+                'position:absolute; left:' + safeX + 'px; top:190px; ' +
+                'width:' + sz + 'px; height:' + sz + 'px; background:' + col + '; ' +
+                'box-shadow:0 0 10px ' + col + ', 0 0 18px #ffffff; ' +
+                'border-radius:50%; pointer-events:none; z-index:46;';
+            stage.appendChild(star);
+
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 4 + Math.random() * 14;
+            let vx = Math.cos(angle) * speed;
+            let vy = Math.sin(angle) * speed - 3;
+            let op = 1.0;
+
+            const t = setInterval(() => {
+                star.style.left = (parseFloat(star.style.left) + vx) + 'px';
+                star.style.top = (parseFloat(star.style.top) + vy) + 'px';
+                vx *= 0.96;
+                vy += 0.22;
+                op -= 0.025;
+                star.style.opacity = op;
+                if (op <= 0) {
+                    clearInterval(t);
+                    star.remove();
+                }
+            }, 1000 / 60);
+        }
+    };
+
+    // 3. 飛び道具（貫通矢・チャージ矢・金駒爆弾）に光の残像トレイルを追加
+    const _prevUpdateFrameFx = updateFrame;
+    updateFrame = function() {
+        _prevUpdateFrameFx.apply(this, arguments);
+
+        if (projectiles && projectiles.length !== 0) {
+            const stage = document.getElementById('battle-stage');
+            if (!stage) return;
+
+            projectiles.forEach(proj => {
+                if (proj.type === 'hyper-arrow' || proj.type === 'charge-arrow-max' || proj.type === 'coin-bomb') {
+                    const trail = document.createElement('div');
+                    const isGold = (proj.type === 'coin-bomb');
+                    trail.style.cssText =
+                        'position:absolute; left:' + proj.x + 'px; top:' + proj.y + 'px; ' +
+                        'width:' + (isGold ? '12px' : '24px') + '; height:' + (isGold ? '12px' : '8px') + '; ' +
+                        'border-radius:50%; ' +
+                        'background:' + (isGold ? 'rgba(255,215,0,0.65)' : 'rgba(255,159,67,0.75)') + '; ' +
+                        'box-shadow:0 0 12px #ffd32a; pointer-events:none; z-index:14; ' +
+                        'transition:transform 0.22s ease-out, opacity 0.22s ease-out;';
+                    stage.appendChild(trail);
+
+                    requestAnimationFrame(() => {
+                        trail.style.transform = 'scale(0.1)';
+                        trail.style.opacity = '0';
+                    });
+                    setTimeout(() => trail.remove(), 230);
+                }
+            });
+        }
+    };
+
+    // 4. オープニング（3D WebGL）に「3Dカメラシェイク」＆「常時回転する二重魔法陣リング」を追加
+    window.opCamShake = 0;
+    const _prevFlashOp = flashOpScreen;
+    flashOpScreen = function(intensity = 0.85) {
+        _prevFlashOp.apply(this, arguments);
+        // フラッシュと同時に3Dカメラも激しく振動させる
+        window.opCamShake = intensity * 0.65;
+    };
+
+    // オープニング中の豪華オーラ＆流星バーストの定期発生
+    let opHyperFxTimer = null;
+    const _prevStartOpHyper = startOpeningSequence;
+    startOpeningSequence = function() {
+        _prevStartOpHyper.apply(this, arguments);
+
+        if (opHyperFxTimer) clearInterval(opHyperFxTimer);
+        opHyperFxTimer = setInterval(() => {
+            if (opFinished) {
+                clearInterval(opHyperFxTimer);
+                return;
+            }
+            // 歌パート突入後（opBgModeが1以上）は将棋盤の周りに黄金＆蒼の魔法陣波紋を定期発生
+            if ((window.opBgMode || 0) !== 0) {
+                const ringCol = (Math.floor(Math.random() * 2) === 0)
+                    ? [1.0, 0.84, 0.2, 0.75]
+                    : [0.0, 0.85, 1.0, 0.75];
+                window.op3DEffects.push({
+                    kind: 'ring',
+                    x: 0,
+                    y: 0.08,
+                    z: 0,
+                    color: ringCol,
+                    age: 0,
+                    maxLife: 1.4
+                });
+
+                // 上空から光の流星パーティクルを降らせる
+                const rx = (Math.random() - 0.5) * 8.0;
+                const rz = (Math.random() - 0.5) * 8.0;
+                spawn3DSparks(rx, 5.5, rz, [1.0, 0.95, 0.7, 1.0], 4, 2.2, false);
+            }
+
+            // 3Dカメラシェイクの減衰をキャンバスCSSにも反映
+            const cvs = document.getElementById('op-3d-canvas');
+            if (cvs && window.opCamShake > 0.01) {
+                const sx = (Math.random() - 0.5) * window.opCamShake * 24;
+                const sy = (Math.random() - 0.5) * window.opCamShake * 24;
+                cvs.style.transform = 'translate(' + sx.toFixed(1) + 'px, ' + sy.toFixed(1) + 'px) scale(1.03)';
+                window.opCamShake *= 0.82;
+            } else if (cvs) {
+                cvs.style.transform = 'none';
+            }
+        }, 40);
+    };
+})();
+// ==============================================================================
+// 🎬✨ オープニング残存タイマー完全駆除 ＆ 3D超豪華エフェクト極限進化【1回目 / 2】
+// ==============================================================================
+window.opScheduledTimers = [];
+window.opIsBossExploded = false;
+
+window.addOpTimer = function(fn, delay) {
+    const id = setTimeout(() => {
+        if (!opFinished) fn();
+    }, delay);
+    window.opScheduledTimers.push(id);
+    return id;
+};
+
+window.clearAllOpTimers = function() {
+    window.opScheduledTimers.forEach(id => clearTimeout(id));
+    window.opScheduledTimers = [];
+};
+
+(function() {
+    // SKIPボタン押下時にすべての予約タイマーとエフェクトを完全消去
+    const _prevSkipOp = skipOpeningToTitle;
+    skipOpeningToTitle = function() {
+        window.clearAllOpTimers();
+        window.op3DParticles = [];
+        window.op3DEffects = [];
+        _prevSkipOp.apply(this, arguments);
+    };
+
+    // サビの激闘（63.8秒）を「王将爆発（83秒）で確実にピタッと止まる」安全設計に上書き
+    const chorusEv = OP_TIMELINE.find(e => e.id === 'guaranteed_chorus_battle');
+    if (chorusEv) {
+        chorusEv.fn = () => {
+            window.clearAllOpTimers();
+            window.opIsBossExploded = false;
+            clearOp3DScene();
+
+            window.opBgMode = 3;
+            flashOpScreen(0.95);
+            window.opCam.spinSpeed = 0.55;
+            window.opCam.targetPitch = 0.46;
+            window.opCam.targetDist = 11.4;
+
+            const boss = spawn3DPiece('op_boss', '王', 0, -1.7, 0, 'boss');
+            const f1 = spawn3DPiece('op_f1', '飛', -1.8, 1.9, Math.PI, 'normal');
+            const f2 = spawn3DPiece('op_f2', '角', 1.8, 1.9, Math.PI, 'normal');
+            const f3 = spawn3DPiece('op_f3', 'と', 0, 2.4, Math.PI, 'tokin');
+
+            // 開幕激突の豪華3Dエフェクト
+            spawn3DEffect('ring', 0, 0.5, -1.1, [1.0, 0.84, 0.15, 1.0], 0.85);
+            spawn3DSparks(0, 0.8, -1.1, [1.0, 0.9, 0.3, 1.0], 40, 6.0, false);
+            if (typeof playSE === 'function') playSE('counter');
+
+            const team = new Array(f1, f2, f3);
+            for (let turn = 0; turn !== 12; turn++) {
+                window.addOpTimer(() => {
+                    if (opFinished || window.opIsBossExploded) return;
+                    const activeBoss = window.op3DObjects.find(o => o.id === 'op_boss');
+                    if (!activeBoss) return;
+
+                    const atk = team[turn % team.length];
+                    if (!atk) return;
+
+                    const ox = atk.x, oz = atk.z;
+                    const isClash = (turn % 3 === 2);
+
+                    atk.state = 'dash_slash';
+                    atk.tiltX = 0.55;
+                    atk.targetX = 0;
+                    atk.targetZ = -0.85;
+                    atk.targetY = 0.15;
+
+                    spawn3DSparks(atk.x, 0.4, atk.z, isClash ? [1.0, 0.84, 0.2, 1.0] : [0.0, 0.85, 1.0, 1.0], 12, 3.0, false);
+
+                    if (isClash) {
+                        activeBoss.state = 'dash_slash';
+                        activeBoss.tiltX = 0.45;
+                        activeBoss.targetZ = -1.25;
+                    }
+
+                    window.addOpTimer(() => {
+                        if (opFinished || window.opIsBossExploded) return;
+                        const stillBoss = window.op3DObjects.find(o => o.id === 'op_boss');
+                        if (!stillBoss) return;
+
+                        if (typeof playSE === 'function') playSE(isClash ? 'counter' : 'hit');
+                        const hitCol = isClash ? [1.0, 0.84, 0.15, 1.0] : [0.0, 0.85, 1.0, 1.0];
+
+                        spawn3DEffect('ring', 0, 0.55, -1.1, hitCol, 0.65);
+                        spawn3DSparks(0, 0.7, -1.1, hitCol, isClash ? 45 : 25, isClash ? 6.5 : 4.5, false);
+
+                        if (isClash) {
+                            flashOpScreen(0.55);
+                            stillBoss.state = 'knockback';
+                            stillBoss.tiltX = -0.38;
+                            stillBoss.targetZ = -2.6;
+                            atk.targetZ = 1.4;
+                            atk.tiltX = -0.38;
+                            window.addOpTimer(() => {
+                                if (!window.opIsBossExploded && stillBoss) {
+                                    stillBoss.targetZ = -1.7; stillBoss.tiltX = 0; stillBoss.state = 'idle';
+                                }
+                            }, 320);
+                        } else {
+                            stillBoss.state = 'knockback';
+                            stillBoss.tiltX = -0.50;
+                            stillBoss.targetZ = -2.35;
+                            window.addOpTimer(() => {
+                                if (!window.opIsBossExploded && stillBoss) {
+                                    stillBoss.targetZ = -1.7; stillBoss.tiltX = 0; stillBoss.state = 'idle';
+                                }
+                            }, 260);
+                        }
+
+                        window.addOpTimer(() => {
+                            if (!window.opIsBossExploded && atk) {
+                                atk.targetX = ox; atk.targetZ = oz; atk.targetY = 0; atk.tiltX = 0; atk.state = 'idle';
+                            }
+                        }, isClash ? 180 : 90);
+                    }, 210);
+                }, 300 + turn * 1450);
+            }
+        };
+    }
+
+    // 王将吹っ飛び＆超新星爆発（83.0秒）：過去のバトルタイマーを完全遮断！
+    const koEv = OP_TIMELINE.find(e => e.id === 'sync_chorus_ko');
+    if (koEv) {
+        koEv.fn = () => {
+            window.opIsBossExploded = true;
+            window.clearAllOpTimers();
+
+            window.opCam.spinSpeed = 0.95;
+            window.opCam.targetDist = 11.2;
+
+            window.op3DObjects.forEach(o => {
+                if (o.id !== 'op_boss') {
+                    o.state = 'idle'; o.tiltX = 0; o.targetY = 0;
+                }
+            });
+
+            const boss = window.op3DObjects.find(o => o.id === 'op_boss');
+            if (boss) {
+                boss.state = 'spin_ko';
+                boss.targetY = 4.3;
+                boss.targetZ = -2.4;
+            }
+            if (typeof playSE === 'function') playSE('critical');
+
+            window.addOpTimer(() => {
+                if (opFinished) return;
+
+                window.op3DObjects = window.op3DObjects.filter(o => o.id !== 'op_boss');
+
+                flashOpScreen(1.0);
+                if (typeof playSE === 'function') playSE('burst');
+                window.opCam.targetDist = 14.8;
+
+                const bx = 0, by = 3.8, bz = -2.4;
+                spawn3DEffect('pillar', bx, 0, bz, [1.0, 0.25, 0.1, 1.0], 1.15);
+                spawn3DEffect('pillar', bx, 0, bz, [1.0, 0.85, 0.2, 1.0], 0.95);
+                spawn3DEffect('pillar', bx, 0, bz, [1.0, 1.0, 1.0, 1.0], 0.75);
+
+                spawn3DSparks(bx, by, bz, [1.0, 0.3, 0.1, 1.0], 50, 8.5, false);
+                spawn3DSparks(bx, by, bz, [1.0, 0.9, 0.3, 1.0], 50, 7.0, false);
+                spawn3DSparks(bx, by, bz, [1.0, 1.0, 1.0, 1.0], 40, 9.5, false);
+
+                const boomColors = new Array(
+                    [1.0, 0.2, 0.1, 1.0],
+                    [1.0, 0.65, 0.0, 1.0],
+                    [1.0, 0.95, 0.3, 1.0],
+                    [1.0, 1.0, 1.0, 1.0]
+                );
+
+                for (let i = 0; i !== 10; i++) {
+                    window.addOpTimer(() => {
+                        const offX = (Math.random() - 0.5) * 1.6;
+                        const offY = by + (Math.random() - 0.5) * 1.6;
+                        const offZ = bz + (Math.random() - 0.5) * 1.6;
+                        spawn3DEffect('ring', offX, offY, offZ, boomColors[i % boomColors.length], 0.85);
+                    }, i * 60);
+                }
+            }, 750);
+        };
+    }
+})();
+
+// ==============================================================================
+// 🎬✨ オープニング残存タイマー完全駆除 ＆ 3D超豪華エフェクト極限進化【2回目 / 2】
+// ==============================================================================
+(function() {
+    // 4. フィナーレ全員集合（92.0秒）：過去のエフェクトと音を完全リセットして神々しく8駒降臨！
+    const finaleEv = OP_TIMELINE.find(e => e.id === 'finale_all_spawn_fx');
+    if (finaleEv) {
+        finaleEv.fn = () => {
+            window.clearAllOpTimers();
+            window.op3DParticles = [];
+            window.op3DEffects = [];
+            clearOp3DScene();
+
+            window.opCam.spinSpeed = 0.38;
+            window.opCam.targetPitch = 0.50;
+            window.opCam.targetDist = 12.6;
+
+            const lineup = new Array(
+                { k: '歩', x: -2.4, z:  1.2, col: [1.0, 0.84, 0.0,  1.0] },
+                { k: '香', x: -0.8, z:  1.2, col: [0.64, 0.60, 1.0, 1.0] },
+                { k: '桂', x:  0.8, z:  1.2, col: [0.0,  0.82, 1.0, 1.0] },
+                { k: '弓', x:  2.4, z:  1.2, col: [1.0,  0.62, 0.26,1.0] },
+                { k: '飛', x: -2.4, z: -1.2, col: [1.0,  0.25, 0.25,1.0] },
+                { k: '角', x: -0.8, z: -1.2, col: [0.11, 0.82, 0.63,1.0] },
+                { k: '銀', x:  0.8, z: -1.2, col: [1.0,  0.42, 0.51,1.0] },
+                { k: '金', x:  2.4, z: -1.2, col: [1.0,  0.80, 0.34,1.0] }
+            );
+
+            lineup.forEach((item, idx) => {
+                window.addOpTimer(() => {
+                    if (opFinished) return;
+                    if (typeof playSE === 'function') playSE(idx === 7 ? 'counter' : 'jump');
+
+                    // 各駒のテーマカラーで光の柱＋二重螺旋＋衝撃波＋聖光の粒子が昇る
+                    spawn3DEffect('pillar', item.x, 0, item.z, item.col, 0.95);
+                    spawn3DEffect('ring', item.x, 0.15, item.z, item.col, 0.95);
+                    spawn3DSparks(item.x, 0.2, item.z, item.col, 24, 4.2, true);
+
+                    const piece = spawn3DPiece('out_hero_' + idx, item.k, item.x, item.z, 0, 'normal');
+                    piece.state = 'morph_in';
+                    window.addOpTimer(() => {
+                        if (piece) { piece.state = 'idle'; piece.facing = 0; }
+                    }, 420);
+
+                    // 全8駒が集結した瞬間の大祝福フラッシュ＆黄金光柱
+                    if (idx === lineup.length - 1) {
+                        window.addOpTimer(() => {
+                            flashOpScreen(0.85);
+                            spawn3DEffect('pillar', 0, 0, 0, [1.0, 0.95, 0.5, 1.0], 1.4);
+                            spawn3DSparks(0, 0.5, 0, [1.0, 0.9, 0.3, 1.0], 70, 6.0, true);
+                        }, 220);
+                    }
+                }, idx * 240);
+            });
+        };
+    }
+
+    // 5. オープニング常時演出：3D魔法陣波紋・流星群・カメラシェイク
+    window.opCamShake = 0;
+    const _prevFlashOp = flashOpScreen;
+    flashOpScreen = function(intensity = 0.85) {
+        _prevFlashOp.apply(this, arguments);
+        window.opCamShake = intensity * 0.7;
+    };
+
+    let opAmbientLoop = null;
+    const _prevStartOpLux = startOpeningSequence;
+    startOpeningSequence = function() {
+        window.clearAllOpTimers();
+        window.opIsBossExploded = false;
+        _prevStartOpLux.apply(this, arguments);
+
+        if (opAmbientLoop) clearInterval(opAmbientLoop);
+        let tickCount = 0;
+        opAmbientLoop = setInterval(() => {
+            if (opFinished) {
+                clearInterval(opAmbientLoop);
+                return;
+            }
+            tickCount++;
+
+            // 歌パート以降（opBgModeが0以外）は将棋盤の周りに黄金＆蒼の魔法陣波紋と流星を常時展開
+            if ((window.opBgMode || 0) !== 0 && tickCount % 8 === 0) {
+                const ringCol = (tickCount % 16 === 0) ? [1.0, 0.84, 0.2, 0.65] : [0.0, 0.85, 1.0, 0.65];
+                window.op3DEffects.push({
+                    kind: 'ring', x: 0, y: 0.06, z: 0, color: ringCol, age: 0, maxLife: 1.5
+                });
+                // 空から降り注ぐ光の流星パーティクル
+                spawn3DSparks((Math.random() - 0.5) * 7.5, 5.2, (Math.random() - 0.5) * 7.5, [1.0, 0.96, 0.75, 1.0], 5, 2.5, false);
+            }
+
+            // 3Dカメラシェイクの減衰処理
+            const cvs = document.getElementById('op-3d-canvas');
+            if (cvs && window.opCamShake > 0.01) {
+                const sx = (Math.random() - 0.5) * window.opCamShake * 24;
+                const sy = (Math.random() - 0.5) * window.opCamShake * 24;
+                cvs.style.transform = 'translate(' + sx.toFixed(1) + 'px, ' + sy.toFixed(1) + 'px) scale(1.03)';
+                window.opCamShake *= 0.82;
+            } else if (cvs) {
+                cvs.style.transform = 'none';
+            }
+        }, 40);
+    };
+})();
+// ==============================================================================
+// 🎬🔥 オープニング地面魔法陣カラー連動 ＆ 各キャラ専用技・超絶豪華化【1回目 / 2】
+// ==============================================================================
+(function() {
+    // 1. 現在盤上にいる駒の漢字から専用テーマカラー（RGBA）を自動判定する関数
+    window.getOpCurrentGroundColor = function() {
+        const objs = window.op3DObjects || [];
+        if (objs.length === 0) return [1.0, 0.84, 0.2, 0.65];
+
+        // 8人全員集合シーン（4体以上いる場合）は時間経過で虹色に変化
+        if (objs.length >= 4) {
+            const t = performance.now() * 0.004;
+            return [
+                0.5 + 0.5 * Math.sin(t),
+                0.5 + 0.5 * Math.sin(t + 2.1),
+                0.5 + 0.5 * Math.sin(t + 4.2),
+                0.75
+            ];
+        }
+
+        // サビの激闘中（王将がいる場合）は紅蓮と黄金が交互に輝く
+        if (objs.some(o => o.id === 'op_boss')) {
+            return (Math.floor(performance.now() / 400) % 2 === 0)
+                ? [1.0, 0.25, 0.15, 0.75]
+                : [1.0, 0.84, 0.2, 0.75];
+        }
+
+        // 単独演武中のキャラごとに色を完全変更！
+        const mainKanji = objs[0].kanji;
+        const colorMap = {
+            '歩': [1.0, 0.84, 0.2, 0.75],   // 黄金
+            'と': [1.0, 0.75, 0.0, 0.85],   // 成金ゴールド
+            '弓': [1.0, 0.50, 0.1, 0.80],   // 灼熱オレンジ
+            '桂': [0.0, 0.85, 1.0, 0.85],   // 電光シアン
+            '香': [0.68, 0.45, 1.0, 0.85],  // 夢幻パープル
+            '角': [0.10, 0.90, 0.65, 0.85], // 翠嵐エメラルド
+            '飛': [1.0, 0.18, 0.22, 0.85],  // 深紅クリムゾン
+            '銀': [1.0, 0.45, 0.65, 0.80],  // 桜ピンク
+            '金': [1.0, 0.88, 0.35, 0.85]   // 聖光イエロー
+        };
+        return colorMap[mainKanji] || [1.0, 0.84, 0.2, 0.7];
+    };
+
+    // 地面の魔法陣波紋がキャラ専用色で広がるように定期発生ループをアップグレード
+    let customGroundTimer = null;
+    const _prevStartOpGround = startOpeningSequence;
+    startOpeningSequence = function() {
+        _prevStartOpGround.apply(this, arguments);
+        if (customGroundTimer) clearInterval(customGroundTimer);
+        customGroundTimer = setInterval(() => {
+            if (opFinished) {
+                clearInterval(customGroundTimer);
+                return;
+            }
+            if ((window.opBgMode || 0) !== 0) {
+                const col = window.getOpCurrentGroundColor();
+                window.op3DEffects.push({
+                    kind: 'ring', x: 0, y: 0.07, z: 0, color: col, age: 0, maxLife: 1.35
+                });
+            }
+        }, 340);
+    };
+
+    // 2. 各キャラの「技エフェクト（fire3DVoidSpecial）」を極限まで凝った3D演出に完全刷新！
+    fire3DVoidSpecial = function(actor, styleType) {
+        if (!actor) return;
+        window.opCam.targetDist = 8.8;
+        window.addOpTimer(() => { window.opCam.targetDist = 11.4; }, 950);
+
+        if (styleType === 'tokin_bomb') {
+            // 【と金：秘技・金駒大散布爆撃】8方向への黄金爆発柱＆多重衝撃波＋120個の黄金ダイヤ乱舞
+            if (typeof playSE === 'function') playSE('special_cutin');
+            actor.state = 'dash_slash';
+            actor.tiltX = 0.5;
+            spawn3DEffect('pillar', 0, 0, 0, [1.0, 0.85, 0.1, 1.0], 0.9);
+            spawn3DSparks(0, 1.2, 0, [1.0, 0.9, 0.2, 1.0], 50, 6.5, true);
+
+            for (let i = 0; i !== 8; i++) {
+                window.addOpTimer(() => {
+                    if (typeof playSE === 'function') playSE('burst');
+                    flashOpScreen(0.45);
+                    const a = (i / 8) * Math.PI * 2;
+                    const bx = Math.cos(a) * 2.1;
+                    const bz = Math.sin(a) * 2.1;
+                    spawn3DEffect('pillar', bx, 0, bz, [1.0, 0.78, 0.0, 0.95], 0.75);
+                    spawn3DEffect('ring', bx, 0.15, bz, [1.0, 0.95, 0.3, 1.0], 0.75);
+                    spawn3DSparks(bx, 0.5, bz, [1.0, 0.84, 0.0, 1.0], 22, 5.5, false);
+                }, 140 + i * 95);
+            }
+            window.addOpTimer(() => { if (actor) { actor.state = 'idle'; actor.tiltX = 0; } }, 950);
+        }
+        else if (styleType === 'bow_hyper') {
+            // 【弓：究極貫通大矢射撃】極限光収束チャージ ➔ 貫通レーザー衝撃波トンネル発射！
+            if (typeof playSE === 'function') playSE('special_cutin');
+            actor.tiltX = -0.45;
+            // チャージ中の光収束
+            spawn3DEffect('ring', 0, 0.8, 0, [1.0, 0.65, 0.15, 1.0], 0.5);
+            spawn3DSparks(0, 0.9, 0, [1.0, 0.8, 0.2, 1.0], 35, 3.0, true);
+
+            window.addOpTimer(() => {
+                if (!actor) return;
+                if (typeof playSE === 'function') playSE('critical');
+                flashOpScreen(0.85);
+                actor.tiltX = 0.35;
+                actor.targetZ = -1.6;
+
+                // 前方へ一直線に貫通する8連衝撃波リング＆光の流星トレイル
+                for (let i = 0; i !== 8; i++) {
+                    window.addOpTimer(() => {
+                        const pz = -0.8 + i * 0.75;
+                        const col = (i % 2 === 0) ? [1.0, 0.55, 0.1, 1.0] : [1.0, 0.95, 0.4, 1.0];
+                        spawn3DEffect('ring', 0, 0.75, pz, col, 0.55);
+                        spawn3DSparks(0, 0.75, pz, [1.0, 0.9, 0.3, 1.0], 18, 4.8, false);
+                    }, i * 40);
+                }
+                window.addOpTimer(() => { if (actor) { actor.targetZ = 0; actor.tiltX = 0; } }, 500);
+            }, 280);
+        }
+        else if (styleType === 'knight_laser') {
+            // 【桂：天罰雷光レーザー＆超新星大爆発】超高跳躍 ➔ 極太蒼雷落下 ➔ 3重爆発リング＆100火花！
+            if (typeof playSE === 'function') playSE('jump');
+            actor.targetY = 3.6;
+            spawn3DEffect('ring', 0, 0.1, 0, [0.0, 0.85, 1.0, 1.0], 0.6);
+
+            window.addOpTimer(() => {
+                if (!actor) return;
+                if (typeof playSE === 'function') playSE('critical');
+                flashOpScreen(0.95);
+                actor.targetY = 0;
+
+                const tz = 1.6;
+                // 3重の極太雷光柱＋二重螺旋
+                spawn3DEffect('pillar', 0, 0, tz, [0.0, 0.85, 1.0, 1.0], 0.95);
+                spawn3DEffect('pillar', 0, 0, tz, [1.0, 1.0, 1.0, 1.0], 0.75);
+
+                // 着弾大爆発（紅蓮・純白・蒼雷の多重リング＆100個のダイヤモンド火花）
+                window.addOpTimer(() => {
+                    if (typeof playSE === 'function') playSE('burst');
+                    spawn3DEffect('ring', 0, 0.2, tz, [1.0, 0.25, 0.15, 1.0], 0.95);
+                    spawn3DEffect('ring', 0, 0.5, tz, [0.0, 0.85, 1.0, 1.0], 0.85);
+                    spawn3DEffect('ring', 0, 0.8, tz, [1.0, 1.0, 1.0, 1.0], 0.75);
+                    spawn3DSparks(0, 0.6, tz, [0.0, 0.85, 1.0, 1.0], 50, 7.5, false);
+                    spawn3DSparks(0, 0.6, tz, [1.0, 0.35, 0.15, 1.0], 50, 8.5, false);
+                }, 140);
+            }, 340);
+        }
+    };
+})();
+
+// ==============================================================================
+// 🎬🔥 オープニング地面魔法陣カラー連動 ＆ 各キャラ専用技・超絶豪華化【2回目 / 2】
+// ==============================================================================
+(function() {
+    const _prevVoidSpecialPart1 = fire3DVoidSpecial;
+
+    fire3DVoidSpecial = function(actor, styleType) {
+        if (!actor) return;
+
+        // 1回目で定義したと金・弓・桂はそのまま実行
+        if (styleType === 'tokin_bomb' || styleType === 'bow_hyper' || styleType === 'knight_laser') {
+            _prevVoidSpecialPart1.apply(this, arguments);
+            return;
+        }
+
+        window.opCam.targetDist = 8.6;
+        window.addOpTimer(() => { window.opCam.targetDist = 11.4; }, 950);
+
+        if (styleType === 'lance_mist') {
+            // 【香：成香・紫電夢幻香霧突撃】高速突進の軌道上に紫の螺旋竜巻＆幻想パープル光粒が爆発！
+            if (typeof playSE === 'function') playSE('special_cutin');
+            flashOpScreen(0.75);
+            actor.state = 'dash_slash';
+            actor.tiltX = 0.62;
+            actor.targetZ = 2.6;
+
+            const mistCol = [0.68, 0.45, 1.0, 1.0];
+            const mistLight = [0.88, 0.75, 1.0, 1.0];
+
+            for (let i = 0; i !== 7; i++) {
+                window.addOpTimer(() => {
+                    const pz = -1.8 + i * 0.72;
+                    spawn3DEffect('pillar', 0, 0, pz, mistCol, 0.85);
+                    spawn3DEffect('ring', 0, 0.35 + (i % 3) * 0.25, pz, mistLight, 0.75);
+                    spawn3DSparks(0, 0.5, pz, mistCol, 22, 4.8, true);
+                }, i * 55);
+            }
+
+            window.addOpTimer(() => {
+                if (actor) { actor.targetZ = 0; actor.tiltX = 0; actor.state = 'idle'; }
+            }, 520);
+        }
+        else if (styleType === 'bishop_cross') {
+            // 【角：竜馬・次元断罪の連閃】エメラルドと純白の立体剣閃が空間を8連続で切り裂く！
+            if (typeof playSE === 'function') playSE('special_cutin');
+            actor.state = 'dash_slash';
+            actor.tiltX = 0.48;
+            actor.targetY = 0.85;
+
+            const emerald = [0.10, 0.90, 0.65, 1.0];
+            const pureWhite = [1.0, 1.0, 1.0, 1.0];
+
+            for (let i = 0; i !== 8; i++) {
+                window.addOpTimer(() => {
+                    const isFinish = (i >= 6);
+                    if (typeof playSE === 'function') playSE(isFinish ? 'critical' : 'swing');
+                    if (isFinish) flashOpScreen(0.85);
+
+                    const rx = isFinish ? 0 : (Math.random() - 0.5) * 1.8;
+                    const ry = isFinish ? 0.9 : 0.4 + Math.random() * 1.4;
+                    const rz = isFinish ? 0 : (Math.random() - 0.5) * 1.8;
+
+                    // 立体剣閃（slash）と衝撃波リングを同時生成
+                    window.op3DEffects.push({
+                        kind: 'slash', x: rx, y: ry, z: rz,
+                        color: isFinish ? pureWhite : emerald,
+                        age: 0, maxLife: isFinish ? 0.85 : 0.55,
+                        rotY: (i * 0.85),
+                        rotZ: (i % 2 === 0 ? 0.65 : -0.65)
+                    });
+                    spawn3DEffect('ring', rx, ry, rz, emerald, isFinish ? 0.9 : 0.5);
+                    spawn3DSparks(rx, ry, rz, isFinish ? pureWhite : emerald, isFinish ? 45 : 16, isFinish ? 7.5 : 4.5, false);
+                }, i * 85);
+            }
+
+            window.addOpTimer(() => {
+                if (actor) { actor.targetY = 0; actor.tiltX = 0; actor.state = 'idle'; }
+            }, 820);
+        }
+        else if (styleType === 'rook_slash') {
+            // 【飛：竜王・神滅大伸刀】深紅の極太エネルギー斬撃が回転しながら空間を薙ぎ払う！
+            if (typeof playSE === 'function') playSE('special_cutin');
+            actor.state = 'dash_slash';
+            actor.tiltX = 0.52;
+
+            const crimson = [1.0, 0.18, 0.22, 1.0];
+            const gold = [1.0, 0.84, 0.15, 1.0];
+
+            // 力を溜めて極太光柱を展開
+            spawn3DEffect('pillar', 0, 0, 0, crimson, 1.0);
+            spawn3DSparks(0, 0.6, 0, gold, 35, 5.0, true);
+
+            for (let i = 0; i !== 5; i++) {
+                window.addOpTimer(() => {
+                    if (typeof playSE === 'function') playSE(i === 4 ? 'critical' : 'hit');
+                    if (i === 4) flashOpScreen(0.95);
+
+                    const h = 0.3 + i * 0.35;
+                    window.op3DEffects.push({
+                        kind: 'slash', x: 0, y: h, z: 0,
+                        color: (i % 2 === 0) ? crimson : gold,
+                        age: 0, maxLife: 0.75,
+                        rotY: i * 1.25,
+                        rotZ: 0.15
+                    });
+                    spawn3DEffect('ring', 0, h, 0, (i === 4) ? gold : crimson, 0.8);
+                    spawn3DSparks(0, h, 0, (i === 4) ? gold : crimson, (i === 4) ? 55 : 20, 7.0, false);
+                }, 150 + i * 120);
+            }
+
+            window.addOpTimer(() => {
+                if (actor) { actor.tiltX = 0; actor.state = 'idle'; }
+            }, 850);
+        }
+    };
+})();
+
+
+
 </script>
 </body>
 </html>
