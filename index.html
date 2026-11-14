@@ -9028,6 +9028,789 @@ window.clearAllOpTimers = function() {
         }
     };
 })();
+// ==============================================================================
+// ⚔️🔥 クライマックス「3人合体奥義」＆ 本物の分岐落雷・フィナーレ調整【1回目 / 2】
+// ==============================================================================
+(function() {
+    // 1. 王将撃破（83.0秒）の直前に「飛・角・と金の3人合体技」を組み込む（83.0秒の爆発時間は完全維持！）
+    const chorusEv = OP_TIMELINE.find(e => e.id === 'guaranteed_chorus_battle');
+    if (chorusEv) {
+        const _origChorusFn = chorusEv.fn;
+        chorusEv.fn = () => {
+            _origChorusFn.apply(this, arguments);
+
+            // 63.8秒開始から17.0秒後（＝80.8秒時点、爆発の2.2秒前）に3人合体技シーケンス発動！
+            window.addOpTimer(() => {
+                if (opFinished || window.opIsBossExploded) return;
+
+                const boss = window.op3DObjects.find(o => o.id === 'op_boss');
+                const f1 = window.op3DObjects.find(o => o.id === 'op_f1'); // 飛
+                const f2 = window.op3DObjects.find(o => o.id === 'op_f2'); // 角
+                const f3 = window.op3DObjects.find(o => o.id === 'op_f3'); // と金
+                if (!boss || !f1 || !f2 || !f3) return;
+
+                // ① 3人が三角形の陣形で王将を包囲＆オーラ共鳴チャージ（80.8秒〜）
+                if (typeof playSE === 'function') playSE('special_cutin');
+                window.opCam.targetDist = 10.2;
+                window.opCam.spinSpeed = 1.2;
+
+                boss.targetX = 0; boss.targetZ = 0; boss.targetY = 0.2;
+                f1.targetX = -2.2; f1.targetZ =  1.3; f1.targetY = 1.2; f1.facing = Math.PI * 0.75;
+                f2.targetX =  2.2; f2.targetZ =  1.3; f2.targetY = 1.2; f2.facing = -Math.PI * 0.75;
+                f3.targetX =  0.0; f3.targetZ = -2.4; f3.targetY = 1.6; f3.facing = 0;
+
+                // 3人のテーマカラー（紅蓮・翠嵐・黄金）の光の柱が同時に立ち昇る！
+                spawn3DEffect('pillar', -2.2, 0,  1.3, [1.0, 0.2, 0.25, 1.0], 0.9);
+                spawn3DEffect('pillar',  2.2, 0,  1.3, [0.1, 0.9, 0.65, 1.0], 0.9);
+                spawn3DEffect('pillar',  0.0, 0, -2.4, [1.0, 0.85, 0.1, 1.0], 0.9);
+
+                // ② 1.1秒後（81.9秒時点）：3人が同時に中央の王将へ超高速合体突撃！！
+                window.addOpTimer(() => {
+                    if (opFinished || window.opIsBossExploded) return;
+                    if (typeof playSE === 'function') playSE('critical');
+                    flashOpScreen(0.95);
+                    window.opCamShake = 1.2;
+
+                    // 3人全員が王将の座標(0, 0.5, 0)へ一点集中突撃！
+                    [f1, f2, f3].forEach(hero => {
+                        hero.state = 'dash_slash';
+                        hero.tiltX = 0.65;
+                        hero.targetX = 0;
+                        hero.targetY = 0.6;
+                        hero.targetZ = 0;
+                    });
+
+                    // 王将に3色の立体剣閃（紅蓮・翠嵐・黄金）＆特大衝撃波が同時炸裂！
+                    const trioCols = new Array(
+                        [1.0, 0.2, 0.25, 1.0],
+                        [0.1, 0.9, 0.65, 1.0],
+                        [1.0, 0.85, 0.1, 1.0]
+                    );
+                    trioCols.forEach((col, idx) => {
+                        window.op3DEffects.push({
+                            kind: 'slash', x: 0, y: 0.8, z: 0, color: col,
+                            age: 0, maxLife: 0.95, rotY: idx * 2.09, rotZ: 0.55
+                        });
+                        spawn3DEffect('ring', 0, 0.4 + idx * 0.25, 0, col, 0.95);
+                        spawn3DSparks(0, 0.8, 0, col, 35, 7.5, false);
+                    });
+
+                    // 突撃後、3人はカッコよく着地して決めポーズ（直後の83.0秒に王将が吹き飛んで爆発！）
+                    window.addOpTimer(() => {
+                        if (f1) { f1.targetX = -1.9; f1.targetZ = 1.8; f1.targetY = 0; f1.tiltX = 0; f1.state = 'idle'; }
+                        if (f2) { f2.targetX =  1.9; f2.targetZ = 1.8; f2.targetY = 0; f2.tiltX = 0; f2.state = 'idle'; }
+                        if (f3) { f3.targetX =  0.0; f3.targetZ = 2.3; f3.targetY = 0; f3.tiltX = 0; f3.state = 'idle'; }
+                    }, 550);
+                }, 1100);
+            }, 17000);
+        };
+    }
+})();
+// ==============================================================================
+// ⚔️🔥 クライマックス「3人合体奥義」＆ 本物の分岐落雷・フィナーレ調整【2回目 / 2】
+// ==============================================================================
+(function() {
+    // 1. 早すぎた旧落雷イベントを削除し、曲のラスト（113.5秒）へ再配置
+    for (let i = OP_TIMELINE.length - 1; i !== -1; i--) {
+        if (OP_TIMELINE[i].id === 'finale_center_lightning_strike') {
+            OP_TIMELINE.splice(i, 1);
+        }
+    }
+
+    // 2. 本物の鋭いギザギザ＆枝分かれする稲妻SVGを自動生成する関数
+    function spawnRealisticBranchingLightning(container) {
+        const oldBolt = document.getElementById('op-real-lightning-layer');
+        if (oldBolt) oldBolt.remove();
+
+        const layer = document.createElement('div');
+        layer.id = 'op-real-lightning-layer';
+        layer.style.cssText =
+            'position:absolute; top:0; left:0; width:100%; height:100%; ' +
+            'pointer-events:none; z-index:185; opacity:1; transition:opacity 0.55s ease-out;';
+
+        // メインの稲妻ルート（上空から盤面中央 300,260 へ鋭くジグザグに落ちる）
+        let curX = 300 + (Math.random() - 0.5) * 40;
+        let curY = 0;
+        const targetX = 300;
+        const targetY = 255;
+        const steps = 14;
+        let mainPts = curX.toFixed(1) + ',0 ';
+        let branchSvgs = '';
+
+        for (let s = 1; s !== steps + 1; s++) {
+            const ratio = s / steps;
+            const idealX = curX + (targetX - curX) * (1 / (steps - s + 1));
+            const jitter = (s === steps) ? 0 : (Math.random() - 0.5) * 58;
+            curX = idealX + jitter;
+            curY = targetY * ratio;
+            mainPts += curX.toFixed(1) + ',' + curY.toFixed(1) + ' ';
+
+            // 途中の節から細い枝分かれ稲妻（サブボルト）を左右に走らせる
+            if (s >= 2 && s !== steps && Math.random() > 0.35) {
+                let bx = curX;
+                let by = curY;
+                const bDir = (Math.random() > 0.5) ? 1 : -1;
+                let bPts = bx.toFixed(1) + ',' + by.toFixed(1) + ' ';
+                for (let b = 0; b !== 4; b++) {
+                    bx += bDir * (18 + Math.random() * 28);
+                    by += 18 + Math.random() * 24;
+                    bPts += bx.toFixed(1) + ',' + by.toFixed(1) + ' ';
+                }
+                branchSvgs +=
+                    '<polyline points="' + bPts + '" fill="none" stroke="#00d2ff" stroke-width="3.5" stroke-opacity="0.85" />' +
+                    '<polyline points="' + bPts + '" fill="none" stroke="#ffffff" stroke-width="1.4" />';
+            }
+        }
+
+        // 着弾点から地面を走る電撃スパーク（放電の根）
+        let groundSparks = '';
+        for (let g = 0; g !== 6; g++) {
+            let gx = targetX;
+            let gy = targetY;
+            const gDir = (g % 2 === 0) ? 1 : -1;
+            let gPts = gx + ',' + gy + ' ';
+            for (let k = 0; k !== 3; k++) {
+                gx += gDir * (22 + Math.random() * 35);
+                gy += (Math.random() - 0.3) * 24;
+                gPts += gx.toFixed(1) + ',' + gy.toFixed(1) + ' ';
+            }
+            groundSparks += '<polyline points="' + gPts + '" fill="none" stroke="#ffffff" stroke-width="2" stroke-opacity="0.9" />';
+        }
+
+        layer.innerHTML =
+            '<svg viewBox="0 0 600 450" width="600" height="450">' +
+                '<defs>' +
+                    '<filter id="real-bolt-glow" x="-30%" y="-30%" width="160%" height="160%">' +
+                        '<feGaussianBlur stdDeviation="5" result="blur" />' +
+                        '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>' +
+                    '</filter>' +
+                '</defs>' +
+                '<g filter="url(#real-bolt-glow)">' +
+                    branchSvgs +
+                    groundSparks +
+                    '<polyline points="' + mainPts + '" fill="none" stroke="#00a8ff" stroke-width="11" stroke-linejoin="miter" />' +
+                    '<polyline points="' + mainPts + '" fill="none" stroke="#74b9ff" stroke-width="6" stroke-linejoin="miter" />' +
+                    '<polyline points="' + mainPts + '" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linejoin="miter" />' +
+                '</g>' +
+            '</svg>';
+
+        container.appendChild(layer);
+
+        // 稲妻がチカチカと明滅してから消える
+        setTimeout(() => { layer.style.opacity = '0.25'; }, 70);
+        setTimeout(() => { layer.style.opacity = '1.0'; }, 130);
+        setTimeout(() => { layer.style.opacity = '0'; }, 240);
+        setTimeout(() => layer.remove(), 800);
+    }
+
+    // 3. 曲のフィナーレ（113.5秒）まで8人集結をじっくり見せてから、本物の落雷 ➔ 立体タイトルへ！
+    OP_TIMELINE.push({
+        time: 113.5,
+        id: 'finale_real_lightning_delayed',
+        fn: () => {
+            if (opFinished) return;
+
+            window.opCam.targetDist = 9.0;
+            window.opCam.targetPitch = 0.44;
+            window.opCam.spinSpeed = 1.2;
+
+            if (typeof playSE === 'function') playSE('special_cutin');
+
+            window.addOpTimer(() => {
+                if (opFinished) return;
+                if (typeof playSE === 'function') playSE('critical');
+                flashOpScreen(1.0);
+                window.opCamShake = 1.5;
+
+                const opScr = document.getElementById('opening-screen');
+                if (opScr) spawnRealisticBranchingLightning(opScr);
+
+                // 3D空間中央にも雷光の柱＆多重衝撃波リング＆150個の稲妻スパークを展開
+                spawn3DEffect('pillar', 0, 0, 0, [1.0, 1.0, 1.0, 1.0], 1.1);
+                spawn3DEffect('pillar', 0, 0, 0, [0.0, 0.85, 1.0, 1.0], 1.2);
+                spawn3DSparks(0, 0.5, 0, [1.0, 1.0, 1.0, 1.0], 60, 9.5, false);
+                spawn3DSparks(0, 0.5, 0, [0.0, 0.85, 1.0, 1.0], 60, 8.5, false);
+                spawn3DSparks(0, 0.5, 0, [1.0, 0.88, 0.2, 1.0], 40, 8.0, true);
+
+                for (let r = 0; r !== 5; r++) {
+                    window.addOpTimer(() => {
+                        spawn3DEffect('ring', 0, 0.12 + r * 0.18, 0, [0.5, 0.9, 1.0, 1.0], 0.85);
+                    }, r * 50);
+                }
+
+                // 落雷の余韻のあと（1.1秒後＝114.95秒時点）で立体タイトル画面へ移行！
+                window.addOpTimer(() => {
+                    opFinished = true;
+                    window.clearAllOpTimers();
+                    if (opAnimFrame) cancelAnimationFrame(opAnimFrame);
+                    if (typeof window.playDramaticTitleReveal === 'function') {
+                        window.playDramaticTitleReveal();
+                    }
+                }, 1100);
+            }, 350);
+        }
+    });
+})();
+// ==============================================================================
+// 📜🔄 3D将棋盤「表裏フリップ・行書プロローグ」イントロ演出【1回目 / 2】
+// ==============================================================================
+(function() {
+    // 1. 読みやすい行書フォント（Google Fonts）を動的に読み込む
+    const fontLink = document.createElement('link');
+    fontLink.rel = 'stylesheet';
+    fontLink.href = 'https:' + '//://googleapis.com';
+    document.head.appendChild(fontLink);
+
+    // 2. プロローグの4つの物語テキスト（表 ➔ 裏 ➔ 表 ➔ 裏）
+    window.OP_PROLOGUE_TEXTS = [
+        { line1: '古より伝わる', line2: '盤上の戦記――' },
+        { line1: '八つの魂が',   line2: '天空に集う' },
+        { line1: '下剋上の刃を', line2: '研ぎ澄ませ' },
+        { line1: '成金無双の乱舞', line2: '今、開幕――' }
+    ];
+
+    // 3. 将棋盤の表面・裏面用の「行書テキスト入り3Dテクスチャ」をリアルタイム生成
+    window.updateOpBoardTextTexture = function(gl, wgl, side, textObj) {
+        const c = document.createElement('canvas');
+        c.width = 512;
+        c.height = 512;
+        const ctx = c.getContext('2d');
+
+        // 黄金木目の将棋盤ベース
+        const grad = ctx.createLinearGradient(0, 0, 512, 512);
+        grad.addColorStop(0, '#fff0b3');
+        grad.addColorStop(0.5, '#e6ac45');
+        grad.addColorStop(1, '#9e6622');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // 黄金の枠線＆9×9マス目
+        ctx.strokeStyle = '#ffd32a';
+        ctx.lineWidth = 10;
+        ctx.strokeRect(6, 6, 500, 500);
+
+        ctx.strokeStyle = 'rgba(61, 32, 5, 0.45)';
+        ctx.lineWidth = 3;
+        for (let i = 1; i !== 9; i++) {
+            const pos = 8 + (496 / 9) * i;
+            ctx.beginPath(); ctx.moveTo(pos, 8); ctx.lineTo(pos, 504); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(8, pos); ctx.lineTo(504, pos); ctx.stroke();
+        }
+
+        // テキストがある場合は読みやすい行書体で中央に大きく描画
+        if (textObj) {
+            ctx.save();
+            // 文字がよりくっきり読めるように中央に半透明の黒漆帯（和紙風）を敷く
+            const bandGrad = ctx.createLinearGradient(0, 140, 0, 372);
+            bandGrad.addColorStop(0, 'rgba(15, 10, 5, 0.0)');
+            bandGrad.addColorStop(0.2, 'rgba(15, 10, 5, 0.72)');
+            bandGrad.addColorStop(0.8, 'rgba(15, 10, 5, 0.72)');
+            bandGrad.addColorStop(1, 'rgba(15, 10, 5, 0.0)');
+            ctx.fillStyle = bandGrad;
+            ctx.fillRect(14, 140, 484, 232);
+
+            ctx.font = 'bold 46px "Yuji Syuku", "HG行書体", "Hiragino Mincho ProN", "Yu Mincho", serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // 黄金の光彩＋黒の縁取りで圧倒的な読みやすさを確保
+            ctx.shadowColor = 'rgba(255, 211, 42, 0.9)';
+            ctx.shadowBlur = 14;
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#1a0d00';
+
+            ctx.strokeText(textObj.line1, 256, 218);
+            ctx.fillStyle = '#fff8dc';
+            ctx.fillText(textObj.line1, 256, 218);
+
+            ctx.strokeText(textObj.line2, 256, 294);
+            ctx.fillStyle = '#ffd32a';
+            ctx.fillText(textObj.line2, 256, 294);
+            ctx.restore();
+        }
+
+        const texKey = (side === 'back') ? 'board_back' : 'board';
+        if (!wgl.textures[texKey]) {
+            wgl.textures[texKey] = gl.createTexture();
+        }
+        gl.bindTexture(gl.TEXTURE_2D, wgl.textures[texKey]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    };
+
+    // 4. 将棋盤の裏面（底面）専用メッシュを生成するヘルパー
+    window.createOpBoardBackMesh = function(gl) {
+        const bw = 4.6, bh = 0.75, bd = 5.0;
+        // 裏返った時（rotateXで180度回転した時）に文字が正対するUV座標
+        const pos = new Array(
+            -bw, -bh, -bd,   bw, -bh, -bd,   bw, -bh, bd,
+            -bw, -bh, -bd,   bw, -bh,  bd,  -bw, -bh, bd
+        );
+        const norm = new Array(
+            0, -1, 0,  0, -1, 0,  0, -1, 0,
+            0, -1, 0,  0, -1, 0,  0, -1, 0
+        );
+        const uv = new Array(
+            0, 0,  1, 0,  1, 1,
+            0, 0,  1, 1,  0, 1
+        );
+
+        const makeBuf = (arr) => {
+            const b = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, b);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
+            return b;
+        };
+        return { pos: makeBuf(pos), norm: makeBuf(norm), uv: makeBuf(uv), count: 6 };
+    };
+})();
+// ==============================================================================
+// 📜🔄 3D将棋盤「表裏フリップ・行書プロローグ」イントロ演出【2回目 / 2】
+// ==============================================================================
+(function() {
+    window.opBoardState = {
+        active: false,
+        flipX: 0,
+        targetFlipX: 0,
+        tiltZ: 0,
+        spinY: 0,
+        wglRef: null,
+        backMesh: null
+    };
+
+    // 1. WebGL初期化時に裏面メッシュを登録し、専用レンダーパスで盤面と裏面を描画
+    const _prevInitWglForBoard = initOpWebGL;
+    initOpWebGL = function() {
+        const wgl = _prevInitWglForBoard.apply(this, arguments);
+        if (!wgl) return null;
+
+        window.opBoardState.wglRef = wgl;
+        window.opBoardState.backMesh = window.createOpBoardBackMesh(wgl.gl);
+
+        // 初期状態：表面に第1文、裏面に第2文をセット
+        window.updateOpBoardTextTexture(wgl.gl, wgl, 'front', window.OP_PROLOGUE_TEXTS);
+        window.updateOpBoardTextTexture(wgl.gl, wgl, 'back', window.OP_PROLOGUE_TEXTS);
+
+        // 盤面フリップ専用レンダーパス（プロローグ中のみ上書き描画して斜め回転＆裏返りを表現）
+        let lastBoardTs = performance.now();
+        function renderPrologueBoardPass(now) {
+            if (opFinished) return;
+            const dt = Math.min(0.05, (now - lastBoardTs) * 0.001);
+            lastBoardTs = now;
+
+            if (window.opBoardState.active && window.opBoardState.wglRef) {
+                const gl = wgl.gl;
+                // 目標の反転角度（0 または Math.PI）へ滑らかにぐるっと回転
+window.opBoardState.flipX += (window.opBoardState.targetFlipX - window.opBoardState.flipX) * 0.042;
+                // 読んでいる間も少しずつ斜めに傾きながらゆっくり回転する
+                window.opBoardState.spinY += 0.22 * dt;
+                window.opBoardState.tiltZ = Math.sin(now * 0.0014) * 0.22;
+
+                const proj = M4.perspective(Math.PI / 4, 600 / 450, 0.1, 100.0);
+                let view = M4.identity();
+                view = M4.translate(view, 0, -window.opCam.targetY, -window.opCam.dist);
+                view = M4.rotateX(view, window.opCam.pitch);
+
+                // 盤面自体の3D姿勢（ゆっくり斜め回転 ＋ ぐるっと180度裏返り）
+                let bm = M4.identity();
+                bm = M4.rotateY(bm, window.opBoardState.spinY);
+                bm = M4.rotateX(bm, window.opBoardState.flipX);
+                // 少し奥へ斜めに傾ける
+                const cZ = Math.cos(window.opBoardState.tiltZ), sZ = Math.sin(window.opBoardState.tiltZ);
+                bm = M4.multiply(bm, new Array(cZ,sZ,0,0, -sZ,cZ,0,0, 0,0,1,0, 0,0,0,1));
+
+                const mvp = M4.multiply(M4.multiply(proj, view), bm);
+                const boardGlow = 0.22 + Math.sin(now * 0.006) * 0.12;
+
+                // 前のフレームの無回転盤面をクリアしてプロローグ盤面を鮮明に描画
+                gl.clear(gl.DEPTH_BUFFER_BIT);
+
+                const drawSide = (mesh, tex) => {
+                    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.pos);
+                    gl.enableVertexAttribArray(wgl.aPos);
+                    gl.vertexAttribPointer(wgl.aPos, 3, gl.FLOAT, false, 0, 0);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.norm);
+                    gl.enableVertexAttribArray(wgl.aNorm);
+                    gl.vertexAttribPointer(wgl.aNorm, 3, gl.FLOAT, false, 0, 0);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.uv);
+                    gl.enableVertexAttribArray(wgl.aUv);
+                    gl.vertexAttribPointer(wgl.aUv, 2, gl.FLOAT, false, 0, 0);
+
+                    gl.uniformMatrix4fv(wgl.uMvp, false, new Float32Array(mvp));
+                    gl.uniformMatrix4fv(wgl.uModel, false, new Float32Array(bm));
+                    gl.uniform1i(wgl.uUnlit, 0);
+                    gl.uniform1f(wgl.uGlow, boardGlow);
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(gl.TEXTURE_2D, tex);
+                    gl.uniform1i(wgl.uUseTex, 1);
+                    gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
+                };
+
+                // 表面（盤面＋枠）と裏面（裏返しテキスト面）を同時に描画
+                if (wgl.textures['board']) drawSide(wgl.boardMesh, wgl.textures['board']);
+                if (window.opBoardState.backMesh && wgl.textures['board_back']) {
+                    drawSide(window.opBoardState.backMesh, wgl.textures['board_back']);
+                }
+            }
+            requestAnimationFrame(renderPrologueBoardPass);
+        }
+        requestAnimationFrame(renderPrologueBoardPass);
+        return wgl;
+    };
+
+    // 2. 冒頭イベント（0:00〜0:24.5）を「斜め回転＆表裏フリップ行書プロローグ」に書き換え！
+    const topBoardEv = OP_TIMELINE.find(e => e.id === 'sync_top_board');
+    if (topBoardEv) {
+        topBoardEv.fn = () => {
+            clearOp3DScene();
+            window.opBgMode = 0;
+            window.opBoardState.active = true;
+            window.opBoardState.flipX = 0;
+            window.opBoardState.targetFlipX = 0;
+            window.opBoardState.spinY = 0;
+
+            // 文字が最も読みやすい斜め見下ろしアングルに設定
+            window.opCam = {
+                angleY: 0, targetAngleY: null, spinSpeed: 0.0,
+                pitch: 1.05, targetPitch: 1.05,
+                dist: 11.8, targetDist: 11.8,
+                targetY: 0.0, targetLookY: 0.0
+            };
+
+            const wgl = window.opBoardState.wglRef;
+            if (wgl) {
+                window.updateOpBoardTextTexture(wgl.gl, wgl, 'front', window.OP_PROLOGUE_TEXTS);
+                window.updateOpBoardTextTexture(wgl.gl, wgl, 'back', window.OP_PROLOGUE_TEXTS);
+            }
+
+            // 【0:06.0】ぐるっと裏返って「裏面（第2文：八つの魂が 天空に集う）」へ！
+            window.addOpTimer(() => {
+                if (opFinished || !window.opBoardState.active) return;
+                if (typeof playSE === 'function') playSE('swing');
+                window.opBoardState.targetFlipX = Math.PI;
+                spawn3DEffect('ring', 0, 0.1, 0, [1.0, 0.84, 0.2, 0.85], 0.85);
+                spawn3DSparks(0, 0.3, 0, [1.0, 0.9, 0.3, 1.0], 24, 3.8, false);
+            }, 6000);
+
+            // 【0:12.0】再びぐるっと表へ戻り、「表面（第3文：下剋上の刃を 研ぎ澄ませ）」に書き換わる！
+            window.addOpTimer(() => {
+                if (opFinished || !window.opBoardState.active) return;
+                if (typeof playSE === 'function') playSE('swing');
+                const curWgl = window.opBoardState.wglRef;
+                if (curWgl) {
+                    window.updateOpBoardTextTexture(curWgl.gl, curWgl, 'front', window.OP_PROLOGUE_TEXTS);
+                }
+                window.opBoardState.targetFlipX = Math.PI * 2;
+                spawn3DEffect('ring', 0, 0.1, 0, [0.0, 0.85, 1.0, 0.85], 0.85);
+                spawn3DSparks(0, 0.3, 0, [0.0, 0.85, 1.0, 1.0], 24, 3.8, false);
+            }, 12000);
+
+            // 【0:18.0】もう一度ぐるっと裏返って、「裏面（第4文：成金無双の乱舞 今、開幕――）」へ！
+            window.addOpTimer(() => {
+                if (opFinished || !window.opBoardState.active) return;
+                if (typeof playSE === 'function') playSE('counter');
+                const curWgl = window.opBoardState.wglRef;
+                if (curWgl) {
+                    window.updateOpBoardTextTexture(curWgl.gl, curWgl, 'back', window.OP_PROLOGUE_TEXTS);
+                }
+                window.opBoardState.targetFlipX = Math.PI * 3;
+                spawn3DEffect('ring', 0, 0.1, 0, [1.0, 0.35, 0.15, 0.95], 0.95);
+                spawn3DSparks(0, 0.3, 0, [1.0, 0.84, 0.2, 1.0], 35, 4.5, true);
+            }, 18000);
+        };
+    }
+
+    // 3. 【0:24.5】カメラ降下イベントと同時に、文字なしの本来の黄金将棋盤へ戻して歌パートへ接続！
+    const descendEv = OP_TIMELINE.find(e => e.id === 'sync_cam_descend');
+    if (descendEv) {
+        const _origDescendFn = descendEv.fn;
+        descendEv.fn = () => {
+            window.opBoardState.active = false;
+            const curWgl = window.opBoardState.wglRef;
+            if (curWgl) {
+                window.updateOpBoardTextTexture(curWgl.gl, curWgl, 'front', null);
+            }
+            _origDescendFn.apply(this, arguments);
+        };
+    }
+})();
+// ==============================================================================
+// 📜🔄 3D将棋盤「表裏フリップ・行書プロローグ」完全修復版【1回目 / 2】
+// ==============================================================================
+(function() {
+    // チャットシステムに削られない「名前付きオブジェクト」で4つの文章を定義
+    window.OP_PROLOGUE_MAP = {
+        text1: { line1: '古より伝わる',   line2: '盤上の戦記――' },
+        text2: { line1: '八つの魂が',     line2: '天空に集う' },
+        text3: { line1: '下剋上の刃を',   line2: '研ぎ澄ませ' },
+        text4: { line1: '成金無双の乱舞', line2: '今、開幕――' }
+    };
+
+    // 将棋盤の表面・裏面用の「行書テキスト入り3Dテクスチャ」生成（裏面は180度反転描画して正対させる）
+    window.updateOpBoardTextTexture = function(gl, wgl, side, textObj) {
+        const c = document.createElement('canvas');
+        c.width = 512;
+        c.height = 512;
+        const ctx = c.getContext('2d');
+
+        // 黄金木目の将棋盤ベース
+        const grad = ctx.createLinearGradient(0, 0, 512, 512);
+        grad.addColorStop(0, '#fff0b3');
+        grad.addColorStop(0.5, '#e6ac45');
+        grad.addColorStop(1, '#9e6622');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // 黄金の枠線＆9×9マス目
+        ctx.strokeStyle = '#ffd32a';
+        ctx.lineWidth = 10;
+        ctx.strokeRect(6, 6, 500, 500);
+
+        ctx.strokeStyle = 'rgba(61, 32, 5, 0.45)';
+        ctx.lineWidth = 3;
+        for (let i = 1; i !== 9; i++) {
+            const pos = 8 + (496 / 9) * i;
+            ctx.beginPath(); ctx.moveTo(pos, 8); ctx.lineTo(pos, 504); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(8, pos); ctx.lineTo(504, pos); ctx.stroke();
+        }
+
+        if (textObj && textObj.line1) {
+            ctx.save();
+            // 裏面（back）はX軸180度回転して表側へ来たときに上下が正しく読めるよう反転させる
+            if (side === 'back') {
+                ctx.translate(256, 256);
+                ctx.scale(1, -1);
+                ctx.translate(-256, -256);
+            }
+
+            // 文字を読みやすくする黒漆グラデーション帯
+            const bandGrad = ctx.createLinearGradient(0, 145, 0, 367);
+            bandGrad.addColorStop(0, 'rgba(15, 10, 5, 0.0)');
+            bandGrad.addColorStop(0.2, 'rgba(15, 10, 5, 0.78)');
+            bandGrad.addColorStop(0.8, 'rgba(15, 10, 5, 0.78)');
+            bandGrad.addColorStop(1, 'rgba(15, 10, 5, 0.0)');
+            ctx.fillStyle = bandGrad;
+            ctx.fillRect(14, 145, 484, 222);
+
+            ctx.font = 'bold 46px "Yuji Syuku", "HG行書体", "Hiragino Mincho ProN", "Yu Mincho", serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.shadowColor = 'rgba(255, 211, 42, 0.95)';
+            ctx.shadowBlur = 14;
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#1a0d00';
+
+            ctx.strokeText(textObj.line1, 256, 218);
+            ctx.fillStyle = '#fff8dc';
+            ctx.fillText(textObj.line1, 256, 218);
+
+            ctx.strokeText(textObj.line2, 256, 294);
+            ctx.fillStyle = '#ffd32a';
+            ctx.fillText(textObj.line2, 256, 294);
+            ctx.restore();
+        }
+
+        const texKey = (side === 'back') ? 'board_back' : 'board';
+        if (!wgl.textures[texKey]) {
+            wgl.textures[texKey] = gl.createTexture();
+        }
+        gl.bindTexture(gl.TEXTURE_2D, wgl.textures[texKey]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    };
+})();
+// ==============================================================================
+// 📜🔄 3D将棋盤「表裏フリップ・行書プロローグ」消滅根絶＆OP効果音オフ版【2回目 / 2】
+// ==============================================================================
+(function() {
+    // 1. オープニング再生中は効果音（SE）を鳴らさないように制御
+    const _prevPlaySEForOp = playSE;
+    playSE = function(type) {
+        const opScr = document.getElementById('opening-screen');
+        if (opScr && opScr.style.display !== 'none' && !opFinished) {
+            return; // オープニング中はSEを無音化
+        }
+        _prevPlaySEForOp.apply(this, arguments);
+    };
+
+    window.opBoardState = {
+        active: false,
+        flipX: 0,
+        targetFlipX: 0,
+        tiltZ: 0,
+        spinY: 0,
+        wglRef: null,
+        backMesh: null
+    };
+
+    // 2. メインの描画ループ（requestAnimationFrame）の直後に同期して盤面を描画し、絶対に消えないようにする
+    const _prevInitWglSync = initOpWebGL;
+    initOpWebGL = function() {
+        const wgl = _prevInitWglSync.apply(this, arguments);
+        if (!wgl) return null;
+
+        window.opBoardState.wglRef = wgl;
+        window.opBoardState.backMesh = window.createOpBoardBackMesh(wgl.gl);
+
+        // プロローグ中だけ元の無回転盤面の頂点数を0にして重複描画を防ぐ
+        const origBoardCount = wgl.boardMesh.count;
+        Object.defineProperty(wgl.boardMesh, 'count', {
+            get: function() {
+                return window.opBoardState.active ? 0 : origBoardCount;
+            },
+            configurable: true
+        });
+
+        window.updateOpBoardTextTexture(wgl.gl, wgl, 'front', window.OP_PROLOGUE_MAP.text1);
+        window.updateOpBoardTextTexture(wgl.gl, wgl, 'back', window.OP_PROLOGUE_MAP.text2);
+
+        // gl.clear が呼ばれたフレームの最後に必ず盤面を描画するフック
+        const gl = wgl.gl;
+        const _origClear = gl.clear.bind(gl);
+        let boardDrawScheduled = false;
+
+        gl.clear = function(mask) {
+            _origClear(mask);
+            if (window.opBoardState.active && !boardDrawScheduled && !opFinished) {
+                boardDrawScheduled = true;
+                // 背景プレート描画の直後（同フレーム内のマイクロタスク）で確実に上書き描画する
+                Promise.resolve().then(() => {
+                    boardDrawScheduled = false;
+                    if (!window.opBoardState.active || opFinished) return;
+
+                    const now = performance.now();
+window.opBoardState.flipX += (window.opBoardState.targetFlipX - window.opBoardState.flipX) * 0.042;
+                    window.opBoardState.spinY += 0.0045;
+                    window.opBoardState.tiltZ = Math.sin(now * 0.0015) * 0.24;
+
+                    const proj = M4.perspective(Math.PI / 4, 600 / 450, 0.1, 100.0);
+                    let view = M4.identity();
+                    view = M4.translate(view, 0, -window.opCam.targetY, -window.opCam.dist);
+                    view = M4.rotateX(view, window.opCam.pitch);
+
+                    let bm = M4.identity();
+                    bm = M4.rotateY(bm, window.opBoardState.spinY);
+                    bm = M4.rotateX(bm, window.opBoardState.flipX);
+                    const cZ = Math.cos(window.opBoardState.tiltZ), sZ = Math.sin(window.opBoardState.tiltZ);
+                    bm = M4.multiply(bm, new Array(cZ,sZ,0,0, -sZ,cZ,0,0, 0,0,1,0, 0,0,0,1));
+
+                    const mvp = M4.multiply(M4.multiply(proj, view), bm);
+                    const boardGlow = 0.25 + Math.sin(now * 0.006) * 0.12;
+
+                    gl.enable(gl.DEPTH_TEST);
+                    gl.depthMask(true);
+
+                    const drawSide = (mesh, vertexCount, tex) => {
+                        gl.bindBuffer(gl.ARRAY_BUFFER, mesh.pos);
+                        gl.enableVertexAttribArray(wgl.aPos);
+                        gl.vertexAttribPointer(wgl.aPos, 3, gl.FLOAT, false, 0, 0);
+
+                        gl.bindBuffer(gl.ARRAY_BUFFER, mesh.norm);
+                        gl.enableVertexAttribArray(wgl.aNorm);
+                        gl.vertexAttribPointer(wgl.aNorm, 3, gl.FLOAT, false, 0, 0);
+
+                        gl.bindBuffer(gl.ARRAY_BUFFER, mesh.uv);
+                        gl.enableVertexAttribArray(wgl.aUv);
+                        gl.vertexAttribPointer(wgl.aUv, 2, gl.FLOAT, false, 0, 0);
+
+                        gl.uniformMatrix4fv(wgl.uMvp, false, new Float32Array(mvp));
+                        gl.uniformMatrix4fv(wgl.uModel, false, new Float32Array(bm));
+                        gl.uniform1i(wgl.uUnlit, 0);
+                        gl.uniform1f(wgl.uGlow, boardGlow);
+                        gl.activeTexture(gl.TEXTURE0);
+                        gl.bindTexture(gl.TEXTURE_2D, tex);
+                        gl.uniform1i(wgl.uUseTex, 1);
+                        gl.drawArrays(gl.TRIANGLES, 0, vertexCount);
+                    };
+
+                    if (wgl.textures['board']) drawSide(wgl.boardMesh, origBoardCount, wgl.textures['board']);
+                    if (window.opBoardState.backMesh && wgl.textures['board_back']) {
+                        drawSide(window.opBoardState.backMesh, 6, wgl.textures['board_back']);
+                    }
+                });
+            }
+        };
+
+        return wgl;
+    };
+
+    // 3. 冒頭イベント（0:00〜0:24.5）の4段階フリップ制御
+    const topBoardEv = OP_TIMELINE.find(e => e.id === 'sync_top_board');
+    if (topBoardEv) {
+        topBoardEv.fn = () => {
+            clearOp3DScene();
+            window.opBgMode = 0;
+            window.opBoardState.active = true;
+            window.opBoardState.flipX = 0;
+            window.opBoardState.targetFlipX = 0;
+            window.opBoardState.spinY = 0;
+
+            window.opCam = {
+                angleY: 0, targetAngleY: null, spinSpeed: 0.0,
+                pitch: 0.98, targetPitch: 0.98,
+                dist: 11.5, targetDist: 11.5,
+                targetY: 0.0, targetLookY: 0.0
+            };
+
+            const wgl = window.opBoardState.wglRef;
+            if (wgl) {
+                window.updateOpBoardTextTexture(wgl.gl, wgl, 'front', window.OP_PROLOGUE_MAP.text1);
+                window.updateOpBoardTextTexture(wgl.gl, wgl, 'back', window.OP_PROLOGUE_MAP.text2);
+            }
+
+            // 【0:06.0】ぐるっと裏返って裏面（text2）へ
+            window.addOpTimer(() => {
+                if (opFinished || !window.opBoardState.active) return;
+                window.opBoardState.targetFlipX = Math.PI;
+                spawn3DEffect('ring', 0, 0.1, 0, [1.0, 0.84, 0.2, 0.85], 0.85);
+                spawn3DSparks(0, 0.3, 0, [1.0, 0.9, 0.3, 1.0], 24, 3.8, false);
+            }, 6000);
+
+            // 【0:12.0】表へぐるっと戻り、表面（text3）へ
+            window.addOpTimer(() => {
+                if (opFinished || !window.opBoardState.active) return;
+                const curWgl = window.opBoardState.wglRef;
+                if (curWgl) {
+                    window.updateOpBoardTextTexture(curWgl.gl, curWgl, 'front', window.OP_PROLOGUE_MAP.text3);
+                }
+                window.opBoardState.targetFlipX = Math.PI * 2;
+                spawn3DEffect('ring', 0, 0.1, 0, [0.0, 0.85, 1.0, 0.85], 0.85);
+                spawn3DSparks(0, 0.3, 0, [0.0, 0.85, 1.0, 1.0], 24, 3.8, false);
+            }, 12000);
+
+            // 【0:18.0】もう一度裏返って、裏面（text4）へ
+            window.addOpTimer(() => {
+                if (opFinished || !window.opBoardState.active) return;
+                const curWgl = window.opBoardState.wglRef;
+                if (curWgl) {
+                    window.updateOpBoardTextTexture(curWgl.gl, curWgl, 'back', window.OP_PROLOGUE_MAP.text4);
+                }
+                window.opBoardState.targetFlipX = Math.PI * 3;
+                spawn3DEffect('ring', 0, 0.1, 0, [1.0, 0.35, 0.15, 0.95], 0.95);
+                spawn3DSparks(0, 0.3, 0, [1.0, 0.84, 0.2, 1.0], 35, 4.5, true);
+            }, 18000);
+        };
+    }
+
+    // 4. 【0:24.5】カメラ降下と同時に通常の将棋盤へ戻す
+    const descendEv = OP_TIMELINE.find(e => e.id === 'sync_cam_descend');
+    if (descendEv) {
+        const _origDescendFn = descendEv.fn;
+        descendEv.fn = () => {
+            window.opBoardState.active = false;
+            const curWgl = window.opBoardState.wglRef;
+            if (curWgl) {
+                window.updateOpBoardTextTexture(curWgl.gl, curWgl, 'front', null);
+            }
+            _origDescendFn.apply(this, arguments);
+        };
+    }
+})();
 </script>
 </body>
 </html>
