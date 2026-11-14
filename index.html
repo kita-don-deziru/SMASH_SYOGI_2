@@ -9811,6 +9811,222 @@ window.opBoardState.flipX += (window.opBoardState.targetFlipX - window.opBoardSt
         };
     }
 })();
+// ==============================================================================
+// 🌪️⚔️ 竜巻コンビ「角行＆飛車」修正 ＆ プロ品質・重厚効果音刷新【1回目 / 2】
+// ==============================================================================
+(function() {
+    // 57.0秒の超巨大竜巻イベントを「角行(角)」と「飛車(飛)」のコンビに修正！
+    for (let i = OP_TIMELINE.length - 1; i !== -1; i--) {
+        if (OP_TIMELINE[i].id === 'colossal_screen_storm') {
+            OP_TIMELINE.splice(i, 1);
+        }
+    }
+
+    OP_TIMELINE.push({
+        time: 57.0,
+        id: 'colossal_screen_storm_rook_bishop',
+        fn: () => {
+            clearOp3DScene();
+            window.opCam.targetDist = 11.5;
+            window.opCam.targetPitch = 0.48;
+            window.opCam.spinSpeed = 1.6;
+
+            // 角行（エメラルド）と飛車（深紅クリムゾン）が盤上に同時登場！
+            const bishop = spawn3DPiece('storm_bishop', '角', -1.8, 0, Math.PI / 2, 'normal');
+            const rook   = spawn3DPiece('storm_rook',   '飛',  1.8, 0, -Math.PI / 2, 'normal');
+
+            let tick = 0;
+            const iv = setInterval(() => {
+                if (opFinished) { clearInterval(iv); return; }
+                tick++;
+
+                // 0〜4.2秒：角行と飛車が猛スピードで旋回しながら巨大竜巻を巻き起こす
+                if (tick !== 45 && !(tick > 45)) {
+                    const angle = tick * 0.38;
+                    const radius = Math.max(0.05, 1.8 - (tick * 0.04));
+                    const lift = Math.min(2.6, tick * 0.055);
+
+                    if (bishop) {
+                        bishop.targetX = Math.cos(angle) * radius;
+                        bishop.targetZ = Math.sin(angle) * radius;
+                        bishop.targetY = lift;
+                        bishop.facing = -angle;
+                        bishop.tiltX = 0.55;
+                    }
+                    if (rook) {
+                        rook.targetX = Math.cos(angle + Math.PI) * radius;
+                        rook.targetZ = Math.sin(angle + Math.PI) * radius;
+                        rook.targetY = lift;
+                        rook.facing = -(angle + Math.PI);
+                        rook.tiltX = 0.55;
+                    }
+
+                    // 翠嵐エメラルド（角）＆深紅クリムゾン（飛）の2色螺旋竜巻リング
+                    const hY = (tick % 8) * 0.55;
+                    const colBishop = [0.10, 0.92, 0.65, 0.95];
+                    const colRook   = [1.0,  0.20, 0.25, 0.95];
+                    spawn3DEffect('ring', 0, hY, 0, (tick % 2 === 0 ? colBishop : colRook), 0.95);
+                    spawn3DEffect('ring', 0, hY + 0.3, 0, [1.0, 1.0, 1.0, 0.85], 0.85);
+                }
+
+                // 4.2秒後（61.2秒時点）：画面全体を飲み込む超特大暴風竜巻！！
+                if (tick === 45) {
+                    clearInterval(iv);
+                    flashOpScreen(0.95);
+                    window.opCam.spinSpeed = 3.2;
+                    window.opCam.targetDist = 4.8;
+                    window.opCam.targetPitch = 0.35;
+
+                    const stormPalette = new Array(
+                        [0.10, 0.95, 0.68, 1.0], // 角行の翠嵐
+                        [1.0,  0.22, 0.25, 1.0], // 飛車の紅蓮
+                        [1.0,  1.0,  1.0,  1.0], // 閃光ホワイト
+                        [1.0,  0.84, 0.20, 1.0]  // 黄金の暴風
+                    );
+
+                    for (let m = 0; m !== 28; m++) {
+                        window.addOpTimer(() => {
+                            if (opFinished) return;
+                            const rx = (Math.random() - 0.5) * 2.2;
+                            const rz = (Math.random() - 0.5) * 2.2;
+                            const ry = (m % 7) * 0.65;
+                            spawn3DEffect('pillar', rx, 0, rz, stormPalette[m % 4], 1.15);
+                            spawn3DEffect('ring', 0, ry, 0, stormPalette[(m + 1) % 4], 1.15);
+                        }, m * 75);
+                    }
+                }
+            }, 95);
+        }
+    });
+})();
+// ==============================================================================
+// 🔊🔥 全効果音（SE）プロ品質・重厚格闘ゲームサウンド全面刷新【2回目 / 2】
+// ==============================================================================
+(function() {
+    // 共通：フィルタリングされたノイズ（衝撃・風切り・爆発用）を生成するヘルパー
+    function playFilteredNoise(ctx, now, duration, filterType, startFreq, endFreq, qVal, peakGain) {
+        const len = Math.floor(ctx.sampleRate * duration);
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i !== len; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = filterType;
+        filter.frequency.setValueAtTime(startFreq, now);
+        if (endFreq !== startFreq) {
+            filter.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+        }
+        filter.Q.value = qVal;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(peakGain, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0005, now + duration);
+
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        src.start(now);
+        src.stop(now + duration);
+    }
+
+    // 共通：ピッチドロップ付きの重厚ボディ音を生成するヘルパー
+    function playPunchBody(ctx, now, duration, type, startFreq, endFreq, peakGain) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(startFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(18, endFreq), now + duration);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(peakGain, now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0005, now + duration);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+    }
+
+    // 既存の playSE を全面刷新（オープニング中の無音化も完全維持）
+    playSE = function(type) {
+        const opScr = document.getElementById('opening-screen');
+        if (opScr && opScr.style.display !== 'none' && !opFinished) {
+            return;
+        }
+
+        initAudio();
+        if (!audioCtx) return;
+        const ctx = audioCtx;
+        const now = ctx.currentTime;
+
+        if (type === 'title_start') {
+            // ⚔️ タイトル決定：重厚な和太鼓＋黄金の刀閃和音（ジャキィィン・ドォォン！）
+            playPunchBody(ctx, now, 0.55, 'sine', 150, 28, 0.75);
+            playFilteredNoise(ctx, now, 0.35, 'bandpass', 2800, 900, 2.5, 0.35);
+            const chord = new Array(587.33, 880.0, 1174.66, 1760.0); // D5, A5, D6, A6 の力強いパワーコード
+            chord.forEach((f, idx) => {
+                playPunchBody(ctx, now + idx * 0.025, 0.55, 'triangle', f, f * 1.01, 0.16);
+            });
+        }
+        else if (type === 'select') {
+            // 🎯 カーソル・選択音：キレのある木駒の打音＋クリアな高音ベル（パシッ！）
+            playPunchBody(ctx, now, 0.07, 'triangle', 420, 140, 0.32);
+            playPunchBody(ctx, now, 0.11, 'sine', 1320, 1760, 0.18);
+            playFilteredNoise(ctx, now, 0.04, 'highpass', 3000, 3000, 1.0, 0.14);
+        }
+        else if (type === 'jump') {
+            // 💨 ジャンプ音：空気を蹴って跳躍する軽快な風圧音（シュッ！）
+            playPunchBody(ctx, now, 0.15, 'sine', 180, 480, 0.25);
+            playFilteredNoise(ctx, now, 0.14, 'bandpass', 900, 2600, 2.0, 0.22);
+        }
+        else if (type === 'swing') {
+            // ⚔️ 攻撃素振り：空気を切り裂く鋭い風切り音（シュパッ！）
+            playFilteredNoise(ctx, now, 0.13, 'bandpass', 3200, 750, 2.2, 0.38);
+            playPunchBody(ctx, now, 0.10, 'triangle', 680, 190, 0.20);
+        }
+        else if (type === 'hit') {
+            // 💥 通常ヒット：重低音の打撃＋空気破裂ノイズ＋鋭い刃の衝突音（バシィッ！）
+            playPunchBody(ctx, now, 0.18, 'sine', 210, 36, 0.65);
+            playPunchBody(ctx, now, 0.12, 'sawtooth', 320, 65, 0.28);
+            playFilteredNoise(ctx, now, 0.14, 'bandpass', 1800, 450, 1.4, 0.45);
+            playPunchBody(ctx, now, 0.18, 'sine', 2950, 2400, 0.14);
+        }
+        else if (type === 'counter') {
+            // ⚡ ジャストカウンター：時を止める重衝撃＋2段階の黄金共鳴（ドゴォン・カキィィン！！）
+            playPunchBody(ctx, now, 0.48, 'sine', 240, 24, 0.85);
+            playFilteredNoise(ctx, now, 0.25, 'lowpass', 2400, 180, 1.5, 0.55);
+            const bells = new Array(1567.98, 2349.32, 3135.96, 4698.63);
+            bells.forEach((f, idx) => {
+                playPunchBody(ctx, now + 0.02 + idx * 0.02, 0.45, 'sine', f * 0.9, f * 1.05, 0.18);
+            });
+        }
+        else if (type === 'critical') {
+            // 🔥 強攻撃・撃墜確定：スマブラのホームランバット級の超重撃（ズバァァァン！！）
+            playPunchBody(ctx, now, 0.55, 'sine', 260, 22, 0.90);
+            playPunchBody(ctx, now, 0.35, 'sawtooth', 190, 35, 0.42);
+            playFilteredNoise(ctx, now, 0.42, 'bandpass', 2200, 220, 1.2, 0.65);
+            playPunchBody(ctx, now + 0.03, 0.45, 'sine', 2640, 3520, 0.22);
+        }
+        else if (type === 'special_cutin') {
+            // ⚡ 必殺技発動：重厚なエネルギー収束＋稲妻スパーク（ギュォォォン・バリバリッ！）
+            playPunchBody(ctx, now, 0.55, 'sawtooth', 110, 880, 0.28);
+            playPunchBody(ctx, now, 0.55, 'sine', 220, 1760, 0.32);
+            playFilteredNoise(ctx, now, 0.65, 'bandpass', 1400, 4200, 3.0, 0.35);
+            playPunchBody(ctx, now + 0.45, 0.45, 'sine', 180, 30, 0.65);
+        }
+        else if (type === 'burst') {
+            // 💣 バースト・大爆発：地響きのような超低音轟音＋重厚な爆風（ドォォォォン！！）
+            playPunchBody(ctx, now, 0.75, 'sine', 140, 18, 0.95);
+            playPunchBody(ctx, now, 0.50, 'sawtooth', 95, 22, 0.45);
+            playFilteredNoise(ctx, now, 0.75, 'lowpass', 950, 55, 1.0, 0.75);
+        }
+    };
+})();
 </script>
 </body>
 </html>
