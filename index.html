@@ -7229,7 +7229,7 @@ function startOpeningSequence() {
                 }
                 const prog = fx.age / fx.maxLife;
                 const alpha = 1.0 - prog;
-                const col = new Array(fx.color, fx.color, fx.color, alpha);
+                const col = [fx.color[0], fx.color[1], fx.color[2], alpha];
 
                 let fm = M4.identity();
                 fm = M4.translate(fm, fx.x, fx.y, fx.z);
@@ -7273,6 +7273,39 @@ acceptNotice = function() {
     _origAcceptNoticeForOp.apply(this, arguments);
     startOpeningSequence();
 };
+// 1. 未定義だった画面フラッシュ関数の追加
+function flashOpScreen(intensity = 0.85) {
+    const flash = document.getElementById('op-flash-overlay');
+    if (!flash) return;
+    flash.style.opacity = String(intensity);
+    setTimeout(() => {
+        flash.style.opacity = '0';
+    }, 120);
+}
+
+// 2. 配列指定ミスを修正した morphOpPieceSmoothly の上書き
+morphOpPieceSmoothly = function(nextKanji, nextType = 'normal', onReady = null) {
+    const currentNorm = window.opCam.angleY % (Math.PI * 2);
+    let diff = (-currentNorm) % (Math.PI * 2);
+    if (diff < -Math.PI) diff += Math.PI * 2;
+    if (diff > Math.PI) diff -= Math.PI * 2;
+    window.opCam.targetAngleY = window.opCam.angleY + diff + (diff >= 0 ? Math.PI * 2 : -Math.PI * 2);
+
+    const oldObj = window.op3DObjects[0];
+    if (oldObj) oldObj.state = 'morph_out';
+
+    setTimeout(() => {
+        clearOp3DScene();
+        const newObj = spawn3DPiece('op_center_actor', nextKanji, 0, 0, 0, nextType);
+        newObj.state = 'morph_in';
+        spawn3DEffect('ring', 0, 0.25, 0, [1.0, 0.84, 0.2, 0.95], 0.7);
+        setTimeout(() => {
+            if (newObj) { newObj.state = 'idle'; newObj.facing = 0; }
+            if (onReady) onReady(newObj);
+        }, 480);
+    }, 450);
+};
+
 
 
 </script>
