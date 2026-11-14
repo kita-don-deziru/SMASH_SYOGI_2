@@ -7394,6 +7394,103 @@ morphOpPieceSmoothly = function(nextKanji, nextType = 'normal', onReady = null) 
         };
     }
 })();
+// ==============================================================================
+// 🌪️💥 「超巨大竜巻で画面埋め尽くし ➔ 晴れたら激闘中」場面転換パッチ
+// ==============================================================================
+(function() {
+    // 既存の 60.5秒・64.0秒イベントを統合調整
+    const idxRook = OP_TIMELINE.findIndex(e => e.id === 'sync_rook');
+    if (idxRook !== -1) OP_TIMELINE.splice(idxRook, 1);
+
+    const stormEv = OP_TIMELINE.find(e => e.id === 'sync_bishop');
+    const chorusEv = OP_TIMELINE.find(e => e.id === 'sync_chorus_battle');
+
+    if (stormEv && chorusEv) {
+        const origChorusFn = chorusEv.fn;
+        // サビのバトル開始を竜巻のピーク（63.6秒）で裏側でセットアップしておく
+        chorusEv.time = 63.6;
+        chorusEv.fn = () => {
+            origChorusFn();
+            // 竜巻が晴れた瞬間から即座に初撃の火花が散るようにする
+            spawn3DEffect('ring', 0, 0.5, -1.1, new Array(1.0, 0.84, 0.15, 1.0), 0.65);
+        };
+
+        stormEv.fn = () => {
+            clearOp3DScene();
+            if (typeof playSE === 'function') playSE('special_cutin');
+
+            window.opCam.targetDist = 12.8;
+            window.opCam.targetPitch = 0.50;
+            window.opCam.spinSpeed = 1.35;
+
+            const bishop = spawn3DPiece('storm_bishop', '角', -1.7, 0, Math.PI / 2, 'normal');
+            const knight = spawn3DPiece('storm_knight', '桂',  1.7, 0, -Math.PI / 2, 'normal');
+
+            let stormTick = 0;
+            const stormIv = setInterval(() => {
+                if (opFinished) { clearInterval(stormIv); return; }
+                stormTick++;
+
+                // 0〜5.0秒（tick 1〜52）：2体が猛スピードで螺旋旋回しながら中心へ集束
+                if (stormTick <= 52) {
+                    const angle = stormTick * 0.32;
+                    const radius = Math.max(0.1, 1.75 - (stormTick * 0.032));
+                    const lift = Math.min(2.2, stormTick * 0.042);
+
+                    if (bishop) {
+                        bishop.targetX = Math.cos(angle) * radius;
+                        bishop.targetZ = Math.sin(angle) * radius;
+                        bishop.targetY = lift;
+                        bishop.facing = -angle;
+                        bishop.tiltX = 0.48;
+                    }
+                    if (knight) {
+                        knight.targetX = Math.cos(angle + Math.PI) * radius;
+                        knight.targetZ = Math.sin(angle + Math.PI) * radius;
+                        knight.targetY = lift;
+                        knight.facing = -(angle + Math.PI);
+                        knight.tiltX = 0.48;
+                    }
+
+                    if (stormTick % 2 === 0) {
+                        const hY = (stormTick % 12) * 0.42;
+                        const col = (stormTick % 4 === 0)
+                            ? new Array(0.11, 0.88, 0.68, 0.92)
+                            : new Array(0.0, 0.80, 1.0, 0.92);
+                        spawn3DEffect('ring', 0, hY, 0, col, 0.55);
+                    }
+                }
+
+                // 5.2秒後（62.2秒時点）：中心で2体が激突し、画面全体を埋め尽くす超巨大竜巻が爆発発生！！
+                if (stormTick === 53) {
+                    clearInterval(stormIv);
+                    if (typeof playSE === 'function') playSE('burst');
+                    flashOpScreen(0.95);
+                    window.opCam.spinSpeed = 2.4; // カメラも暴風に巻き込まれて超高速回転！
+                    window.opCam.targetDist = 7.2; // カメラが竜巻の渦の中へ突っ込むように急接近！
+
+                    // 画面を完全に覆い尽くす特大の暴風光柱＆多重巨大リングを1.4秒間連射
+                    const megaColors = new Array(
+                        new Array(0.15, 0.95, 0.75, 1.0),
+                        new Array(0.0,  0.85, 1.0,  1.0),
+                        new Array(1.0,  1.0,  1.0,  1.0),
+                        new Array(0.55, 0.95, 1.0,  1.0)
+                    );
+                    for (let m = 0; m < 18; m++) {
+                        setTimeout(() => {
+                            if (opFinished) return;
+                            const h = (m % 6) * 0.85;
+                            spawn3DEffect('pillar', (Math.random()-0.5)*1.2, 0, (Math.random()-0.5)*1.2, megaColors[m % 4], 0.85);
+                            spawn3DEffect('ring', 0, h, 0, megaColors[(m + 1) % 4], 0.85);
+                        }, m * 70);
+                    }
+                }
+            }, 95);
+        };
+    }
+})();
+
+
 
 </script>
 </body>
