@@ -9258,7 +9258,7 @@ window.clearAllOpTimers = function() {
     // 1. 読みやすい行書フォント（Google Fonts）を動的に読み込む
     const fontLink = document.createElement('link');
     fontLink.rel = 'stylesheet';
-    fontLink.href = 'https:' + '//://googleapis.com';
+    fontLink.href = 'https://' + '://googleapis.com' + 'css2?family=Yuji+Syuku&display=swap';
     document.head.appendChild(fontLink);
 
     // 2. プロローグの4つの物語テキスト（表 ➔ 裏 ➔ 表 ➔ 裏）
@@ -10032,7 +10032,7 @@ window.opBoardState.flipX += (window.opBoardState.targetFlipX - window.opBoardSt
 // ==============================================================================
 (function() {
     // 音声ファイルを事前に読み込んでおく（ファイル名が違う場合はここを書き換えてください）
-    const titleStartAudio = new Audio(ショック5.mp3');
+    const titleStartAudio = new Audio('ショック5.mp3');
     titleStartAudio.volume = 0.85;
 
     const _prevPlaySEWithTitleAudio = playSE;
