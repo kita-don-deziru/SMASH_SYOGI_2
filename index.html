@@ -10027,6 +10027,153 @@ window.opBoardState.flipX += (window.opBoardState.targetFlipX - window.opBoardSt
         }
     };
 })();
+// ==============================================================================
+// 🔊 タイトル画面タップ時の専用オーディオ再生パッチ
+// ==============================================================================
+(function() {
+    // 音声ファイルを事前に読み込んでおく（ファイル名が違う場合はここを書き換えてください）
+    const titleStartAudio = new Audio(ショック5.mp3');
+    titleStartAudio.volume = 0.85;
+
+    const _prevPlaySEWithTitleAudio = playSE;
+    playSE = function(type) {
+        if (type === 'title_start') {
+            titleStartAudio.currentTime = 0;
+            titleStartAudio.play().catch(err => {
+                console.log('タイトル音声再生待機:', err);
+            });
+            return; // 合成電子音は鳴らさずに終了
+        }
+        _prevPlaySEWithTitleAudio.apply(this, arguments);
+    };
+})();
+// ==============================================================================
+// 🔊 必殺技（SP技）発動時の専用オーディオ再生パッチ
+// ==============================================================================
+(function() {
+    // 必殺技用の音声ファイル名（実際のファイル名に合わせて書き換えてください）
+    const specialCutinAudio = new Audio('ステータス上昇魔法1.mp3');
+    specialCutinAudio.volume = 0.9;
+
+    const _prevPlaySEWithSpecialAudio = playSE;
+    playSE = function(type) {
+        // オープニング再生中は無音のまま維持
+        const opScr = document.getElementById('opening-screen');
+        if (opScr && opScr.style.display !== 'none' && !opFinished) {
+            return;
+        }
+
+        if (type === 'special_cutin') {
+            specialCutinAudio.currentTime = 0;
+            specialCutinAudio.play().catch(err => {
+                console.log('必殺技音声再生待機:', err);
+            });
+            return; // 元の電子音は鳴らさずに終了
+        }
+        _prevPlaySEWithSpecialAudio.apply(this, arguments);
+    };
+})();
+// ==============================================================================
+// 🛡️💥 シールドブレイク MP3再生パッチ（カットインなし版）
+// ==============================================================================
+(function() {
+    // シールドブレイク用のMP3ファイル名（実際のファイル名に合わせて書き換えてください）
+    const shieldBreakAudio = new Audio('ロボットを強く殴る3.mp3');
+    shieldBreakAudio.volume = 0.9;
+
+    // 1. playSE('shield_break') でMP3を再生
+    const _prevPlaySEWithShieldMp3 = playSE;
+    playSE = function(type) {
+        if (type === 'shield_break') {
+            shieldBreakAudio.currentTime = 0;
+            shieldBreakAudio.play().catch(err => {
+                console.log('シールドブレイク音声再生待機:', err);
+            });
+            return;
+        }
+        _prevPlaySEWithShieldMp3.apply(this, arguments);
+    };
+
+    // 2. 「シールドブレイク！！」のカットイン文字は表示せず、MP3音と揺れだけを発生させる
+    const _prevCutInNoShieldText = triggerCutIn;
+    triggerCutIn = function(txt) {
+        if (txt && txt.indexOf('シールドブレイク') !== -1) {
+            playSE('shield_break');
+            if (typeof triggerCameraShake === 'function') triggerCameraShake();
+            return; // カットイン文字・斜め演出は一切表示しない
+        }
+        _prevCutInNoShieldText.apply(this, arguments);
+    };
+})();
+// ==============================================================================
+// 💥🌟 撃墜（バースト）音 MP3再生パッチ
+// ==============================================================================
+(function() {
+    // 撃墜用のMP3ファイル名（実際のファイル名に合わせて書き換えてください）
+    const koBurstAudio = new Audio('ビーム砲1.mp3');
+    koBurstAudio.volume = 0.95;
+
+    const _prevPlaySEWithKoMp3 = playSE;
+    playSE = function(type) {
+        // オープニング再生中は無音のまま維持
+        const opScr = document.getElementById('opening-screen');
+        if (opScr && opScr.style.display !== 'none' && !opFinished) {
+            return;
+        }
+
+        if (type === 'burst') {
+            koBurstAudio.currentTime = 0;
+            koBurstAudio.play().catch(err => {
+                console.log('撃墜音声再生待機:', err);
+            });
+            return; // 元の電子音は鳴らさずに終了
+        }
+        _prevPlaySEWithKoMp3.apply(this, arguments);
+    };
+})();
+// ==============================================================================
+// ⚔️💥 攻撃ヒット音 MP3再生パッチ（連撃対応版）
+// ==============================================================================
+(function() {
+    // 攻撃ヒット用のMP3ファイル名（実際のファイル名に合わせて書き換えてください）
+    const normalHitAudio = new Audio('hit.mp3');
+    normalHitAudio.volume = 0.85;
+
+    // 強攻撃・クリティカルヒット用のMP3ファイル名（同じ音でよければ 'hit.mp3' のままでOK）
+    const criticalHitAudio = new Audio('剣で斬る2.mp3');
+    criticalHitAudio.volume = 0.95;
+
+    const _prevPlaySEWithHitMp3 = playSE;
+    playSE = function(type) {
+        // オープニング再生中は無音のまま維持
+        const opScr = document.getElementById('opening-screen');
+        if (opScr && opScr.style.display !== 'none' && !opFinished) {
+            return;
+        }
+
+        if (type === 'hit') {
+            // 連撃で連続ヒットしても音が途切れないように複製して再生
+            const sound = normalHitAudio.cloneNode(true);
+            sound.volume = normalHitAudio.volume;
+            sound.play().catch(err => {
+                console.log('通常ヒット音声再生待機:', err);
+            });
+            return;
+        }
+
+        if (type === 'critical') {
+            const sound = criticalHitAudio.cloneNode(true);
+            sound.volume = criticalHitAudio.volume;
+            sound.play().catch(err => {
+                console.log('強ヒット音声再生待機:', err);
+            });
+            return;
+        }
+
+        _prevPlaySEWithHitMp3.apply(this, arguments);
+    };
+})();
+
 </script>
 </body>
 </html>
