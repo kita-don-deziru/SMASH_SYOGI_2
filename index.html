@@ -6538,7 +6538,7 @@ function createOpBgTexture(gl, mode) {
         ctx.fillStyle = sun; ctx.fillRect(0, 0, 512, 512);
     } else if (mode === 2) {
         const g = ctx.createLinearGradient(0, 0, 512, 512);
-        g.addColorStop(0, '#bdfpec'); g.addColorStop(0.5, '#71dbff'); g.addColorStop(1, '#38d3b9');
+       g.addColorStop(0, '#bdffec'); g.addColorStop(0.5, '#71dbff'); g.addColorStop(1, '#38d3b9');
         ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
         const colors = new Array('#ff3f3f', '#ff9f43', '#ffe641', '#00e3ff', '#5700ff');
         colors.forEach((col, i) => {
@@ -6805,7 +6805,7 @@ function morphOpPieceSmoothly(nextKanji, nextType = 'normal', onReady = null) {
     if (diff > Math.PI) diff -= Math.PI * 2;
     window.opCam.targetAngleY = window.opCam.angleY + diff + (diff >= 0 ? Math.PI * 2 : -Math.PI * 2);
 
-    const oldObj = window.op3DObjects;
+    const oldObj = window.op3DObjects;[0]
     if (oldObj) oldObj.state = 'morph_out';
 
     setTimeout(() => {
