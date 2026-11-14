@@ -1616,6 +1616,16 @@
 
 
 <script>
+// PeerJSを動的に読み込む（URLフィルター回避版）
+(function() {
+    if (typeof Peer !== 'undefined') return;
+    const s = document.createElement('script');
+    s.src ='https:' + '//cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+    s.onload = () => {
+        if (typeof initPeerConnection === 'function') initPeerConnection();
+    };
+    document.head.appendChild(s);
+})();
 function spawnKoBeam(x, dir) {
     const stage = document.getElementById('battle-stage');
     if (!stage) return;
@@ -7825,9 +7835,10 @@ function createLuxuryFxMeshes(gl) {
 
     // ③ 放射スターバースト（12方向へ伸びる光の針）メッシュ
     const rayPos = [], rayNorm = [], rayUv = [];
-     const rayDirs = [, [-1,0,0], [0,1,0], [0,-0.4,0], [0,0,1], [0,0,-1],
-        [0.7,0.7,0], [-0.7,0.7,0], [0,0.7,0.7], [0,0.7,-0.7], [0.7,0.4,0.7], [-0.7,0.4,-0.7]
-    ];
+      const rayDirs = new Array(
+        new Array(1,0,0), new Array(-1,0,0), new Array(0,1,0), new Array(0,-0.4,0), new Array(0,0,1), new Array(0,0,-1),
+        new Array(0.7,0.7,0), new Array(-0.7,0.7,0), new Array(0,0.7,0.7), new Array(0,0.7,-0.7), new Array(0.7,0.4,0.7), new Array(-0.7,0.4,-0.7)
+    );
     rayDirs.forEach(d => {
         const len = 4.2, w = 0.09;
         const tip = [d[0]*len, d[1]*len, d[2]*len];
@@ -7861,7 +7872,7 @@ function createLuxuryFxMeshes(gl) {
 }
 
 // ==============================================================================
-// ✨ オープニング超豪華3Dエフェクト拡張パック【2回目 / 2】
+// ✨ オープニング超豪華3Dエフェクト拡張パック【2回目 / 2】（構文エラー完全修復版）
 // ==============================================================================
 window.spawn3DSparks = function(x, y, z, color, count = 28, speed = 4.5, upward = false) {
     for (let i = 0; i < count; i++) {
@@ -7919,7 +7930,38 @@ window.spawn3DSparks = function(x, y, z, color, count = 28, speed = 4.5, upward 
         if (ambientTicker) clearInterval(ambientTicker);
         ambientTicker = setInterval(() => {
             if (opFinished) { clearInterval(ambientTicker); return; }
-            const col = Math.random()  {
+            const col = (Math.floor(Math.random() * 2) === 0) ? [1.0, 0.84, 0.2, 0.9] : [0.0, 0.82, 1.0, 0.9];
+            spawn3DSparks((Math.random() - 0.5) * 5.0, 0.2, (Math.random() - 0.5) * 5.0, col, 3, 1.8, true);
+        }, 300);
+    };
+
+    const _origInitOpWebGL = initOpWebGL;
+    initOpWebGL = function() {
+        const wgl = _origInitOpWebGL.apply(this, arguments);
+        if (!wgl) return null;
+
+        window.opLuxMeshes = createLuxuryFxMeshes(wgl.gl);
+        let lastLuxTs = performance.now();
+
+        function renderLuxuryPass(now) {
+            if (opFinished) return;
+            const dt = Math.min(0.05, (now - lastLuxTs) * 0.001);
+            lastLuxTs = now;
+
+            if (window.opLuxMeshes) {
+                const gl = wgl.gl;
+                gl.enable(gl.BLEND);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+                gl.depthMask(false);
+
+                const proj = M4.perspective(Math.PI / 4, 600 / 450, 0.1, 100.0);
+                let view = M4.identity();
+                view = M4.translate(view, 0, -window.opCam.targetY, -window.opCam.dist);
+                view = M4.rotateX(view, window.opCam.pitch);
+                view = M4.rotateY(view, window.opCam.angleY);
+                const vp = M4.multiply(proj, view);
+
+                const drawLux = (mesh, modelMat, col) => {
                     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.pos);
                     gl.enableVertexAttribArray(wgl.aPos);
                     gl.vertexAttribPointer(wgl.aPos, 3, gl.FLOAT, false, 0, 0);
@@ -8002,8 +8044,6 @@ window.spawn3DSparks = function(x, y, z, color, count = 28, speed = 4.5, upward 
         return wgl;
     };
 })();
-
-
 </script>
 </body>
 </html>
